@@ -1,0 +1,116 @@
+{
+  "mtz_specs": {
+    "MTZ1": {
+      "description": "MasterPact MTZ1 — up to 1600A, standard ACB for PrismaSeT P main incomer",
+      "max_rating_A": 1600,
+      "min_rating_A": 100,
+      "frame_3p_width_mm": 305,
+      "frame_4p_width_mm": 360,
+      "height_mm": 460,
+      "depth_mm": 358,
+      "min_cubicle_width_mm": 400,
+      "typical_cubicle_width_mm": 600,
+      "inferred_vbb_widths_mm": [150, 200],
+      "inferred_busbar_ratings": ["up to 630A", "800A-1250A"]
+    },
+    "MTZ2": {
+      "description": "MasterPact MTZ2 — 1600A to 4000A, large ACB for high current PrismaSeT P",
+      "max_rating_A": 4000,
+      "min_rating_A": 1600,
+      "frame_3p_width_mm": 422,
+      "frame_4p_width_mm": 500,
+      "height_mm": 510,
+      "depth_mm": 395,
+      "min_cubicle_width_mm": 600,
+      "typical_cubicle_width_mm": 800,
+      "inferred_vbb_widths_mm": [250, 300],
+      "inferred_busbar_ratings": ["1600A-2500A", "3200A+"]
+    },
+    "MTZ3": {
+      "description": "MasterPact MTZ3 — 4000A to 6300A, very large ACB for Okken or large PrismaSeT",
+      "max_rating_A": 6300,
+      "min_rating_A": 4000,
+      "frame_3p_width_mm": 530,
+      "frame_4p_width_mm": 610,
+      "height_mm": 570,
+      "depth_mm": 420,
+      "min_cubicle_width_mm": 800,
+      "typical_cubicle_width_mm": 1000,
+      "inferred_vbb_widths_mm": [300],
+      "inferred_busbar_ratings": ["3200A+"]
+    }
+  },
+  "vbb_specs": [
+    {
+      "width_mm": 150,
+      "max_rating_A": 630,
+      "min_rating_A": 0,
+      "label": "up to 630A",
+      "typical_mtz": "MTZ1"
+    },
+    {
+      "width_mm": 200,
+      "max_rating_A": 1250,
+      "min_rating_A": 800,
+      "label": "800A – 1250A",
+      "typical_mtz": "MTZ1"
+    },
+    {
+      "width_mm": 250,
+      "max_rating_A": 2500,
+      "min_rating_A": 1600,
+      "label": "1600A – 2500A",
+      "typical_mtz": "MTZ2"
+    },
+    {
+      "width_mm": 300,
+      "max_rating_A": 6300,
+      "min_rating_A": 3200,
+      "label": "3200A+",
+      "typical_mtz": "MTZ2 or MTZ3"
+    }
+  ],
+  "panel_specs": {
+    "PrismaSeT P": {
+      "vbb_present": true,
+      "vbb_door_clues": [
+        "Narrow plain/blank solid metal door",
+        "No visible breaker handles, switches, or vents",
+        "No nameplate windows or cutouts",
+        "Always on left or right side of the panel",
+        "Significantly narrower than functional section door"
+      ],
+      "functional_section_clues": [
+        "Wider door — wider than VBB door",
+        "Visible breaker handles, MCCBs, MCBs or wiring",
+        "May have cable entry glands at bottom",
+        "Has the main ACB (MTZ) inside"
+      ],
+      "total_width_range_mm": [550, 1100],
+      "safety_rules": [
+        "VBB compartment contains live busbars at ALL times — even when panel is de-energised at incomer",
+        "Do NOT drill, cut, or penetrate VBB compartment door",
+        "Isolate upstream supply before any work near VBB compartment",
+        "Minimum approach clearance: 300mm from VBB door face"
+      ]
+    },
+    "PrismaSeT G": {
+      "vbb_present": false,
+      "notes": "No VBB compartment — locate_vbb not applicable for this panel type"
+    },
+    "Okken": {
+      "vbb_present": false,
+      "notes": "Okken uses horizontal busbar system — no VBB side compartment"
+    }
+  },
+  "inference_rules": [
+    "If MTZ1 detected → functional section ≥ 400mm → VBB width likely 150mm or 200mm",
+    "If MTZ2 detected → functional section ≥ 600mm → VBB width likely 250mm or 300mm",
+    "If MTZ3 detected → functional section ≥ 800mm → VBB width likely 300mm",
+    "Narrow blank door proportion < 30% of total panel width → strong VBB indicator",
+    "If rated current on nameplate ≤ 630A → VBB = 150mm",
+    "If rated current on nameplate 800A–1250A → VBB = 200mm",
+    "If rated current on nameplate 1600A–2500A → VBB = 250mm",
+    "If rated current on nameplate ≥ 3200A → VBB = 300mm"
+  ]
+}

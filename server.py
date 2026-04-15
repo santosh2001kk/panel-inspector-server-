@@ -7,6 +7,7 @@ Then point the app to http://<your-mac-ip>:8000
 import base64
 import io
 import json
+import os
 import re
 import socket
 import numpy as np

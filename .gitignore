@@ -16,3 +16,5 @@ env/
 
 # macOS
 .DS_Store
+breaker_data.db
+scans_images/

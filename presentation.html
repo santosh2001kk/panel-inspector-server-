@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Location Verification — GPS vs ARCore</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .slide {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    animation: fadeIn 0.4s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Slide backgrounds ── */
+  .slide-1 { background: linear-gradient(135deg, #1e3a5f, #0f172a); }
+  .slide-2 { background: linear-gradient(135deg, #1a2a1a, #0f172a); }
+  .slide-3 { background: linear-gradient(135deg, #1a3a2a, #0f172a); }
+  .slide-4 { background: linear-gradient(135deg, #3a1a1a, #0f172a); }
+  .slide-5 { background: linear-gradient(135deg, #1e2a4a, #0f172a); }
+  .slide-6 { background: linear-gradient(135deg, #2a1a3a, #0f172a); }
+
+  /* ── Title slide ── */
+  .title-tag {
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #64b5f6;
+    margin-bottom: 20px;
+  }
+  .title-main {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .title-sub {
+    font-size: 22px;
+    color: #90caf9;
+    margin-bottom: 40px;
+  }
+  .title-divider {
+    width: 80px;
+    height: 4px;
+    background: #64b5f6;
+    border-radius: 2px;
+    margin-bottom: 40px;
+  }
+  .title-meta {
+    font-size: 15px;
+    color: #64748b;
+  }
+
+  /* ── Section heading ── */
+  .slide-label {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #64b5f6;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 38px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 36px;
+    line-height: 1.2;
+  }
+
+  /* ── Cards ── */
+  .cards {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 28px 32px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .card-icon { font-size: 32px; margin-bottom: 14px; }
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 10px;
+  }
+  .card-body {
+    font-size: 15px;
+    color: #94a3b8;
+    line-height: 1.7;
+  }
+
+  /* ── Pro/con lists ── */
+  .pro-con {
+    display: flex;
+    gap: 32px;
+  }
+  .col { flex: 1; }
+  .col-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+  }
+  .col-title.green { color: #4ade80; border-color: #4ade80; }
+  .col-title.red   { color: #f87171; border-color: #f87171; }
+  ul { list-style: none; padding: 0; }
+  ul li {
+    font-size: 16px;
+    color: #cbd5e1;
+    padding: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+  ul li .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Comparison table ── */
+  .table-wrap {
+    background: rgba(255,255,255,0.04);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: rgba(100,181,246,0.15); }
+  thead th {
+    padding: 16px 24px;
+    text-align: left;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #64b5f6;
+  }
+  tbody tr { border-top: 1px solid rgba(255,255,255,0.06); }
+  tbody tr:hover { background: rgba(255,255,255,0.04); }
+  tbody td {
+    padding: 14px 24px;
+    font-size: 15px;
+    color: #cbd5e1;
+  }
+  tbody td:first-child { color: #e2e8f0; font-weight: 500; }
+  .win  { color: #4ade80; font-weight: 600; }
+  .lose { color: #f87171; }
+
+  /* ── Steps ── */
+  .steps { display: flex; flex-direction: column; gap: 18px; }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px 24px;
+    border-left: 4px solid #64b5f6;
+  }
+  .step-num {
+    background: #64b5f6;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 16px; color: #cbd5e1; line-height: 1.6; }
+  .step-text strong { color: #fff; }
+
+  /* ── Big verdict ── */
+  .verdict {
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 16px;
+    padding: 32px 40px;
+    text-align: center;
+    margin-top: 24px;
+  }
+  .verdict p {
+    font-size: 20px;
+    color: #86efac;
+    line-height: 1.7;
+  }
+  .verdict strong { color: #4ade80; font-size: 22px; }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed;
+    bottom: 30px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .nav button {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .nav button:hover { background: rgba(255,255,255,0.2); }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .slide-counter {
+    font-size: 13px;
+    color: #64748b;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ── Slide number badge ── */
+  .badge {
+    position: absolute;
+    top: 32px;
+    right: 40px;
+    font-size: 12px;
+    color: #334155;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SLIDE 1: Title ── -->
+<div class="slide slide-1 active">
+  <div class="badge">01 / 06</div>
+  <div class="title-tag">Panel Inspector App — Technical Decision</div>
+  <div class="title-main">Location Verification<br>for Panel Inspection</div>
+  <div class="title-sub">GPS vs ARCore — Choosing the Right Approach</div>
+  <div class="title-divider"></div>
+  <div class="title-meta">Schneider Electric · Breaker Detection System · 2026</div>
+</div>
+
+<!-- ── SLIDE 2: What We Need ── -->
+<div class="slide slide-2">
+  <div class="badge">02 / 06</div>
+  <div class="slide-label">The Problem</div>
+  <h2>What Do We Need to Solve?</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📸</div>
+      <div class="card-title">Risk Analysis Taken</div>
+      <div class="card-body">A technician scans the panel and generates a risk analysis at a specific physical location.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">👷</div>
+      <div class="card-title">Worker Opens the Report</div>
+      <div class="card-body">Later, a worker opens the risk analysis on their phone before starting work on the panel.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">✅</div>
+      <div class="card-title">Verify Location Match</div>
+      <div class="card-body">The app must confirm the worker is physically standing at the same location where the scan was taken.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚠️</div>
+      <div class="card-title">Warn if Mismatch</div>
+      <div class="card-body">If the worker is too far away (&gt;100m), show a clear warning before they proceed with work.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 3: GPS Option ── -->
+<div class="slide slide-3">
+  <div class="badge">03 / 06</div>
+  <div class="slide-label">Option 1</div>
+  <h2>GPS — Fused Location Provider</h2>
+  <div class="pro-con">
+    <div class="col">
+      <div class="col-title green">✅ Advantages</div>
+      <ul>
+        <li><span class="icon">📱</span>Works on every Android device — no special hardware needed</li>
+        <li><span class="icon">⚡</span>Fast to implement — 2 to 3 hours of development</li>
+        <li><span class="icon">🔋</span>Battery efficient — uses network + GPS together</li>
+        <li><span class="icon">🌐</span>Works outdoors and indoors (with network assist)</li>
+        <li><span class="icon">🎯</span>5–50m accuracy — enough to verify building or site</li>
+        <li><span class="icon">📦</span>No extra dependencies — built into Google Play Services</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="col-title red">❌ Limitations</div>
+      <ul>
+        <li><span class="icon">🏢</span>Less accurate deep indoors (basements, concrete walls)</li>
+        <li><span class="icon">📡</span>Needs a moment to get first GPS fix</li>
+        <li><span class="icon">🗺️</span>Cannot distinguish which floor of a building</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 4: ARCore Option ── -->
+<div class="slide slide-4">
+  <div class="badge">04 / 06</div>
+  <div class="slide-label">Option 2</div>
+  <h2>ARCore — Augmented Reality</h2>
+  <div class="pro-con">
+    <div class="col">
+      <div class="col-title green">✅ Advantages</div>
+      <ul>
+        <li><span class="icon">📐</span>Centimetre-level spatial tracking</li>
+        <li><span class="icon">🎥</span>Can overlay safety zones on live camera view</li>
+        <li><span class="icon">🏢</span>Works indoors without GPS signal</li>
+        <li><span class="icon">🚀</span>Future potential for AR safety overlays on panels</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="col-title red">❌ Limitations</div>
+      <ul>
+        <li><span class="icon">📵</span>Requires ARCore-supported device — not all phones</li>
+        <li><span class="icon">🗓️</span>Weeks of development — complex integration</li>
+        <li><span class="icon">🔋</span>High battery and CPU drain</li>
+        <li><span class="icon">🎯</span>Overkill — solves a different problem (3D overlay, not location check)</li>
+        <li><span class="icon">❓</span>Cannot verify site identity — only tracks relative movement</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 5: Comparison Table ── -->
+<div class="slide slide-5">
+  <div class="badge">05 / 06</div>
+  <div class="slide-label">Side by Side</div>
+  <h2>GPS vs ARCore Comparison</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Criteria</th>
+          <th>GPS (Fused)</th>
+          <th>ARCore</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Works on all Android phones</td><td class="win">✅ Yes</td><td class="lose">❌ ARCore devices only</td></tr>
+        <tr><td>Development time</td><td class="win">✅ 2–3 hours</td><td class="lose">❌ Weeks</td></tr>
+        <tr><td>Battery usage</td><td class="win">✅ Low</td><td class="lose">❌ High</td></tr>
+        <tr><td>Verifies site / building</td><td class="win">✅ Yes (5–50m)</td><td class="lose">❌ No (relative only)</td></tr>
+        <tr><td>Works indoors</td><td class="lose">⚠️ Partial</td><td class="win">✅ Yes</td></tr>
+        <tr><td>Complexity</td><td class="win">✅ Simple</td><td class="lose">❌ Complex</td></tr>
+        <tr><td>Fits our use case</td><td class="win">✅ Perfect fit</td><td class="lose">❌ Overkill</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── SLIDE 6: How It Works ── -->
+<div class="slide slide-6">
+  <div class="badge">06 / 06</div>
+  <div class="slide-label">Our Implementation</div>
+  <h2>How GPS Location Verification Works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Scan taken</strong> — GPS coordinates captured automatically and saved with the scan in the database</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Worker opens result</strong> — app silently checks current GPS in the background</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Distance calculated</strong> — Haversine formula compares current location vs scan location</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text"><strong>If &gt; 100m away</strong> — warning shown: <em>"You are not at the scan location. Proceed with caution."</em></div>
+    </div>
+  </div>
+  <div class="verdict">
+    <p>We only need to answer one question:<br>
+    <strong>"Is this worker at the right site?"</strong><br>
+    GPS answers that perfectly. ARCore answers a completely different question.</p>
+  </div>
+</div>
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)" disabled>← Prev</button>
+  <span class="slide-counter" id="counter">1 / 6</span>
+  <button id="nextBtn" onclick="changeSlide(1)">Next →</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+
+  function changeSlide(dir) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, current + dir));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    changeSlide(-1);
+  });
+</script>
+</body>
+</html>

@@ -10,6 +10,9 @@ import json
 import os
 import re
 import socket
+import sqlite3
+import uuid
+from datetime import datetime
 import numpy as np
 import cv2
 # pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
@@ -77,6 +80,45 @@ else:
 
 app = FastAPI(title="Breaker Detection API", version="1.0.0")
 
+# --- SQLite Database Setup ---
+_DB_PATH     = os.path.join(os.path.dirname(__file__), "breaker_data.db")
+_IMAGES_DIR  = os.path.join(os.path.dirname(__file__), "scans_images")
+os.makedirs(_IMAGES_DIR, exist_ok=True)
+
+def _get_db():
+    conn = sqlite3.connect(_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def _init_db():
+    conn = _get_db()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id           TEXT PRIMARY KEY,
+            project_name TEXT NOT NULL,
+            site         TEXT,
+            inspector    TEXT,
+            created_at   TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS scans (
+            id              TEXT PRIMARY KEY,
+            project_id      TEXT,
+            timestamp       TEXT NOT NULL,
+            username        TEXT,
+            panel_type      TEXT,
+            notes           TEXT,
+            safety_warnings TEXT,
+            task            TEXT,
+            image_path      TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id)
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+_init_db()
+# ------------------------------------
+
 # --- User credentials store ---
 USERS = {
     "santosh":  "schneider123",
@@ -120,6 +162,11 @@ class AnalyzeRequest(BaseModel):
     sldBase64: Optional[str] = None       # optional SLD diagram upload
     layoutBase64: Optional[str] = None    # optional mechanical layout upload
     task: str = "others"                  # commissioning | maintenance | modification | replacement | others
+    # Project / user metadata (optional — sent from Android app)
+    username: Optional[str] = None
+    projectName: Optional[str] = None
+    site: Optional[str] = None
+    inspector: Optional[str] = None
 
 
 def _official_panel_summary(panel_type: str) -> str:
@@ -1508,6 +1555,61 @@ def analyze(body: AnalyzeRequest):
         data["catalogue_guidance"] = ""
 
     _executor.shutdown(wait=False)
+
+    # --- Persist scan to SQLite ---
+    try:
+        scan_id    = str(uuid.uuid4())
+        timestamp  = datetime.utcnow().isoformat()
+
+        # Save image to disk
+        img_filename = f"{scan_id}.jpg"
+        img_path     = os.path.join(_IMAGES_DIR, img_filename)
+        with open(img_path, "wb") as _imgf:
+            _imgf.write(base64.b64decode(body.imageBase64))
+
+        # Upsert project if metadata provided
+        project_id = None
+        if body.projectName:
+            conn = _get_db()
+            existing = conn.execute(
+                "SELECT id FROM projects WHERE project_name=? AND site=? AND inspector=?",
+                (body.projectName, body.site or "", body.inspector or "")
+            ).fetchone()
+            if existing:
+                project_id = existing["id"]
+            else:
+                project_id = str(uuid.uuid4())
+                conn.execute(
+                    "INSERT INTO projects (id, project_name, site, inspector, created_at) VALUES (?,?,?,?,?)",
+                    (project_id, body.projectName, body.site or "", body.inspector or "", timestamp)
+                )
+                conn.commit()
+            conn.close()
+
+        conn = _get_db()
+        conn.execute(
+            "INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (
+                scan_id,
+                project_id,
+                timestamp,
+                body.username or "",
+                data.get("panel_type", ""),
+                data.get("notes", ""),
+                json.dumps(data.get("safety_warnings", [])),
+                body.task,
+                img_filename,
+            )
+        )
+        conn.commit()
+        conn.close()
+        print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | project={project_id}")
+        data["scan_id"] = scan_id
+    except Exception as _db_err:
+        print(f"[DB] Save failed (non-fatal): {_db_err}")
+    # --------------------------------
+
     return JSONResponse(content=data)
 
 
@@ -1655,6 +1757,55 @@ def locate_vbb(body: LocateVbbRequest):
 
     print(f"[LOCATE_VBB] side={result.get('vbb_side')} width={result.get('vbb_width_mm')}mm confidence={result.get('confidence')}")
     return JSONResponse(content=result)
+
+
+# --- Database read endpoints ---
+
+@app.get("/api/projects")
+def list_projects():
+    conn = _get_db()
+    rows = conn.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return JSONResponse(content=[dict(r) for r in rows])
+
+
+@app.get("/api/scans")
+def list_scans(project_id: Optional[str] = None, username: Optional[str] = None):
+    conn  = _get_db()
+    query = "SELECT * FROM scans"
+    args  = []
+    filters = []
+    if project_id:
+        filters.append("project_id = ?")
+        args.append(project_id)
+    if username:
+        filters.append("username = ?")
+        args.append(username)
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    query += " ORDER BY timestamp DESC"
+    rows = conn.execute(query, args).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        row = dict(r)
+        row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
+        result.append(row)
+    return JSONResponse(content=result)
+
+
+@app.get("/api/scans/{scan_id}")
+def get_scan(scan_id: str):
+    conn = _get_db()
+    row  = conn.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
+    conn.close()
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "Scan not found"})
+    result = dict(row)
+    result["safety_warnings"] = json.loads(result["safety_warnings"] or "[]")
+    return JSONResponse(content=result)
+
+# --------------------------------
 
 
 if __name__ == "__main__":

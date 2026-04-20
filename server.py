@@ -430,6 +430,109 @@ def catalogue_knowledge(panel_type: str, task: str) -> str:
             )
         return base
 
+    # ── MasterPact MTZ ───────────────────────────────────────────────────────
+    if "masterpact mtz" in pt or "mtz" in pt:
+        base = (
+            "\n\n--- SCHNEIDER ELECTRIC CATALOGUE REFERENCE: MasterPacT MTZ ---\n"
+            "PHYSICAL LAYOUT:\n"
+            "  - Air Circuit Breaker (ACB) — draw-out withdrawable chassis design\n"
+            "  - Three frame sizes: MTZ1 (up to 1600A), MTZ2 (up to 4000A), MTZ3 (up to 6300A)\n"
+            "  - Plug-in or draw-out mounting — three positions: CONNECTED, TEST, DISCONNECTED\n"
+            "  - IEC 60947-2 compliant. Fit for Okken, PrismaSeT P, and other LV switchboards\n\n"
+            "DEVICES AND COMPONENTS:\n"
+            "  - Breaking unit: main contacts + arc chutes (replaceable)\n"
+            "  - Mechanism: spring-charged operating mechanism (manual + motor-charged MCH)\n"
+            "  - Control unit: electronic trip unit (MicroLogic X) — LSI/LSIG protection\n"
+            "  - Chassis: draw-out racking mechanism with padlock facility\n"
+            "  - Auxiliary contacts, UV release, shunt trip coils as accessories\n\n"
+            "CRITICAL SAFETY:\n"
+            "  - Busbars in the switchboard HBB/VBB remain LIVE even when MTZ is in DISCONNECTED position\n"
+            "  - Always verify dead with approved voltage tester before any work inside switchboard\n"
+            "  - LOTO (Lockout/Tagout) mandatory: rack to DISCONNECTED → lock chassis → test dead\n"
+            "  - Arc flash PPE required for any work on live or recently de-energised equipment\n"
+            "  - Do NOT defeat any safety shutters or interlocks on the chassis\n\n"
+        )
+        if t == "maintenance":
+            return base + (
+                "MAINTENANCE CHECKLIST — MasterPacT MTZ (Schneider Procedure Codes):\n\n"
+                "ROUTINE END-USER MAINTENANCE (annually or per site plan):\n"
+                "  Device:\n"
+                "    • NII_Z_1 — Inspect general condition: check for dust, moisture, corrosion, mechanical damage\n"
+                "    • NII_Z_1 — Verify nameplate ratings match SLD (rating, Icu, Ics)\n"
+                "  Mechanism:\n"
+                "    • NII_Z_1 — Operate breaker manually: OPEN and CLOSE at least 3 times — confirm smooth operation\n"
+                "    • NII_Z_2 — Electrically operate via MCH gear motor (if fitted) — verify remote OPEN/CLOSE\n"
+                "    • NII_Z_3 — Check spring charge indicator — spring must be fully charged after CLOSE\n"
+                "  Auxiliaries:\n"
+                "    • NII_Z_1 — Inspect auxiliary contacts, wiring harness and insulation — no fraying or burn marks\n"
+                "  Chassis:\n"
+                "    • NII_Z_1 — Check racking mechanism: rack CONNECTED → TEST → DISCONNECTED and back\n"
+                "    •          Verify shutters operate correctly at each position\n"
+                "    •          Check padlock facility on chassis\n\n"
+                "INTERMEDIATE END-USER MAINTENANCE (every 3–5 years or after fault trip):\n"
+                "  Breaking Unit:\n"
+                "    • NIII_Z_1 — Inspect main contact condition and erosion (compare to new contact depth gauge)\n"
+                "    • NIII_Z_2 — Check arc chutes for carbon deposits or mechanical damage — clean or replace\n"
+                "  Control Unit:\n"
+                "    • NIII_Z_4 — Verify MicroLogic X trip unit settings (Ir, Im, Isd, Ii thresholds)\n"
+                "    •           Run self-test diagnostics on MicroLogic display\n"
+                "    •           Check CT (current transformer) connections inside control unit\n"
+                "  Chassis:\n"
+                "    • NIII_Z_2 — Lubricate racking screw and sliding contacts with Schneider approved grease\n"
+                "    • NIII_Z_3 — Inspect disconnecting contacts (cluster) for wear or burning — clean with dry cloth\n"
+                "    • NIII_Z_4 — Check earth connection between chassis and switchboard earth bar\n\n"
+                "MANUFACTURER-LEVEL MAINTENANCE (every 5–10 years or after major fault):\n"
+                "  • Full disassembly and inspection by Schneider-certified engineer\n"
+                "  • Breaking unit replacement if contact erosion exceeds limit\n"
+                "  • Full mechanism overhaul and re-greasing\n"
+                "  • Control unit calibration and protection relay test with injection set\n"
+                "  • Issue maintenance report and update service logbook\n\n"
+                "GENERAL SAFETY REMINDER:\n"
+                "  • LOTO before any maintenance: DISCONNECTED position → lock chassis → verify dead\n"
+                "  • Use CAT III or CAT IV approved voltage tester\n"
+                "  • Arc flash PPE as per site risk assessment\n"
+                "  • Record all maintenance in the MTZ service logbook\n"
+            )
+        if t == "commissioning":
+            return base + (
+                "COMMISSIONING CHECKLIST — MasterPacT MTZ:\n"
+                "  1. Verify frame size and rating match SLD (MTZ1/MTZ2/MTZ3, current rating)\n"
+                "  2. Check MicroLogic X trip unit settings: Ir, Im, Isd, Ii match protection coordination\n"
+                "  3. Rack to TEST position — perform electrical OPEN/CLOSE test\n"
+                "  4. Verify MCH gear motor operation (if fitted)\n"
+                "  5. Check all auxiliary contacts wired per schematic\n"
+                "  6. Verify UV release operates on supply loss\n"
+                "  7. Check shutter operation at CONNECTED/TEST/DISCONNECTED positions\n"
+                "  8. Rack to CONNECTED — perform final trip test via trip coil\n"
+                "  9. Confirm earth connection chassis-to-switchboard\n"
+                "  10. Record settings in MTZ commissioning logbook\n"
+            )
+        if t == "replacement":
+            return base + (
+                "REPLACEMENT GUIDANCE — MasterPacT MTZ:\n"
+                "  1. Identify exact frame: MTZ1 (≤1600A), MTZ2 (≤4000A), MTZ3 (≤6300A)\n"
+                "  2. Note current rating, trip unit type (MicroLogic X variant) from nameplate\n"
+                "  3. Rack existing MTZ to DISCONNECTED position\n"
+                "  4. Lock chassis with padlock — apply LOTO tag\n"
+                "  5. Verify dead with approved voltage tester\n"
+                "  6. Disconnect auxiliary wiring harness before withdrawing chassis\n"
+                "  7. Slide out on racking screw — do NOT force or tilt\n"
+                "  8. Replacement unit must match: frame size, rating, trip unit type, accessories\n"
+                "  9. After installation: rack to TEST → verify operation → rack to CONNECTED\n"
+                "  10. Re-enter MicroLogic X protection settings and test trip functions\n"
+            )
+        if t == "modification":
+            return base + (
+                "MODIFICATION GUIDANCE — MasterPacT MTZ:\n"
+                "  1. Identify which accessories are fitted (MCH, UV, shunt trip, aux contacts)\n"
+                "  2. New accessories must be MTZ-compatible — check frame size compatibility\n"
+                "  3. Rack to DISCONNECTED and LOTO before fitting any accessory\n"
+                "  4. Control unit (MicroLogic X) can be swapped without full replacement\n"
+                "  5. After modification: re-verify all settings and perform functional test\n"
+                "  6. Update SLD and panel schedule to reflect changes\n"
+            )
+        return base
+
     return ""  # unknown panel type
 
 
@@ -923,6 +1026,54 @@ def inside_zone(box: list[int], zone: Zone) -> bool:
     return not (xmax < zone.xmin or xmin > zone.xmax or ymax < zone.ymin or ymin > zone.ymax)
 
 
+class LabelRequest(BaseModel):
+    imageBase64: str
+    mimeType: str = "image/jpeg"
+
+@app.post("/api/read_label")
+def read_label(body: LabelRequest):
+    """
+    Takes a cropped image of a single breaker (sent from Android when the user
+    taps a bounding box on the result screen) and asks Gemini to read the
+    circuit label and current rating from close up.
+
+    Returns:
+        {"circuit_label": "LV MAIN", "rating": "400A"}
+    Both fields are empty strings when not readable.
+    """
+    prompt = (
+        "This is a close-up photo of a single electrical circuit breaker or its label strip.\n"
+        "Read any text visible on the breaker face or on the adjacent label strip.\n\n"
+        "Return ONLY a JSON object with exactly two fields:\n"
+        '  "circuit_label": the circuit name/description (e.g. "LV MAIN", "LIGHTING CKT 1", "UPS FEEDER") — empty string if not readable\n'
+        '  "rating": the current rating (e.g. "400A", "63A", "16A") — empty string if not readable\n\n'
+        'Return ONLY valid JSON, nothing else. Example: {"circuit_label": "LV MAIN", "rating": "400A"}'
+    )
+    try:
+        img_bytes = base64.b64decode(body.imageBase64)
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=[{
+                "parts": [
+                    {"inline_data": {"mime_type": body.mimeType, "data": body.imageBase64}},
+                    {"text": prompt},
+                ]
+            }],
+        )
+        text = response.text.strip()
+        # Strip markdown code fences if present
+        text = re.sub(r"^```(?:json)?\n?", "", text)
+        text = re.sub(r"\n?```$", "", text)
+        parsed = json.loads(text)
+        return JSONResponse(content={
+            "circuit_label": str(parsed.get("circuit_label", "")),
+            "rating":        str(parsed.get("rating", "")),
+        })
+    except Exception as e:
+        print(f"[READ_LABEL] error: {e}")
+        return JSONResponse(content={"circuit_label": "", "rating": "", "error": str(e)})
+
+
 @app.get("/")
 def root():
     return {"status": "running", "model": MODEL}
@@ -1294,6 +1445,8 @@ def analyze(body: AnalyzeRequest):
         class _Breaker(_BM):
             type: str = _F(description="Exact Schneider product name: MasterPact MTZ, MasterPact NT, MasterPact, Compact NSX, Compact NS, Acti9, iC60, or Multi9")
             box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000. ONE entry per individual breaker unit.")
+            circuit_label: str = _F(default="", description="Circuit name or description printed on the breaker label or adjacent label strip — e.g. 'LV MAIN', 'DIST-1', 'UPS FEEDER', 'LIGHTING'. Return empty string if not visible or not readable.")
+            rating: str = _F(default="", description="Rated current printed on the breaker face — e.g. '400A', '250A', '63A', '16A'. Return empty string if not visible.")
         class _DetectionResult(_BM):
             breakers: list[_Breaker] = _F(description="One entry per individual breaker. Do NOT group multiple breakers into one entry.")
             panel_type: str = _F(description="Exactly one of: PrismaSeT G, PrismaSeT P, Okken")
@@ -1310,7 +1463,10 @@ def analyze(body: AnalyzeRequest):
             prompt +
             "\nCRITICAL: Return ONE separate entry in 'breakers' for EACH individual breaker unit you see. "
             "If you see 8 MCBs, return 8 separate entries each with their own tight bounding box. "
-            "Do NOT group them. Each box must tightly fit around one single breaker body."
+            "Do NOT group them. Each box must tightly fit around one single breaker body.\n"
+            "LABEL READING: For each breaker, read any text printed on its face or on the label strip next to it. "
+            "Extract the circuit_label (what the circuit is called, e.g. 'LV MAIN', 'LIGHTING DB', 'PUMP 1') "
+            "and rating (the current rating, e.g. '250A', '63A'). If not readable, return empty string."
         )
         # Build parts — add SLD and layout if provided
         parts = []
@@ -1607,7 +1763,9 @@ def analyze(body: AnalyzeRequest):
         print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | project={project_id}")
         data["scan_id"] = scan_id
     except Exception as _db_err:
-        print(f"[DB] Save failed (non-fatal): {_db_err}")
+        import traceback
+        print(f"[DB] Save failed: {_db_err}")
+        traceback.print_exc()
     # --------------------------------
 
     return JSONResponse(content=data)
@@ -1806,6 +1964,73 @@ def get_scan(scan_id: str):
     return JSONResponse(content=result)
 
 # --------------------------------
+
+
+# --- Panel Photo Match Verification ---
+
+class VerifyPanelRequest(BaseModel):
+    referenceBase64: str          # original scan image
+    workerBase64:    str          # photo taken by worker right now
+    mimeType:        str = "image/jpeg"
+
+@app.post("/api/verify_panel")
+def verify_panel(body: VerifyPanelRequest):
+    """
+    Sends both images to Gemini and asks:
+    'Are these photos showing the exact same electrical panel?'
+    Returns match=True/False + reason + confidence.
+    """
+    from pydantic import BaseModel as _BM
+
+    class _VerifyResult(_BM):
+        match:      bool
+        confidence: str   # "high", "medium", "low"
+        reason:     str   # one sentence explanation
+
+    prompt = (
+        "You are a safety engineer verifying electrical panel identity.\n\n"
+        "You are given TWO photos:\n"
+        "  IMAGE 1 — the REFERENCE photo taken during the original risk analysis\n"
+        "  IMAGE 2 — the CURRENT photo taken by the worker right now\n\n"
+        "YOUR TASK:\n"
+        "Determine if both photos show the EXACT SAME electrical panel.\n\n"
+        "LOOK FOR:\n"
+        "  - Same panel type (Okken / PrismaSeT P / PrismaSeT G)\n"
+        "  - Same number of cubicles / doors\n"
+        "  - Same breaker layout and positions\n"
+        "  - Same colour, size, and physical appearance\n"
+        "  - Same labels, markings, or visible serial numbers\n"
+        "  - Same surroundings (wall, floor, adjacent equipment)\n\n"
+        "IMPORTANT:\n"
+        "  - Angle and lighting may differ — judge the panel itself, not the photo quality\n"
+        "  - If the panel in IMAGE 2 has different breaker layout or different cubicle count → NOT the same panel\n"
+        "  - If you cannot determine with confidence → set match=false for safety\n\n"
+        "Return ONLY valid JSON."
+    )
+
+    try:
+        response = _gemini_with_retry(lambda: client.models.generate_content(
+            model=MODEL,
+            contents=[{"parts": [
+                {"inline_data": {"mime_type": body.mimeType, "data": body.referenceBase64}},
+                {"text": "IMAGE 1 — Reference photo from risk analysis:"},
+                {"inline_data": {"mime_type": body.mimeType, "data": body.workerBase64}},
+                {"text": "IMAGE 2 — Current photo taken by worker:\n\n" + prompt},
+            ]}],
+            config=_types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=_VerifyResult,
+                temperature=0.0,
+            ),
+        ))
+        result = json.loads(response.text)
+        print(f"[VERIFY] match={result.get('match')} confidence={result.get('confidence')} reason={result.get('reason')}")
+        return JSONResponse(content=result)
+    except Exception as e:
+        print(f"[VERIFY] Error: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# ----------------------------------------
 
 
 if __name__ == "__main__":

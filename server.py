@@ -28,7 +28,7 @@ import cv2
 from PIL import Image
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
@@ -1050,7 +1050,7 @@ def read_label(body: LabelRequest):
 
 @app.get("/")
 def root():
-    return {"status": "running", "model": MODEL}
+    return RedirectResponse(url="/index.html")
 
 
 @app.get("/health")

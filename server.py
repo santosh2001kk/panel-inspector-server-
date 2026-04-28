@@ -1089,6 +1089,10 @@ def identify_panel_only(image_b64: str, mime_type: str) -> dict:
         "IMPORTANT: If you see a large main breaker that could be an ACB, classify as PrismaSeT P — "
         "do NOT call it PrismaSeT G unless you are certain there is absolutely no ACB and no VBB.\n\n"
 
+        "IMPORTANT: If the image does NOT show an electrical panel at all (e.g. it is a person, animal, "
+        "food, vehicle, landscape, or any non-electrical object), set panel_type to 'Not a Panel' and "
+        "in panel_summary describe what the image actually shows (e.g. 'This is a cat').\n\n"
+
         "Return ONLY valid JSON:\n"
         '{"panel_type": "PrismaSeT P", "panel_summary": "describe the key feature you used to identify it"}'
     )
@@ -1333,6 +1337,11 @@ def analyze(body: AnalyzeRequest):
         result     = identify_panel_only(body.imageBase64, body.mimeType)
         panel_type = result.get("panel_type", "Unknown")
         print(f"[PANEL] {panel_type} — {result.get('panel_summary')}")
+        if panel_type.strip().lower() == "not a panel":
+            return JSONResponse(
+                status_code=422,
+                content={"error": "not_a_panel", "detected_as": result.get("panel_summary", "not an electrical panel")}
+            )
         return JSONResponse(content={
             "breakers": [],
             "notes": "",

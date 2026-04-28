@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Results — Panel Inspector Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
+  --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
+  --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;--yellow:#FFD32A;
+}
+html,body{min-height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 40% at 80% 20%,rgba(61,205,88,.05) 0%,transparent 60%);
+}
+
+/* ── Navbar ── */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;height:64px;background:rgba(10,22,40,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-sq{width:36px;height:36px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0A1628}
+.nav-title{font-size:16px;font-weight:700}
+.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px}
+.nav-right{display:flex;align-items:center;gap:12px}
+.btn-nav{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-back{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-back:hover{border-color:var(--green);color:var(--green)}
+.btn-new{background:var(--green);border:none;color:#0A1628}
+.btn-new:hover{background:var(--green-dark)}
+
+/* ── Layout ── */
+.main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:32px 32px 80px}
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media(max-width:900px){.results-grid{grid-template-columns:1fr}}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.card-icon.green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.card-icon.red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
+.card-icon.orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
+.card-icon.blue{background:rgba(0,120,255,.12);border:1px solid rgba(0,120,255,.2);color:#4A9EFF}
+.card-title{font-size:15px;font-weight:700}
+.card-body{padding:20px 24px}
+
+/* ── Panel Summary ── */
+.panel-badge{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;
+  background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.3);border-radius:12px;margin-bottom:16px;
+}
+.panel-badge .badge-icon{width:40px;height:40px;background:var(--green);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:18px;
+}
+.panel-badge .badge-text .panel-name{font-size:20px;font-weight:800;color:var(--green)}
+.panel-badge .badge-text .panel-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.panel-summary-text{font-size:14px;color:var(--muted);line-height:1.7}
+.meta-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;
+  background:var(--card2);border:1px solid var(--border);color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+}
+.chip.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.2);color:var(--green)}
+.chip.red{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.2);color:var(--red)}
+.chip.orange{background:rgba(255,165,2,.08);border-color:rgba(255,165,2,.2);color:var(--orange)}
+
+/* ── Canvas / Image ── */
+.canvas-wrap{background:#000;border-radius:12px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.canvas-wrap canvas{max-width:100%;display:block}
+.canvas-legend{display:flex;gap:16px;padding:14px 20px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.legend-dot{width:12px;height:12px;border-radius:2px}
+
+/* ── Safety Warnings ── */
+.warning-list{display:flex;flex-direction:column;gap:10px}
+.warning-item{display:flex;gap:12px;padding:14px 16px;border-radius:10px;
+  background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);
+  animation:fadeIn .4s ease both;
+}
+.warning-item.orange{background:rgba(255,165,2,.07);border-color:rgba(255,165,2,.2)}
+.warning-icon{font-size:16px;color:var(--red);flex-shrink:0;margin-top:1px}
+.warning-icon.orange{color:var(--orange)}
+.warning-text{font-size:13px;line-height:1.6;color:var(--text)}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Detections Table ── */
+.det-table{width:100%;border-collapse:collapse}
+.det-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border);
+}
+.det-table td{padding:12px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
+.det-table tr:last-child td{border-bottom:none}
+.det-table tr:hover td{background:rgba(61,205,88,.04)}
+.det-type{font-weight:600}
+.det-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;
+  background:rgba(61,205,88,.12);color:var(--green);border:1px solid rgba(61,205,88,.2);
+}
+.no-det{text-align:center;padding:32px;color:var(--muted);font-size:14px}
+
+/* ── Notes ── */
+.notes-text{font-size:14px;line-height:1.8;color:var(--muted);white-space:pre-wrap}
+
+/* ── Catalogue ── */
+.catalogue-box{background:var(--card2);border-radius:10px;padding:20px;
+  font-size:13px;line-height:1.9;color:var(--muted);white-space:pre-wrap;max-height:400px;overflow-y:auto;
+  font-family:'Courier New',monospace;
+}
+.catalogue-box::-webkit-scrollbar{width:5px}
+.catalogue-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── Full width bottom cards ── */
+.full-row{grid-column:1/-1}
+
+/* ── Print button ── */
+.btn-print{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-print:hover{border-color:var(--green);color:var(--green)}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:48px 24px}
+.empty-icon{font-size:48px;color:var(--muted);margin-bottom:16px}
+.empty-title{font-size:18px;font-weight:600;margin-bottom:8px}
+.empty-sub{font-size:14px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<!-- Navbar -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-sq">SE</div>
+    <div class="nav-title">Panel Inspector Pro<small>Analysis Results</small></div>
+  </div>
+  <div class="nav-right">
+    <button class="btn-nav btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    <button class="btn-nav btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> New Scan</button>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main" id="main">
+  <div class="results-grid" id="resultsGrid"></div>
+</div>
+
+<script>
+const data  = JSON.parse(sessionStorage.getItem('analysisResult') || '{}');
+const imgB64= sessionStorage.getItem('analysisImage');
+const mime  = sessionStorage.getItem('imageMime') || 'image/jpeg';
+const meta  = JSON.parse(sessionStorage.getItem('analysisMeta') || '{}');
+
+if(!data || !imgB64){ document.getElementById('resultsGrid').innerHTML='<div class="empty-state full-row"><div class="empty-icon"><i class="fas fa-triangle-exclamation"></i></div><div class="empty-title">No results found</div><div class="empty-sub">Please go back and run a scan first.</div></div>'; }
+else { render(); }
+
+function render(){
+  const grid = document.getElementById('resultsGrid');
+
+  // ── Left column ──
+  const leftCol = document.createElement('div');
+  leftCol.style.cssText='display:flex;flex-direction:column;gap:24px';
+
+  // Panel image card
+  leftCol.innerHTML += `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon green"><i class="fas fa-image"></i></div>
+      <div class="card-title">Panel Image — Detection Overlay</div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="canvas-wrap"><canvas id="resultCanvas"></canvas></div>
+      <div class="canvas-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#3DCD58;border:2px solid #3DCD58"></div> Circuit breaker</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.2);border:2px dashed #3DCD58"></div> Work zone</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(255,71,87,.15);border:2px dashed #FF4757"></div> Safety buffer</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Panel Info card
+  const panelType    = data.panel_type    || 'Unknown';
+  const panelSummary = data.panel_summary || '';
+  const busbarSide   = data.busbar_side   || 'unknown';
+  const cubicleCount = data.cubicle_count || 0;
+  const task         = meta.task || '';
+  const isLive       = meta.isLive || false;
+
+  leftCol.innerHTML += `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon green"><i class="fas fa-solar-panel"></i></div>
+      <div class="card-title">Panel Identification</div>
+    </div>
+    <div class="card-body">
+      <div class="panel-badge">
+        <div class="badge-icon"><i class="fas fa-bolt"></i></div>
+        <div class="badge-text">
+          <div class="panel-label">Detected Panel</div>
+          <div class="panel-name">${escHtml(panelType)}</div>
+        </div>
+      </div>
+      <p class="panel-summary-text">${escHtml(panelSummary)}</p>
+      <div class="meta-chips">
+        <div class="chip ${isLive?'red':'green'}"><i class="fas fa-${isLive?'bolt':'plug-circle-xmark'}"></i>${isLive?'LIVE':'DEAD'}</div>
+        ${task?`<div class="chip blue"><i class="fas fa-tag"></i>${capitalize(task)}</div>`:''}
+        ${busbarSide!=='unknown'?`<div class="chip orange"><i class="fas fa-arrows-left-right"></i>Busbar: ${escHtml(busbarSide)}</div>`:''}
+        ${cubicleCount>0?`<div class="chip"><i class="fas fa-table-cells"></i>${cubicleCount} cubicles</div>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  grid.appendChild(leftCol);
+
+  // ── Right column ──
+  const rightCol = document.createElement('div');
+  rightCol.style.cssText='display:flex;flex-direction:column;gap:24px';
+
+  // Safety Warnings
+  const warnings = data.safety_warnings || [];
+  let warnHtml = '';
+  if(warnings.length){
+    warnings.forEach((w,i)=>{
+      const isOrange = w.toLowerCase().includes('ppe') || w.toLowerCase().includes('caution');
+      warnHtml += `<div class="warning-item ${isOrange?'orange':''}" style="animation-delay:${i*0.08}s">
+        <div class="warning-icon ${isOrange?'orange':''}"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="warning-text">${escHtml(w)}</div>
+      </div>`;
+    });
+  } else {
+    warnHtml = '<div class="no-det" style="padding:20px"><i class="fas fa-check-circle" style="color:var(--green);margin-right:8px"></i>No critical safety warnings detected.</div>';
+  }
+  rightCol.innerHTML += `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon red"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="card-title">Safety Warnings &amp; PPE Requirements</div>
+    </div>
+    <div class="card-body"><div class="warning-list">${warnHtml}</div></div>
+  </div>`;
+
+  // Detections
+  const breakers = data.breakers || [];
+  let detHtml = '';
+  if(breakers.length){
+    detHtml = `<table class="det-table">
+      <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label</th></tr></thead><tbody>`;
+    breakers.forEach((b,i)=>{
+      detHtml += `<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td><span class="det-type">${escHtml(b.type||'Unknown')}</span></td>
+        <td>${b.rating?`<span class="det-badge">${escHtml(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="color:var(--muted)">${escHtml(b.circuit_label||'—')}</td>
+      </tr>`;
+    });
+    detHtml += '</tbody></table>';
+  } else {
+    detHtml = '<div class="no-det"><i class="fas fa-search" style="margin-right:8px"></i>No breakers detected in this zone.</div>';
+  }
+  rightCol.innerHTML += `
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon blue"><i class="fas fa-microchip"></i></div>
+      <div class="card-title">Detected Equipment (${breakers.length})</div>
+    </div>
+    <div class="card-body" style="padding:0">${detHtml}</div>
+  </div>`;
+
+  // Notes
+  if(data.notes){
+    rightCol.innerHTML += `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon orange"><i class="fas fa-clipboard-list"></i></div>
+        <div class="card-title">AI Assessment Notes</div>
+      </div>
+      <div class="card-body"><p class="notes-text">${escHtml(data.notes)}</p></div>
+    </div>`;
+  }
+
+  grid.appendChild(rightCol);
+
+  // ── Full-width Catalogue Guidance ──
+  if(data.catalogue_guidance){
+    const fullRow = document.createElement('div');
+    fullRow.className='full-row';
+    fullRow.innerHTML=`
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green"><i class="fas fa-book-open"></i></div>
+        <div class="card-title">Schneider Electric Catalogue Reference &amp; Task Checklist</div>
+      </div>
+      <div class="card-body">
+        <div class="catalogue-box">${escHtml(data.catalogue_guidance)}</div>
+      </div>
+    </div>`;
+    grid.appendChild(fullRow);
+  }
+
+  // ── Draw canvas ──
+  drawResultCanvas();
+}
+
+function drawResultCanvas(){
+  const canvas = document.getElementById('resultCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.onload = () => {
+    const maxW = Math.min(600, window.innerWidth - 80);
+    const scale= Math.min(maxW/img.naturalWidth, 500/img.naturalHeight, 1);
+    canvas.width  = img.naturalWidth  * scale;
+    canvas.height = img.naturalHeight * scale;
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+    // Draw work zone if available
+    const zr = meta.zoneRect;
+    const cW  = meta.canvasW;
+    const cH  = meta.canvasH;
+    if(zr && cW && cH){
+      const sx = canvas.width / cW;
+      const sy = canvas.height/ cH;
+      const x=zr.x*sx, y=zr.y*sy, w=zr.w*sx, h=zr.h*sy;
+      const buf=0.15;
+      // Safety buffer
+      ctx.strokeStyle='rgba(255,71,87,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+      ctx.strokeRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
+      ctx.fillStyle='rgba(255,71,87,.08)'; ctx.fillRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
+      ctx.setLineDash([]);
+      // Work zone
+      ctx.strokeStyle='#3DCD58'; ctx.lineWidth=2.5;
+      ctx.strokeRect(x,y,w,h);
+      ctx.fillStyle='rgba(61,205,88,.12)'; ctx.fillRect(x,y,w,h);
+    }
+
+    // Draw breaker boxes
+    const breakers = data.breakers || [];
+    const COLORS = ['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
+    breakers.forEach((b,i)=>{
+      if(!b.box||b.box.length<4) return;
+      const [yn,xn,yx,xx] = b.box;
+      const bx = xn/1000*canvas.width;
+      const by = yn/1000*canvas.height;
+      const bw = (xx-xn)/1000*canvas.width;
+      const bh = (yx-yn)/1000*canvas.height;
+      const col = COLORS[i % COLORS.length];
+      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([]);
+      ctx.strokeRect(bx,by,bw,bh);
+      ctx.fillStyle=col+'33'; ctx.fillRect(bx,by,bw,bh);
+      // Label
+      const label = (b.type||'Breaker')+(b.rating?' '+b.rating:'');
+      ctx.fillStyle='rgba(10,22,40,.8)'; ctx.fillRect(bx,by-20,ctx.measureText(label).width+12,20);
+      ctx.fillStyle=col; ctx.font='bold 11px Inter,sans-serif';
+      ctx.fillText(label,bx+6,by-6);
+    });
+  };
+  img.src = 'data:'+mime+';base64,'+imgB64;
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1) }
+</script>
+</body>
+</html>

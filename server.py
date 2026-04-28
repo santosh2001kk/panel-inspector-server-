@@ -13,6 +13,15 @@ import socket
 import sqlite3
 import uuid
 from datetime import datetime
+from pathlib import Path
+
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
 import numpy as np
 import cv2
 # pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
@@ -20,6 +29,7 @@ from PIL import Image
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from experta import *
@@ -65,7 +75,7 @@ VERTEX_LOCATION = "us-central1"
 
 if PROVIDER == "claude":
     import anthropic as _anthropic
-    MODEL  = "claude-opus-4-6"
+    MODEL  = "claude-opus-4-7"
     client = _anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 elif PROVIDER == "vertexai":
     from google import genai as _genai
@@ -159,8 +169,10 @@ class AnalyzeRequest(BaseModel):
     safetyBuffer: Optional[Zone] = None
     identifyOnly: bool = False
     busbarOnly: bool = False
-    sldBase64: Optional[str] = None       # optional SLD diagram upload
-    layoutBase64: Optional[str] = None    # optional mechanical layout upload
+    sldBase64: Optional[str] = None        # optional SLD diagram upload (image or PDF)
+    sldMimeType: str = "image/jpeg"        # mime type for sldBase64
+    layoutBase64: Optional[str] = None    # optional mechanical layout upload (image or PDF)
+    layoutMimeType: str = "image/jpeg"    # mime type for layoutBase64
     task: str = "others"                  # commissioning | maintenance | modification | replacement | others
     # Project / user metadata (optional — sent from Android app)
     username: Optional[str] = None
@@ -1051,20 +1063,7 @@ def read_label(body: LabelRequest):
     )
     try:
         img_bytes = base64.b64decode(body.imageBase64)
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=[{
-                "parts": [
-                    {"inline_data": {"mime_type": body.mimeType, "data": body.imageBase64}},
-                    {"text": prompt},
-                ]
-            }],
-        )
-        text = response.text.strip()
-        # Strip markdown code fences if present
-        text = re.sub(r"^```(?:json)?\n?", "", text)
-        text = re.sub(r"\n?```$", "", text)
-        parsed = json.loads(text)
+        parsed = _call_llm(prompt, [(body.imageBase64, body.mimeType)])
         return JSONResponse(content={
             "circuit_label": str(parsed.get("circuit_label", "")),
             "rating":        str(parsed.get("rating", "")),
@@ -1118,23 +1117,7 @@ def identify_panel_only(image_b64: str, mime_type: str) -> dict:
         "Return ONLY valid JSON:\n"
         '{"panel_type": "PrismaSeT P", "panel_summary": "describe the key feature you used to identify it"}'
     )
-    from pydantic import BaseModel as _BM
-    class _PanelResult(_BM):
-        panel_type: str
-        panel_summary: str
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[{"parts": [
-            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
-            {"text": prompt}
-        ]}],
-        config=_types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=_PanelResult,
-            temperature=0.0,
-        ),
-    )
-    return json.loads(response.text)
+    return _call_llm(prompt, [(image_b64, mime_type)])
 
 
 def _enhance_for_busbar(image_b64: str) -> str:
@@ -1202,30 +1185,12 @@ def identify_cubicles_generic(image_b64: str, mime_type: str) -> dict:
         "  - Do NOT merge two cubicles into one\n"
         "  - Count only what you actually see\n\n"
         "Draw tight bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
-        "Return ONLY valid JSON."
+        "Return ONLY valid JSON in this exact format:\n"
+        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "breaker", "box": [0, 50, 1000, 350]}, '
+        '{"position": 2, "label": "cable", "box": [0, 350, 1000, 650]}, '
+        '{"position": 3, "label": "breaker", "box": [0, 650, 1000, 950]}], "cubicle_summary": "one sentence"}'
     )
-    from pydantic import BaseModel as _BM
-    class _Cubicle(_BM):
-        position: int
-        label: str
-        box: list[int]
-    class _CubicleResult(_BM):
-        cubicle_count: int
-        cubicles: list[_Cubicle]
-        cubicle_summary: str
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[{"parts": [
-            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
-            {"text": prompt}
-        ]}],
-        config=_types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=_CubicleResult,
-            temperature=0.0,
-        ),
-    )
-    return json.loads(response.text)
+    return _call_llm(prompt, [(image_b64, mime_type)])
 
 
 def identify_busbar_only(image_b64: str, mime_type: str) -> dict:
@@ -1280,28 +1245,7 @@ def identify_busbar_only(image_b64: str, mime_type: str) -> dict:
         '], "cubicle_summary": "one sentence"}\n\n'
         "Return ONLY valid JSON."
     )
-    from pydantic import BaseModel as _BM
-    class _Cubicle(_BM):
-        position: int
-        label: str   # "vbb", "breaker", or "cable"
-        box: list[int]
-    class _CubicleResult(_BM):
-        cubicle_count: int
-        cubicles: list[_Cubicle]
-        cubicle_summary: str
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[{"parts": [
-            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
-            {"text": prompt}
-        ]}],
-        config=_types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=_CubicleResult,
-            temperature=0.0,   # deterministic — same image always gives same count
-        ),
-    )
-    return json.loads(response.text)
+    return _call_llm(prompt, [(image_b64, mime_type)])
 
 
 import time as _time
@@ -1320,6 +1264,45 @@ def _gemini_with_retry(call_fn, retries=3, delays=(3, 6, 10)):
                 _time.sleep(wait)
             else:
                 raise
+
+
+def _call_llm(prompt: str, images: list, max_tokens: int = 4096) -> dict:
+    """Call the configured LLM with a prompt and list of (base64, mime_type) image tuples.
+    Returns a parsed JSON dict. Prompt must instruct the model to return ONLY valid JSON."""
+    if PROVIDER == "claude":
+        content = []
+        for img_b64, mime in images:
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": mime, "data": img_b64},
+            })
+        content.append({"type": "text", "text": prompt})
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=max_tokens,
+            messages=[{"role": "user", "content": content}],
+        )
+        raw = response.content[0].text.strip()
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        return json.loads(raw)
+    else:
+        parts = []
+        for img_b64, mime in images:
+            parts.append({"inline_data": {"mime_type": mime, "data": img_b64}})
+        parts.append({"text": prompt})
+        response = _gemini_with_retry(lambda: client.models.generate_content(
+            model=MODEL,
+            contents=[{"parts": parts}],
+            config=_types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.0,
+            ),
+        ))
+        raw = response.text.strip()
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        return json.loads(raw)
 
 
 @app.post("/api/analyze")
@@ -1471,10 +1454,10 @@ def analyze(body: AnalyzeRequest):
         # Build parts — add SLD and layout if provided
         parts = []
         if body.sldBase64:
-            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": body.sldBase64}})
+            parts.append({"inline_data": {"mime_type": body.sldMimeType, "data": body.sldBase64}})
             parts.append({"text": "Above is the Single Line Diagram (SLD) of this panel. Use it to understand the circuit layout, breaker ratings, and connections."})
         if body.layoutBase64:
-            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": body.layoutBase64}})
+            parts.append({"inline_data": {"mime_type": body.layoutMimeType, "data": body.layoutBase64}})
             parts.append({"text": "Above is the Mechanical Layout / Geometry Alignment diagram. Use it to understand the physical cubicle arrangement and dimensions."})
         parts.append({"inline_data": {"mime_type": body.mimeType, "data": body.imageBase64}})
         parts.append({"text": gemini_prompt})
@@ -1799,23 +1782,7 @@ def _read_mtz_nameplate(image_b64: str, mime_type: str) -> dict:
         "Respond with ONLY valid JSON: "
         '{"mtz_model": "MTZ1", "rated_current_A": 1600, "poles": 3}'
     )
-    from pydantic import BaseModel as _BM
-    class _NP(_BM):
-        mtz_model: str
-        rated_current_A: int
-        poles: int
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[{"parts": [
-            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
-            {"text": prompt}
-        ]}],
-        config=_types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=_NP,
-        ),
-    )
-    return json.loads(response.text)
+    return _call_llm(prompt, [(image_b64, mime_type)])
 
 
 def _predict_vbb_location(image_b64: str, mime_type: str, mtz_info: dict) -> dict:
@@ -1864,26 +1831,7 @@ def _predict_vbb_location(image_b64: str, mime_type: str, mtz_info: dict) -> dic
         f"Respond with ONLY valid JSON."
     )
 
-    from pydantic import BaseModel as _BM
-    class _VbbResult(_BM):
-        vbb_side:       str   # "left", "right", or "unknown"
-        vbb_box:        list  # [ymin, xmin, ymax, xmax] 0-1000
-        confidence:     str   # "high", "medium", "low"
-        notes:          str
-        safety_warning: str
-
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[{"parts": [
-            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
-            {"text": prompt}
-        ]}],
-        config=_types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=_VbbResult,
-        ),
-    )
-    result = json.loads(response.text)
+    result = _call_llm(prompt, [(image_b64, mime_type)])
     result["mtz_model"]       = mtz_model
     result["rated_current_A"] = rated_current
     result["vbb_width_mm"]    = vbb_width_mm
@@ -2009,21 +1957,37 @@ def verify_panel(body: VerifyPanelRequest):
     )
 
     try:
-        response = _gemini_with_retry(lambda: client.models.generate_content(
-            model=MODEL,
-            contents=[{"parts": [
-                {"inline_data": {"mime_type": body.mimeType, "data": body.referenceBase64}},
-                {"text": "IMAGE 1 — Reference photo from risk analysis:"},
-                {"inline_data": {"mime_type": body.mimeType, "data": body.workerBase64}},
-                {"text": "IMAGE 2 — Current photo taken by worker:\n\n" + prompt},
-            ]}],
-            config=_types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=_VerifyResult,
-                temperature=0.0,
-            ),
-        ))
-        result = json.loads(response.text)
+        if PROVIDER == "claude":
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=1024,
+                messages=[{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": body.mimeType, "data": body.referenceBase64}},
+                    {"type": "text", "text": "IMAGE 1 — Reference photo from risk analysis:"},
+                    {"type": "image", "source": {"type": "base64", "media_type": body.mimeType, "data": body.workerBase64}},
+                    {"type": "text", "text": "IMAGE 2 — Current photo taken by worker:\n\n" + prompt},
+                ]}],
+            )
+            raw = response.content[0].text.strip()
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            result = json.loads(raw)
+        else:
+            response = _gemini_with_retry(lambda: client.models.generate_content(
+                model=MODEL,
+                contents=[{"parts": [
+                    {"inline_data": {"mime_type": body.mimeType, "data": body.referenceBase64}},
+                    {"text": "IMAGE 1 — Reference photo from risk analysis:"},
+                    {"inline_data": {"mime_type": body.mimeType, "data": body.workerBase64}},
+                    {"text": "IMAGE 2 — Current photo taken by worker:\n\n" + prompt},
+                ]}],
+                config=_types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=_VerifyResult,
+                    temperature=0.0,
+                ),
+            ))
+            result = json.loads(response.text)
         print(f"[VERIFY] match={result.get('match')} confidence={result.get('confidence')} reason={result.get('reason')}")
         return JSONResponse(content=result)
     except Exception as e:
@@ -2032,6 +1996,164 @@ def verify_panel(body: VerifyPanelRequest):
 
 # ----------------------------------------
 
+# --- Pre-Work Safety Checklist ---
+
+class ChecklistRequest(BaseModel):
+    task_type: str          # commissioning | maintenance | modification | replacement | troubleshooting | others
+    is_live: bool           # True = live intervention, False = dead (LOTO)
+    panel_type: str         # PrismaSeT G | PrismaSeT P | Okken
+    has_sld: bool           # whether SLD is loaded in app
+    vbb_side: Optional[str] = None   # left | right | unknown (PrismaSeT P only)
+    cubicle_count: int = 0
+
+_CHECKLIST_COMMON_DEAD = [
+    {"id": "dead_1", "text": "Confirm you are working on the CORRECT panel — matches the scanned panel in the app.", "critical": True},
+    {"id": "dead_2", "text": "LOTO completed — personal lock and tag physically on the isolator (consignation/padlocking done).", "critical": True},
+    {"id": "dead_3", "text": "Absence of voltage confirmed using an approved tester — panel is DEAD.", "critical": True},
+    {"id": "dead_4", "text": "PPE appropriate for the residual arc flash risk is worn (minimum PPE1 even when de-energized).", "critical": True},
+    {"id": "dead_5", "text": "Arc flash boundary marked and all nearby personnel informed.", "critical": False},
+]
+
+_CHECKLIST_COMMON_LIVE = [
+    {"id": "live_1", "text": "Live work permit obtained and signed by supervisor.", "critical": True},
+    {"id": "live_2", "text": "ERMS (Energy Reduction Maintenance Setting) activated on the incomer circuit breaker.", "critical": True},
+    {"id": "live_3", "text": "Arc flash PPE worn — face shield, arc flash suit, insulated gloves rated for this voltage level.", "critical": True},
+    {"id": "live_4", "text": "Only insulated tools used — no bare metal tools near live parts.", "critical": True},
+    {"id": "live_5", "text": "Safety observer present and knows the emergency procedure and first aid location.", "critical": True},
+    {"id": "live_6", "text": "All personnel informed — no unexpected re-energization possible during work.", "critical": True},
+    {"id": "live_7", "text": "Hazard identified: Arc Flash + Electric Shock risk. Working distance ≥ 300 mm from live parts.", "critical": False},
+]
+
+# Task checklists aligned with Excel 'EW activities' and 'Use cases ERMS'
+_CHECKLIST_BY_TASK = {
+    # Commissioning: first racking in, first energization, voltage checks, functional testing
+    "commissioning": [
+        {"id": "com_1", "text": "All wiring verified against SLD before first energization.", "critical": True},
+        {"id": "com_2", "text": "Insulation resistance test completed — results within acceptable range.", "critical": True},
+        {"id": "com_3", "text": "All protective devices (overcurrent, earth fault) set to correct ratings per design.", "critical": True},
+        # Racking in / first energization — doors closed — Arc Flash only, no electric shock
+        {"id": "com_4", "text": "Racking in / first energization: doors CLOSED → Arc Flash risk only. ERMS ON recommended.", "critical": True},
+        {"id": "com_5", "text": "Remote O/C considered for first energization — operator behind panel front face.", "critical": False},
+        # Voltage checks / auxiliary checks — doors open, inside switchboard — Arc Flash + Electric Shock
+        {"id": "com_6", "text": "Voltage & phase sequence checks: doors OPEN → Arc Flash + Electric Shock risk. Use installed panel meter to avoid direct contact.", "critical": True},
+        {"id": "com_7", "text": "Auxiliary voltage checks: doors OPEN → insulated probes only, no bare contact with terminals.", "critical": True},
+        {"id": "com_8", "text": "First energization plan communicated to all team members before starting.", "critical": False},
+    ],
+    # Operation: racking in/out, feeder open/close, consignation, padlocking, meter reading
+    "operation": [
+        {"id": "op_1",  "text": "Identified the correct feeder/incomer — confirmed by panel label and SLD.", "critical": True},
+        # Racking in/out, feeder closing — doors closed — Arc Flash only
+        {"id": "op_2",  "text": "Racking in/out & feeder closing: doors CLOSED → Arc Flash risk only. ERMS ON required.", "critical": True},
+        {"id": "op_3",  "text": "CB type confirmed (fixed or withdrawable) — operator stays at panel front face.", "critical": False},
+        # Consignation / padlocking — inside switchboard possible — Arc Flash + Electric Shock
+        {"id": "op_4",  "text": "Consignation/padlocking: if inside switchboard → Arc Flash + Electric Shock risk. Use Remote O/C where available.", "critical": True},
+        # Meter reading — doors closed — no direct hazard
+        {"id": "op_5",  "text": "Meter reading / display reading: doors CLOSED → ERMS OFF acceptable. Use remote monitoring if available.", "critical": False},
+    ],
+    # Service & Inspection — always inside switchboard, doors open → Arc Flash + Electric Shock
+    "service": [
+        {"id": "svc_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON required.", "critical": True},
+        {"id": "svc_2", "text": "Thermographic inspection: use thermal camera only — no direct contact with live parts.", "critical": True},
+        {"id": "svc_3", "text": "Portable measurements (U, I, power quality): use calibrated insulated probes, rated for this voltage.", "critical": True},
+        {"id": "svc_4", "text": "Cable inspection: check for mechanical damage, loose connections — no bare hand contact near live cables.", "critical": True},
+        {"id": "svc_5", "text": "Troubleshooting: root cause documented — no re-energization until fault is fully cleared.", "critical": False},
+        {"id": "svc_6", "text": "Consider installing Smartpanel / MTZ App / permanent meter to avoid future live access.", "critical": False},
+    ],
+    # Modification — inside switchboard, doors open, adjacent busbars live → Arc Flash + Electric Shock
+    "modification": [
+        {"id": "mod_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON mandatory.", "critical": True},
+        {"id": "mod_2", "text": "⚠ Adjacent busbars remain LIVE — insulating barriers placed over all live busbars before starting.", "critical": True},
+        {"id": "mod_3", "text": "Magnetic parts tray in use — screws, nuts, washers secured to prevent drops onto live busbars.", "critical": True},
+        {"id": "mod_4", "text": "New cables pre-cut and pre-terminated BEFORE approaching the busbar area.", "critical": True},
+        {"id": "mod_5", "text": "Spare slot confirmed empty and busbar capacity checked before installing new feeder.", "critical": True},
+        {"id": "mod_6", "text": "Change permit / work order signed. Supervisor informed of live adjacent sections.", "critical": False},
+    ],
+    # Replacement — inside switchboard, doors open → Arc Flash + Electric Shock
+    "replacement": [
+        {"id": "rep_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON required.", "critical": True},
+        {"id": "rep_2", "text": "⚠ Adjacent busbars may still be live — insulating barriers placed before starting.", "critical": True},
+        {"id": "rep_3", "text": "Replacement breaker has the CORRECT rating — type, current, voltage matches original exactly.", "critical": True},
+        {"id": "rep_4", "text": "Correct polarity and phase sequence verified before installing the new breaker.", "critical": True},
+        {"id": "rep_5", "text": "Torque settings for connections confirmed from manufacturer datasheet.", "critical": False},
+        {"id": "rep_6", "text": "Old breaker safely removed and disposed — not left inside the panel.", "critical": False},
+    ],
+    # Others — non-electrical work in electrical room — hazard depends on distance to switchboard
+    "others": [
+        {"id": "oth_1", "text": "Work scope clearly defined and approved by supervisor before entering electrical room.", "critical": True},
+        # < 0.3 m from switchboard: Arc Flash risk even with doors closed
+        {"id": "oth_2", "text": "Working < 0.3 m from switchboard: Arc Flash risk (even doors closed). ERMS ON recommended.", "critical": True},
+        # 0.3 – 1 m: still Arc Flash risk
+        {"id": "oth_3", "text": "Working 0.3–1 m from switchboard: Arc Flash risk. Panel doors CLOSED. ERMS ON recommended.", "critical": False},
+        # 1 – 3 m: lower risk, ERMS recommended
+        {"id": "oth_4", "text": "Working 1–3 m from switchboard: panel doors CLOSED. ERMS recommended as precaution.", "critical": False},
+        # > 3 m: no significant hazard
+        {"id": "oth_5", "text": "Working > 3 m from switchboard: no direct electrical hazard. ERMS OFF acceptable.", "critical": False},
+    ],
+}
+
+_CHECKLIST_PANEL_EXTRAS = {
+    "PrismaSeT P": [
+        {"id": "psp_1", "text": "⚠ PrismaSeT P — VBB (Vertical Busbar Box) compartment is ALWAYS live even when panel is isolated. Do NOT drill or penetrate the VBB door.", "critical": True},
+    ],
+    "Okken": [
+        {"id": "okk_1", "text": "⚠ Okken panel — Horizontal Busbar (HBB) runs at the TOP and BEHIND the panel. Keep clear of the top section during intervention.", "critical": True},
+    ],
+    "PrismaSeT G": [],
+}
+
+_SLD_MISSING = {"id": "sld_1", "text": "⚠ No SLD loaded in the app — verify circuit layout from physical inspection before starting.", "critical": False}
+
+
+@app.post("/api/checklist")
+def get_checklist(body: ChecklistRequest):
+    task = body.task_type.lower().strip()
+    items = []
+
+    # SLD warning
+    if not body.has_sld:
+        items.append(_SLD_MISSING)
+
+    # Common base checklist
+    if body.is_live:
+        items += _CHECKLIST_COMMON_LIVE
+    else:
+        items += _CHECKLIST_COMMON_DEAD
+
+    # Task-specific items
+    items += _CHECKLIST_BY_TASK.get(task, _CHECKLIST_BY_TASK["others"])
+
+    # Panel-specific warnings
+    panel_key = next((k for k in _CHECKLIST_PANEL_EXTRAS if k.lower() in body.panel_type.lower()), None)
+    if panel_key:
+        extras = _CHECKLIST_PANEL_EXTRAS[panel_key]
+        # For PrismaSeT P, add VBB side info if known
+        if panel_key == "PrismaSeT P" and body.vbb_side and body.vbb_side != "unknown":
+            extras = [dict(e) for e in extras]
+            extras[0]["text"] = extras[0]["text"].replace("VBB (Vertical Busbar Box) compartment", f"VBB compartment on the {body.vbb_side.upper()} side")
+        items += extras
+
+    total    = len(items)
+    critical = sum(1 for i in items if i["critical"])
+
+    print(f"[CHECKLIST] task={task} live={body.is_live} panel={body.panel_type} items={total} critical={critical}")
+    return JSONResponse(content={
+        "task_type":  task,
+        "is_live":    body.is_live,
+        "panel_type": body.panel_type,
+        "items":      items,
+        "total":      total,
+        "critical":   critical,
+    })
+
+
+# ----------------------------------------
+
+
+# Serve the web UI — must be last so API routes take priority
+import os as _os
+_web_dir = _os.path.join(_os.path.dirname(__file__), "web")
+if _os.path.isdir(_web_dir):
+    app.mount("/", StaticFiles(directory=_web_dir, html=True), name="web")
 
 if __name__ == "__main__":
     import uvicorn
@@ -2045,4 +2167,5 @@ if __name__ == "__main__":
     print(f"\n Server running at:")
     print(f"   http://localhost:8000")
     print(f"   http://{local_ip}:8000  ← use this in the Android app\n")
+    print(f"   Web UI: http://{local_ip}:8000/index.html\n")
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)

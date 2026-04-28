@@ -18,3 +18,5 @@ env/
 .DS_Store
 breaker_data.db
 scans_images/
+server.log
+.claude/

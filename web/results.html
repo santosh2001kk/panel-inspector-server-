@@ -12,121 +12,222 @@
   --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
   --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
   --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;--yellow:#FFD32A;
+  --blue:#4A9EFF;
 }
 html,body{min-height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 60% 40% at 80% 20%,rgba(61,205,88,.05) 0%,transparent 60%);
+  background:radial-gradient(ellipse 70% 50% at 80% 10%,rgba(61,205,88,.06) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 40% at 10% 80%,rgba(74,158,255,.04) 0%,transparent 60%);
 }
 
 /* ── Navbar ── */
-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
-  padding:0 32px;height:64px;background:rgba(10,22,40,.92);backdrop-filter:blur(20px);
+nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;height:64px;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);
 }
 .nav-logo{display:flex;align-items:center;gap:12px}
 .nav-sq{width:36px;height:36px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0A1628}
 .nav-title{font-size:16px;font-weight:700}
-.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px}
-.nav-right{display:flex;align-items:center;gap:12px}
-.btn-nav{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px;text-transform:uppercase}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-nav{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
 .btn-back{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn-back:hover{border-color:var(--green);color:var(--green)}
 .btn-new{background:var(--green);border:none;color:#0A1628}
-.btn-new:hover{background:var(--green-dark)}
+.btn-new:hover{background:var(--green-dark);transform:translateY(-1px)}
+.btn-print{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-print:hover{border-color:var(--blue);color:var(--blue)}
 
-/* ── Layout ── */
-.main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:32px 32px 80px}
-.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
-@media(max-width:900px){.results-grid{grid-template-columns:1fr}}
+/* ── Hero Stats Bar ── */
+.stats-bar{position:relative;z-index:1;background:var(--card);border-bottom:1px solid var(--border);padding:0 32px}
+.stats-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;gap:0}
+.stat-item{flex:1;padding:20px 24px;display:flex;align-items:center;gap:14px;border-right:1px solid var(--border)}
+.stat-item:last-child{border-right:none}
+.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.si-green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.si-red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
+.si-blue{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
+.si-orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
+.stat-val{font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.stat-label{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.7px;font-weight:500}
+@media(max-width:700px){.stats-bar{display:none}}
+
+/* ── Tab Bar ── */
+.tab-bar{position:sticky;top:64px;z-index:150;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:0 32px;
+}
+.tab-bar-inner{max-width:1280px;margin:0 auto;display:flex;gap:0}
+.tab-btn{padding:16px 22px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;
+  border:none;background:transparent;font-family:'Inter',sans-serif;
+  border-bottom:3px solid transparent;margin-bottom:-1px;
+  display:flex;align-items:center;gap:8px;transition:all .2s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.tab-badge{background:var(--card2);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.tab-btn.active .tab-badge{background:rgba(61,205,88,.15);color:var(--green)}
+
+/* ── Main Layout ── */
+.main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:28px 32px 80px}
+
+/* ── Tab Panels ── */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
 
 /* ── Cards ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s}
+.card:hover{border-color:rgba(61,205,88,.15)}
 .card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
 .card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.card-icon.green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
-.card-icon.red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
-.card-icon.orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
-.card-icon.blue{background:rgba(0,120,255,.12);border:1px solid rgba(0,120,255,.2);color:#4A9EFF}
+.ci-green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.ci-red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
+.ci-orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
+.ci-blue{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
 .card-title{font-size:15px;font-weight:700}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px}
 .card-body{padding:20px 24px}
 
-/* ── Panel Summary ── */
-.panel-badge{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;
-  background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.3);border-radius:12px;margin-bottom:16px;
+/* ── Two-col grid ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+@media(max-width:960px){.two-col,.three-col{grid-template-columns:1fr}}
+.col-stack{display:flex;flex-direction:column;gap:24px}
+
+/* ── Panel Badge ── */
+.panel-badge{display:flex;align-items:center;gap:14px;padding:16px 20px;
+  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);border-radius:12px;margin-bottom:18px;
 }
-.panel-badge .badge-icon{width:40px;height:40px;background:var(--green);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:18px;
+.badge-icon{width:48px;height:48px;background:var(--green);border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:20px;
 }
-.panel-badge .badge-text .panel-name{font-size:20px;font-weight:800;color:var(--green)}
-.panel-badge .badge-text .panel-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-.panel-summary-text{font-size:14px;color:var(--muted);line-height:1.7}
+.panel-name{font-size:22px;font-weight:800;color:var(--green)}
+.panel-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.panel-summary-text{font-size:14px;color:var(--muted);line-height:1.75}
 .meta-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;
   background:var(--card2);border:1px solid var(--border);color:var(--muted);
   display:flex;align-items:center;gap:6px;
 }
-.chip.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.2);color:var(--green)}
-.chip.red{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.2);color:var(--red)}
-.chip.orange{background:rgba(255,165,2,.08);border-color:rgba(255,165,2,.2);color:var(--orange)}
+.chip.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.25);color:var(--green)}
+.chip.red{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.25);color:var(--red)}
+.chip.orange{background:rgba(255,165,2,.08);border-color:rgba(255,165,2,.25);color:var(--orange)}
+.chip.blue{background:rgba(74,158,255,.08);border-color:rgba(74,158,255,.25);color:var(--blue)}
 
-/* ── Canvas / Image ── */
-.canvas-wrap{background:#000;border-radius:12px;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
+/* ── Canvas ── */
+.canvas-wrap{background:#000918;border-radius:12px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;min-height:200px;
 }
 .canvas-wrap canvas{max-width:100%;display:block}
-.canvas-legend{display:flex;gap:16px;padding:14px 20px;flex-wrap:wrap}
+.canvas-legend{display:flex;gap:16px;padding:14px 20px;flex-wrap:wrap;border-top:1px solid var(--border)}
 .legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
 .legend-dot{width:12px;height:12px;border-radius:2px}
+
+/* ── Documents Used section ── */
+.docs-used-grid{display:flex;gap:14px;flex-wrap:wrap}
+.doc-card{flex:1;min-width:160px;padding:16px;background:var(--card2);border-radius:12px;border:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;transition:border-color .2s;
+}
+.doc-card.active{border-color:rgba(61,205,88,.3);background:rgba(61,205,88,.05)}
+.doc-card.inactive{opacity:.45}
+.doc-card-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.dci-green{background:rgba(61,205,88,.15);color:var(--green)}
+.dci-blue{background:rgba(74,158,255,.15);color:var(--blue)}
+.dci-grey{background:rgba(107,142,174,.12);color:var(--muted)}
+.doc-name{font-size:13px;font-weight:600}
+.doc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── SLD Preview inside results ── */
+.sld-preview-box{margin-top:14px;border:1px dashed rgba(61,205,88,.25);border-radius:10px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;background:rgba(0,9,24,.5);
+}
+.sld-preview-box img{max-width:100%;max-height:260px;display:block}
+.sld-pdf-preview{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;gap:12px;
+}
+.sld-pdf-preview .pdf-icon{font-size:48px;color:#FF5A5A}
+.sld-pdf-preview .pdf-name{font-size:13px;color:var(--muted);font-weight:600}
+.sld-pdf-preview .pdf-used{font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px}
+.sld-none{padding:24px;text-align:center;color:var(--muted);font-size:13px}
 
 /* ── Safety Warnings ── */
 .warning-list{display:flex;flex-direction:column;gap:10px}
 .warning-item{display:flex;gap:12px;padding:14px 16px;border-radius:10px;
   background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);
-  animation:fadeIn .4s ease both;
+  animation:slideIn .35s ease both;
 }
 .warning-item.orange{background:rgba(255,165,2,.07);border-color:rgba(255,165,2,.2)}
-.warning-icon{font-size:16px;color:var(--red);flex-shrink:0;margin-top:1px}
-.warning-icon.orange{color:var(--orange)}
-.warning-text{font-size:13px;line-height:1.6;color:var(--text)}
-@keyframes fadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.warning-item.green{background:rgba(61,205,88,.07);border-color:rgba(61,205,88,.2)}
+.w-icon{font-size:16px;color:var(--red);flex-shrink:0;margin-top:2px}
+.w-icon.orange{color:var(--orange)}
+.w-icon.green{color:var(--green)}
+.w-text{font-size:13px;line-height:1.65;color:var(--text)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
 /* ── Detections Table ── */
 .det-table{width:100%;border-collapse:collapse}
 .det-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-  color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border);
+  color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);
 }
-.det-table td{padding:12px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
+.det-table td{padding:13px 16px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
 .det-table tr:last-child td{border-bottom:none}
 .det-table tr:hover td{background:rgba(61,205,88,.04)}
 .det-type{font-weight:600}
-.det-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;
+.det-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;
   background:rgba(61,205,88,.12);color:var(--green);border:1px solid rgba(61,205,88,.2);
 }
-.no-det{text-align:center;padding:32px;color:var(--muted);font-size:14px}
+.det-badge.orange{background:rgba(255,165,2,.12);color:var(--orange);border-color:rgba(255,165,2,.2)}
+.det-badge.blue{background:rgba(74,158,255,.12);color:var(--blue);border-color:rgba(74,158,255,.2)}
+.no-det{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.row-idx{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 
 /* ── Notes ── */
-.notes-text{font-size:14px;line-height:1.8;color:var(--muted);white-space:pre-wrap}
+.notes-text{font-size:14px;line-height:1.85;color:var(--muted);white-space:pre-wrap}
 
 /* ── Catalogue ── */
 .catalogue-box{background:var(--card2);border-radius:10px;padding:20px;
-  font-size:13px;line-height:1.9;color:var(--muted);white-space:pre-wrap;max-height:400px;overflow-y:auto;
-  font-family:'Courier New',monospace;
+  font-size:13px;line-height:1.9;color:var(--muted);white-space:pre-wrap;max-height:480px;overflow-y:auto;
 }
 .catalogue-box::-webkit-scrollbar{width:5px}
 .catalogue-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
-/* ── Full width bottom cards ── */
-.full-row{grid-column:1/-1}
+/* ── Section heading ── */
+.section-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.section-head::after{content:'';flex:1;height:1px;background:var(--border)}
 
-/* ── Print button ── */
-.btn-print{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
-.btn-print:hover{border-color:var(--green);color:var(--green)}
+/* ── Timeline / Checklist in Catalogue ── */
+.checklist{display:flex;flex-direction:column;gap:10px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;
+  background:var(--card2);border-radius:8px;border:1px solid var(--border);font-size:13px;
+}
+.check-num{width:24px;height:24px;border-radius:50%;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);
+  color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
 
-/* ── Empty state ── */
-.empty-state{text-align:center;padding:48px 24px}
-.empty-icon{font-size:48px;color:var(--muted);margin-bottom:16px}
-.empty-title{font-size:18px;font-weight:600;margin-bottom:8px}
+/* ── Empty / No data ── */
+.empty-state{text-align:center;padding:64px 24px}
+.empty-icon{font-size:52px;color:var(--muted);margin-bottom:20px}
+.empty-title{font-size:20px;font-weight:600;margin-bottom:10px}
 .empty-sub{font-size:14px;color:var(--muted)}
+
+/* ── Confidence meter ── */
+.conf-bar-wrap{display:flex;align-items:center;gap:10px;margin-top:4px}
+.conf-bar-bg{flex:1;height:5px;background:var(--card2);border-radius:4px;overflow:hidden}
+.conf-bar-fill{height:100%;border-radius:4px;transition:width 1s ease;background:var(--green)}
+.conf-pct{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── Print ── */
+@media print{
+  nav,.tab-bar,.stats-bar,.btn-nav{display:none!important}
+  .tab-panel{display:block!important}
+  .main{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -140,229 +241,666 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
   </div>
   <div class="nav-right">
     <button class="btn-nav btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-    <button class="btn-nav btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> New Scan</button>
+    <button class="btn-nav btn-back" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+    <button class="btn-nav btn-new" onclick="location.href='dashboard.html'"><i class="fas fa-plus"></i> New Scan</button>
   </div>
 </nav>
 
-<!-- Main -->
-<div class="main" id="main">
-  <div class="results-grid" id="resultsGrid"></div>
+<!-- Stats Bar -->
+<div class="stats-bar" id="statsBar" style="display:none">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-icon si-green"><i class="fas fa-solar-panel"></i></div>
+      <div>
+        <div class="stat-val" id="statPanel" style="color:var(--green)">—</div>
+        <div class="stat-label">Panel Type</div>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon si-blue"><i class="fas fa-microchip"></i></div>
+      <div>
+        <div class="stat-val" id="statBreakers" style="color:var(--blue)">0</div>
+        <div class="stat-label">Breakers Found</div>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon si-red"><i class="fas fa-triangle-exclamation"></i></div>
+      <div>
+        <div class="stat-val" id="statWarnings" style="color:var(--red)">0</div>
+        <div class="stat-label">Safety Warnings</div>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon si-orange"><i class="fas fa-file-lines"></i></div>
+      <div>
+        <div class="stat-val" id="statDocs" style="color:var(--orange)">0</div>
+        <div class="stat-label">Documents Used</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<script>
-const data  = JSON.parse(sessionStorage.getItem('analysisResult') || '{}');
-const imgB64= sessionStorage.getItem('analysisImage');
-const mime  = sessionStorage.getItem('imageMime') || 'image/jpeg';
-const meta  = JSON.parse(sessionStorage.getItem('analysisMeta') || '{}');
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" onclick="switchTab('overview',this)"><i class="fas fa-chart-pie"></i> Overview</button>
+    <button class="tab-btn" onclick="switchTab('detections',this)"><i class="fas fa-microchip"></i> Detections <span class="tab-badge" id="tbBreakers">0</span></button>
+    <button class="tab-btn" onclick="switchTab('safety',this)"><i class="fas fa-shield-halved"></i> Safety <span class="tab-badge" id="tbWarnings">0</span></button>
+    <button class="tab-btn" onclick="switchTab('catalogue',this)"><i class="fas fa-book-open"></i> Catalogue</button>
+    <button class="tab-btn" onclick="switchTab('documents',this)"><i class="fas fa-file-lines"></i> Documents</button>
+  </div>
+</div>
 
-if(!data || !imgB64){ document.getElementById('resultsGrid').innerHTML='<div class="empty-state full-row"><div class="empty-icon"><i class="fas fa-triangle-exclamation"></i></div><div class="empty-title">No results found</div><div class="empty-sub">Please go back and run a scan first.</div></div>'; }
-else { render(); }
+<!-- Main -->
+<div class="main" id="main">
 
-function render(){
-  const grid = document.getElementById('resultsGrid');
+  <!-- OVERVIEW TAB -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="two-col">
+      <!-- Left -->
+      <div class="col-stack">
+        <!-- Panel image -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-green"><i class="fas fa-image"></i></div>
+            <div><div class="card-title">Detection Overlay</div><div class="card-sub">AI-annotated panel image</div></div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="canvas-wrap"><canvas id="resultCanvas"></canvas></div>
+            <div class="canvas-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#3DCD58"></div> Breaker</div>
+              <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.25);border:2px solid #3DCD58;box-sizing:border-box"></div> Work zone</div>
+              <div class="legend-item"><div class="legend-dot" style="background:rgba(255,71,87,.2);border:2px dashed #FF4757;box-sizing:border-box"></div> Safety buffer</div>
+            </div>
+          </div>
+        </div>
 
-  // ── Left column ──
-  const leftCol = document.createElement('div');
-  leftCol.style.cssText='display:flex;flex-direction:column;gap:24px';
-
-  // Panel image card
-  leftCol.innerHTML += `
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon green"><i class="fas fa-image"></i></div>
-      <div class="card-title">Panel Image — Detection Overlay</div>
-    </div>
-    <div class="card-body" style="padding:0">
-      <div class="canvas-wrap"><canvas id="resultCanvas"></canvas></div>
-      <div class="canvas-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#3DCD58;border:2px solid #3DCD58"></div> Circuit breaker</div>
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.2);border:2px dashed #3DCD58"></div> Work zone</div>
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(255,71,87,.15);border:2px dashed #FF4757"></div> Safety buffer</div>
-      </div>
-    </div>
-  </div>`;
-
-  // Panel Info card
-  const panelType    = data.panel_type    || 'Unknown';
-  const panelSummary = data.panel_summary || '';
-  const busbarSide   = data.busbar_side   || 'unknown';
-  const cubicleCount = data.cubicle_count || 0;
-  const task         = meta.task || '';
-  const isLive       = meta.isLive || false;
-
-  leftCol.innerHTML += `
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon green"><i class="fas fa-solar-panel"></i></div>
-      <div class="card-title">Panel Identification</div>
-    </div>
-    <div class="card-body">
-      <div class="panel-badge">
-        <div class="badge-icon"><i class="fas fa-bolt"></i></div>
-        <div class="badge-text">
-          <div class="panel-label">Detected Panel</div>
-          <div class="panel-name">${escHtml(panelType)}</div>
+        <!-- Notes -->
+        <div class="card" id="notesCard" style="display:none">
+          <div class="card-header">
+            <div class="card-icon ci-orange"><i class="fas fa-clipboard-list"></i></div>
+            <div class="card-title">AI Assessment Notes</div>
+          </div>
+          <div class="card-body"><p class="notes-text" id="notesText"></p></div>
         </div>
       </div>
-      <p class="panel-summary-text">${escHtml(panelSummary)}</p>
-      <div class="meta-chips">
-        <div class="chip ${isLive?'red':'green'}"><i class="fas fa-${isLive?'bolt':'plug-circle-xmark'}"></i>${isLive?'LIVE':'DEAD'}</div>
-        ${task?`<div class="chip blue"><i class="fas fa-tag"></i>${capitalize(task)}</div>`:''}
-        ${busbarSide!=='unknown'?`<div class="chip orange"><i class="fas fa-arrows-left-right"></i>Busbar: ${escHtml(busbarSide)}</div>`:''}
-        ${cubicleCount>0?`<div class="chip"><i class="fas fa-table-cells"></i>${cubicleCount} cubicles</div>`:''}
+
+      <!-- Right -->
+      <div class="col-stack">
+        <!-- Panel ID -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-green"><i class="fas fa-solar-panel"></i></div>
+            <div><div class="card-title">Panel Identification</div><div class="card-sub">Schneider Electric classification</div></div>
+          </div>
+          <div class="card-body" id="panelBody"></div>
+        </div>
+
+        <!-- Top 3 warnings preview -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-red"><i class="fas fa-triangle-exclamation"></i></div>
+            <div><div class="card-title">Safety Snapshot</div><div class="card-sub">Top hazards — see Safety tab for full list</div></div>
+          </div>
+          <div class="card-body"><div class="warning-list" id="warnSnap"></div></div>
+        </div>
+
+        <!-- Documents used inline -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-blue"><i class="fas fa-file-lines"></i></div>
+            <div><div class="card-title">Documents Used in Analysis</div><div class="card-sub">References sent to the AI model</div></div>
+          </div>
+          <div class="card-body" id="docsOverview"></div>
+        </div>
       </div>
     </div>
-  </div>`;
+  </div>
 
-  grid.appendChild(leftCol);
-
-  // ── Right column ──
-  const rightCol = document.createElement('div');
-  rightCol.style.cssText='display:flex;flex-direction:column;gap:24px';
-
-  // Safety Warnings
-  const warnings = data.safety_warnings || [];
-  let warnHtml = '';
-  if(warnings.length){
-    warnings.forEach((w,i)=>{
-      const isOrange = w.toLowerCase().includes('ppe') || w.toLowerCase().includes('caution');
-      warnHtml += `<div class="warning-item ${isOrange?'orange':''}" style="animation-delay:${i*0.08}s">
-        <div class="warning-icon ${isOrange?'orange':''}"><i class="fas fa-triangle-exclamation"></i></div>
-        <div class="warning-text">${escHtml(w)}</div>
-      </div>`;
-    });
-  } else {
-    warnHtml = '<div class="no-det" style="padding:20px"><i class="fas fa-check-circle" style="color:var(--green);margin-right:8px"></i>No critical safety warnings detected.</div>';
-  }
-  rightCol.innerHTML += `
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-      <div class="card-title">Safety Warnings &amp; PPE Requirements</div>
+  <!-- DETECTIONS TAB -->
+  <div class="tab-panel" id="tab-detections">
+    <div class="two-col">
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-blue"><i class="fas fa-microchip"></i></div>
+            <div><div class="card-title" id="detTitle">Detected Equipment</div><div class="card-sub">All breakers and components identified in work zone</div></div>
+          </div>
+          <div id="detTableWrap"></div>
+        </div>
+      </div>
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-green"><i class="fas fa-image"></i></div>
+            <div class="card-title">Detection Map</div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="canvas-wrap"><canvas id="resultCanvas2"></canvas></div>
+          </div>
+        </div>
+        <!-- Breakdown chart (simple bars) -->
+        <div class="card" id="breakdownCard">
+          <div class="card-header">
+            <div class="card-icon ci-orange"><i class="fas fa-chart-bar"></i></div>
+            <div class="card-title">Equipment Breakdown</div>
+          </div>
+          <div class="card-body" id="breakdownBody"></div>
+        </div>
+      </div>
     </div>
-    <div class="card-body"><div class="warning-list">${warnHtml}</div></div>
-  </div>`;
+  </div>
 
-  // Detections
-  const breakers = data.breakers || [];
-  let detHtml = '';
-  if(breakers.length){
-    detHtml = `<table class="det-table">
-      <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label</th></tr></thead><tbody>`;
-    breakers.forEach((b,i)=>{
-      detHtml += `<tr>
-        <td style="color:var(--muted)">${i+1}</td>
-        <td><span class="det-type">${escHtml(b.type||'Unknown')}</span></td>
-        <td>${b.rating?`<span class="det-badge">${escHtml(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
-        <td style="color:var(--muted)">${escHtml(b.circuit_label||'—')}</td>
-      </tr>`;
-    });
-    detHtml += '</tbody></table>';
-  } else {
-    detHtml = '<div class="no-det"><i class="fas fa-search" style="margin-right:8px"></i>No breakers detected in this zone.</div>';
-  }
-  rightCol.innerHTML += `
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon blue"><i class="fas fa-microchip"></i></div>
-      <div class="card-title">Detected Equipment (${breakers.length})</div>
+  <!-- SAFETY TAB -->
+  <div class="tab-panel" id="tab-safety">
+    <div class="two-col">
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-red"><i class="fas fa-triangle-exclamation"></i></div>
+            <div><div class="card-title">Safety Warnings &amp; PPE</div><div class="card-sub">All hazards detected in this inspection</div></div>
+          </div>
+          <div class="card-body"><div class="warning-list" id="warnFull"></div></div>
+        </div>
+      </div>
+      <div class="col-stack">
+        <!-- Live/Dead status card -->
+        <div class="card" id="liveCard">
+          <div class="card-header">
+            <div class="card-icon ci-red" id="liveIcon"><i class="fas fa-bolt"></i></div>
+            <div><div class="card-title" id="liveTitle">Energisation Status</div></div>
+          </div>
+          <div class="card-body" id="liveBody"></div>
+        </div>
+        <!-- Standard PPE reminders -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-orange"><i class="fas fa-hard-hat"></i></div>
+            <div class="card-title">Standard PPE Requirements</div>
+          </div>
+          <div class="card-body">
+            <div class="warning-list">
+              <div class="warning-item orange" style="animation-delay:.0s"><div class="w-icon orange"><i class="fas fa-hard-hat"></i></div><div class="w-text">Arc flash-rated face shield and insulated gloves (minimum Cat 2) when working near energised equipment.</div></div>
+              <div class="warning-item orange" style="animation-delay:.08s"><div class="w-icon orange"><i class="fas fa-shoe-prints"></i></div><div class="w-text">Insulated footwear and anti-static wrist strap required at all times within the panel zone.</div></div>
+              <div class="warning-item orange" style="animation-delay:.16s"><div class="w-icon orange"><i class="fas fa-vest"></i></div><div class="w-text">Hi-vis arc-rated workwear must be worn. Cotton or synthetic clothing is not permitted.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body" style="padding:0">${detHtml}</div>
-  </div>`;
+  </div>
 
-  // Notes
-  if(data.notes){
-    rightCol.innerHTML += `
+  <!-- CATALOGUE TAB -->
+  <div class="tab-panel" id="tab-catalogue">
     <div class="card">
       <div class="card-header">
-        <div class="card-icon orange"><i class="fas fa-clipboard-list"></i></div>
-        <div class="card-title">AI Assessment Notes</div>
+        <div class="card-icon ci-green"><i class="fas fa-book-open"></i></div>
+        <div><div class="card-title">Schneider Electric Catalogue Reference &amp; Task Checklist</div><div class="card-sub">AI-generated based on detected panel type and selected task</div></div>
       </div>
-      <div class="card-body"><p class="notes-text">${escHtml(data.notes)}</p></div>
-    </div>`;
-  }
+      <div class="card-body"><div class="catalogue-box" id="catBox"></div></div>
+    </div>
+  </div>
 
-  grid.appendChild(rightCol);
-
-  // ── Full-width Catalogue Guidance ──
-  if(data.catalogue_guidance){
-    const fullRow = document.createElement('div');
-    fullRow.className='full-row';
-    fullRow.innerHTML=`
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon green"><i class="fas fa-book-open"></i></div>
-        <div class="card-title">Schneider Electric Catalogue Reference &amp; Task Checklist</div>
+  <!-- DOCUMENTS TAB -->
+  <div class="tab-panel" id="tab-documents">
+    <div class="two-col">
+      <div class="col-stack">
+        <!-- SLD card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-green"><i class="fas fa-diagram-project"></i></div>
+            <div><div class="card-title">Single Line Diagram (SLD)</div><div class="card-sub">Reference document used in AI analysis</div></div>
+          </div>
+          <div class="card-body" id="sldDocBody"></div>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="catalogue-box">${escHtml(data.catalogue_guidance)}</div>
+      <div class="col-stack">
+        <!-- Mechanical layout card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-blue"><i class="fas fa-map-location-dot"></i></div>
+            <div><div class="card-title">Mechanical / Site Layout</div><div class="card-sub">Reference document used in AI analysis</div></div>
+          </div>
+          <div class="card-body" id="layoutDocBody"></div>
+        </div>
+        <!-- Analysis meta card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon ci-orange"><i class="fas fa-circle-info"></i></div>
+            <div class="card-title">Scan Metadata</div>
+          </div>
+          <div class="card-body" id="metaBody"></div>
+        </div>
       </div>
-    </div>`;
-    grid.appendChild(fullRow);
-  }
+    </div>
+  </div>
 
-  // ── Draw canvas ──
-  drawResultCanvas();
+</div><!-- /main -->
+
+<script>
+/* ─── Data from sessionStorage ─── */
+const data   = JSON.parse(sessionStorage.getItem('analysisResult') || '{}');
+const imgB64 = sessionStorage.getItem('analysisImage');
+const mime   = sessionStorage.getItem('imageMime') || 'image/jpeg';
+const meta   = JSON.parse(sessionStorage.getItem('analysisMeta') || '{}');
+
+// SLD / Layout data stored by dashboard
+const sldB64  = sessionStorage.getItem('sldBase64');
+const sldMime = sessionStorage.getItem('sldMime') || 'image/jpeg';
+const sldName = sessionStorage.getItem('sldName') || 'sld.jpg';
+const layoutB64  = sessionStorage.getItem('layoutBase64');
+const layoutMime = sessionStorage.getItem('layoutMime') || 'image/jpeg';
+const hasSld     = sessionStorage.getItem('hasSld') === 'true';
+const hasLayout  = sessionStorage.getItem('hasLayout') === 'true';
+
+/* ─── No data guard ─── */
+if(!imgB64){
+  document.getElementById('main').innerHTML=
+    '<div class="empty-state"><div class="empty-icon"><i class="fas fa-triangle-exclamation"></i></div>'+
+    '<div class="empty-title">No results found</div>'+
+    '<div class="empty-sub">Please go back and run a scan first.</div>'+
+    '<br><button class="btn-nav btn-new" style="margin:0 auto" onclick="location.href=\'dashboard.html\'"><i class="fas fa-plus"></i> New Scan</button></div>';
+} else {
+  renderAll();
 }
 
-function drawResultCanvas(){
-  const canvas = document.getElementById('resultCanvas');
+/* ─── Tab switching ─── */
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ─── Master render ─── */
+function renderAll(){
+  const breakers = data.breakers || [];
+  const warnings = data.safety_warnings || [];
+  const panelType = data.panel_type || 'Unknown';
+  const docsCount = (hasSld?1:0) + (hasLayout?1:0);
+
+  // Stats bar
+  document.getElementById('statsBar').style.display='';
+  document.getElementById('statPanel').textContent = panelType;
+  animateNum('statBreakers', breakers.length, 600);
+  animateNum('statWarnings', warnings.length, 700);
+  animateNum('statDocs',     docsCount, 800);
+  document.getElementById('tbBreakers').textContent = breakers.length;
+  document.getElementById('tbWarnings').textContent = warnings.length;
+
+  renderPanelCard(panelType, breakers, warnings);
+  renderWarnSnap(warnings);
+  renderDocsOverview();
+  renderDetections(breakers);
+  renderSafetyTab(warnings);
+  renderCatalogue();
+  renderDocumentsTab();
+  renderMetaCard();
+  drawCanvas('resultCanvas');
+  drawCanvas('resultCanvas2');
+}
+
+/* ─── Panel identification card ─── */
+function renderPanelCard(panelType, breakers, warnings){
+  const isLive    = meta.isLive || false;
+  const task      = meta.task   || '';
+  const busbar    = data.busbar_side   || '';
+  const cubicles  = data.cubicle_count || 0;
+  const summary   = data.panel_summary || '';
+  const notes     = data.notes || '';
+
+  document.getElementById('panelBody').innerHTML=`
+    <div class="panel-badge">
+      <div class="badge-icon"><i class="fas fa-bolt"></i></div>
+      <div>
+        <div class="panel-label">Detected Panel</div>
+        <div class="panel-name">${esc(panelType)}</div>
+      </div>
+    </div>
+    ${summary?`<p class="panel-summary-text">${esc(summary)}</p>`:''}
+    <div class="meta-chips" style="margin-top:14px">
+      <div class="chip ${isLive?'red':'green'}"><i class="fas fa-${isLive?'bolt':'plug-circle-xmark'}"></i>${isLive?'LIVE PANEL':'DEAD PANEL'}</div>
+      ${task?`<div class="chip blue"><i class="fas fa-tag"></i>${cap(esc(task))}</div>`:''}
+      ${busbar&&busbar!=='unknown'?`<div class="chip orange"><i class="fas fa-arrows-left-right"></i>Busbar: ${esc(busbar)}</div>`:''}
+      ${cubicles>0?`<div class="chip"><i class="fas fa-table-cells"></i>${cubicles} cubicles</div>`:''}
+      ${breakers.length>0?`<div class="chip blue"><i class="fas fa-microchip"></i>${breakers.length} breakers</div>`:''}
+      ${warnings.length>0?`<div class="chip red"><i class="fas fa-triangle-exclamation"></i>${warnings.length} warnings</div>`:''}
+    </div>`;
+
+  if(notes){
+    document.getElementById('notesCard').style.display='';
+    document.getElementById('notesText').textContent=notes;
+  }
+}
+
+/* ─── Warnings snapshot (overview tab — top 3) ─── */
+function renderWarnSnap(warnings){
+  const snap = warnings.slice(0,3);
+  const el = document.getElementById('warnSnap');
+  if(!snap.length){
+    el.innerHTML='<div class="warning-item green" style="animation-delay:0s"><div class="w-icon green"><i class="fas fa-check-circle"></i></div><div class="w-text">No critical safety warnings detected in this zone.</div></div>';
+    return;
+  }
+  el.innerHTML = snap.map((w,i)=>{
+    const orange = w.toLowerCase().includes('ppe')||w.toLowerCase().includes('caution');
+    return `<div class="warning-item ${orange?'orange':''}" style="animation-delay:${i*.08}s">
+      <div class="w-icon ${orange?'orange':''}"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="w-text">${esc(w)}</div>
+    </div>`;
+  }).join('');
+  if(warnings.length>3){
+    el.innerHTML += `<p style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">
+      +${warnings.length-3} more — <a href="#" onclick="switchToSafety(event)" style="color:var(--green)">view all in Safety tab</a>
+    </p>`;
+  }
+}
+
+function switchToSafety(e){
+  e.preventDefault();
+  const btn = document.querySelector('.tab-btn:nth-child(3)');
+  switchTab('safety', btn);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ─── Documents overview (inside Overview tab) ─── */
+function renderDocsOverview(){
+  document.getElementById('docsOverview').innerHTML=`
+    <div class="docs-used-grid">
+      <div class="doc-card ${hasSld?'active':'inactive'}">
+        <div class="doc-card-icon ${hasSld?'dci-green':'dci-grey'}">
+          <i class="fas fa-diagram-project"></i>
+        </div>
+        <div>
+          <div class="doc-name">Single Line Diagram</div>
+          <div class="doc-sub">${hasSld?'<span style="color:var(--green)"><i class="fas fa-check-circle"></i> Included</span>':'Not provided'}</div>
+        </div>
+      </div>
+      <div class="doc-card ${hasLayout?'active':'inactive'}">
+        <div class="doc-card-icon ${hasLayout?'dci-blue':'dci-grey'}">
+          <i class="fas fa-map-location-dot"></i>
+        </div>
+        <div>
+          <div class="doc-name">Site Layout</div>
+          <div class="doc-sub">${hasLayout?'<span style="color:var(--green)"><i class="fas fa-check-circle"></i> Included</span>':'Not provided'}</div>
+        </div>
+      </div>
+      <div class="doc-card active">
+        <div class="doc-card-icon dci-green"><i class="fas fa-camera"></i></div>
+        <div>
+          <div class="doc-name">Panel Photo</div>
+          <div class="doc-sub"><span style="color:var(--green)"><i class="fas fa-check-circle"></i> Captured</span></div>
+        </div>
+      </div>
+    </div>
+    ${(hasSld||hasLayout)?`<p style="font-size:12px;color:var(--muted);margin-top:12px">
+      <i class="fas fa-circle-info" style="color:var(--blue);margin-right:6px"></i>
+      Reference documents were sent to the AI model alongside the panel photo.
+      <a href="#" onclick="switchToDocTab(event)" style="color:var(--green)">View documents →</a>
+    </p>`:`<p style="font-size:12px;color:var(--muted);margin-top:12px">
+      <i class="fas fa-lightbulb" style="color:var(--orange);margin-right:6px"></i>
+      Upload an SLD to improve catalogue recommendations and busbar cross-referencing.
+    </p>`}`;
+}
+
+function switchToDocTab(e){
+  e.preventDefault();
+  const btn = document.querySelector('.tab-btn:nth-child(5)');
+  switchTab('documents', btn);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ─── Detections table ─── */
+function renderDetections(breakers){
+  document.getElementById('detTitle').textContent = `Detected Equipment (${breakers.length})`;
+  const wrap = document.getElementById('detTableWrap');
+  if(!breakers.length){
+    wrap.innerHTML='<div class="no-det"><i class="fas fa-search" style="margin-right:8px"></i>No breakers detected in this zone.</div>';
+  } else {
+    const COLORS=['green','blue','orange',''];
+    wrap.innerHTML=`<table class="det-table">
+      <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th><th>Confidence</th></tr></thead>
+      <tbody>`+
+      breakers.map((b,i)=>{
+        const col = COLORS[i%COLORS.length]||'';
+        const conf = b.confidence != null ? Math.round(b.confidence*100) : null;
+        return `<tr>
+          <td class="row-idx">${i+1}</td>
+          <td><span class="det-type">${esc(b.type||'Unknown')}</span></td>
+          <td>${b.rating?`<span class="det-badge ${col}">${esc(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+          <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
+          <td>${conf!=null?`<div class="conf-bar-wrap">
+              <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:0%" data-target="${conf}%" style="background:${conf>80?'var(--green)':conf>50?'var(--orange)':'var(--red)'}"></div></div>
+              <span class="conf-pct">${conf}%</span>
+            </div>`:'<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`;
+      }).join('')+
+      '</tbody></table>';
+    setTimeout(animateConfBars, 300);
+  }
+
+  // breakdown bars
+  const counts = {};
+  breakers.forEach(b=>{ const t=b.type||'Unknown'; counts[t]=(counts[t]||0)+1; });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const maxC = Math.max(...entries.map(e=>e[1]),1);
+  document.getElementById('breakdownBody').innerHTML = entries.length ?
+    entries.map(([t,c])=>`
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+          <span>${esc(t)}</span><span style="color:var(--green);font-weight:700">${c}</span>
+        </div>
+        <div style="background:var(--card2);border-radius:4px;height:7px;overflow:hidden">
+          <div style="height:100%;border-radius:4px;background:var(--green);width:0%;transition:width 1s ease" data-target="${Math.round(c/maxC*100)}%"></div>
+        </div>
+      </div>`).join('')
+    : '<p style="color:var(--muted);font-size:13px">No data</p>';
+  setTimeout(()=>{
+    document.querySelectorAll('#breakdownBody [data-target]').forEach(el=>{
+      el.style.width=el.dataset.target;
+    });
+  }, 400);
+}
+
+function animateConfBars(){
+  document.querySelectorAll('.conf-bar-fill').forEach(el=>{
+    const pct = parseFloat(el.dataset.target);
+    el.style.background = pct>80?'var(--green)':pct>50?'var(--orange)':'var(--red)';
+    el.style.width=el.dataset.target;
+  });
+}
+
+/* ─── Safety tab ─── */
+function renderSafetyTab(warnings){
+  const full = document.getElementById('warnFull');
+  const isLive = meta.isLive || false;
+
+  if(!warnings.length){
+    full.innerHTML='<div class="warning-item green"><div class="w-icon green"><i class="fas fa-check-circle"></i></div><div class="w-text">No critical safety warnings detected. Standard PPE procedures still apply.</div></div>';
+  } else {
+    full.innerHTML=warnings.map((w,i)=>{
+      const orange=w.toLowerCase().includes('ppe')||w.toLowerCase().includes('caution');
+      return `<div class="warning-item ${orange?'orange':''}" style="animation-delay:${i*.06}s">
+        <div class="w-icon ${orange?'orange':''}"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="w-text">${esc(w)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const liveIcon = document.getElementById('liveIcon');
+  const liveTitle = document.getElementById('liveTitle');
+  const liveBody = document.getElementById('liveBody');
+  if(isLive){
+    liveIcon.className='card-icon ci-red';
+    liveIcon.innerHTML='<i class="fas fa-bolt"></i>';
+    liveTitle.textContent='LIVE — Energised Panel';
+    liveBody.innerHTML=`<p style="font-size:14px;line-height:1.75;color:var(--muted)">
+      This panel has been identified as <strong style="color:var(--red)">LIVE / ENERGISED</strong>.
+      All work must follow Schneider Electric live-working procedures IEC 60900.
+      Isolation and lock-out / tag-out (LOTO) must be applied before any physical intervention.
+    </p>`;
+  } else {
+    liveIcon.className='card-icon ci-green';
+    liveIcon.innerHTML='<i class="fas fa-plug-circle-xmark"></i>';
+    liveTitle.textContent='DEAD — Panel De-energised';
+    liveBody.innerHTML=`<p style="font-size:14px;line-height:1.75;color:var(--muted)">
+      This panel has been confirmed as <strong style="color:var(--green)">DEAD / DE-ENERGISED</strong>.
+      Verify isolation with an approved voltage tester before starting work.
+      Maintain LOTO as per site procedures.
+    </p>`;
+  }
+}
+
+/* ─── Catalogue tab ─── */
+function renderCatalogue(){
+  const box = document.getElementById('catBox');
+  const cat = data.catalogue_guidance || '';
+  box.textContent = cat || 'No catalogue guidance was returned by the AI for this inspection.';
+}
+
+/* ─── Documents tab ─── */
+function renderDocumentsTab(){
+  // SLD
+  const sldBody = document.getElementById('sldDocBody');
+  if(hasSld && sldB64){
+    const isPdf = sldMime === 'application/pdf';
+    if(isPdf){
+      sldBody.innerHTML=`
+        <div class="sld-preview-box">
+          <div class="sld-pdf-preview">
+            <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="pdf-name">${esc(sldName)}</div>
+            <div class="pdf-used"><i class="fas fa-check-circle"></i> Sent to AI model</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px">
+          PDF documents are processed natively by Google Gemini — all pages are referenced during analysis.
+        </p>`;
+    } else {
+      sldBody.innerHTML=`
+        <div class="sld-preview-box">
+          <img src="data:${sldMime};base64,${sldB64}" alt="Single Line Diagram" style="max-height:320px">
+        </div>
+        <div class="chip green" style="margin-top:12px;display:inline-flex"><i class="fas fa-check-circle"></i> Used in AI analysis</div>`;
+    }
+  } else {
+    sldBody.innerHTML=`<div class="sld-none"><i class="fas fa-diagram-project" style="font-size:32px;margin-bottom:10px;color:var(--muted);display:block"></i>No SLD was uploaded for this scan.<br><br><a href="dashboard.html" style="color:var(--green);font-size:13px">Upload an SLD on next scan →</a></div>`;
+  }
+
+  // Layout
+  const layoutBody = document.getElementById('layoutDocBody');
+  if(hasLayout && layoutB64){
+    const isPdf = layoutMime === 'application/pdf';
+    if(isPdf){
+      layoutBody.innerHTML=`
+        <div class="sld-preview-box">
+          <div class="sld-pdf-preview">
+            <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="pdf-name">Mechanical Layout</div>
+            <div class="pdf-used"><i class="fas fa-check-circle"></i> Sent to AI model</div>
+          </div>
+        </div>`;
+    } else {
+      layoutBody.innerHTML=`
+        <div class="sld-preview-box">
+          <img src="data:${layoutMime};base64,${layoutB64}" alt="Site Layout" style="max-height:320px">
+        </div>
+        <div class="chip green" style="margin-top:12px;display:inline-flex"><i class="fas fa-check-circle"></i> Used in AI analysis</div>`;
+    }
+  } else {
+    layoutBody.innerHTML=`<div class="sld-none"><i class="fas fa-map-location-dot" style="font-size:32px;margin-bottom:10px;color:var(--muted);display:block"></i>No site layout was uploaded for this scan.<br><br><a href="dashboard.html" style="color:var(--green);font-size:13px">Upload a layout on next scan →</a></div>`;
+  }
+}
+
+/* ─── Metadata card ─── */
+function renderMetaCard(){
+  const task = meta.task || '—';
+  const isLive = meta.isLive;
+  const ts = meta.timestamp ? new Date(meta.timestamp).toLocaleString() : 'Not recorded';
+  const rows = [
+    ['Task',          cap(esc(task))],
+    ['Energy State',  isLive!=null ? (isLive?'<span style="color:var(--red)">LIVE</span>':'<span style="color:var(--green)">DEAD</span>') : '—'],
+    ['SLD Provided',  hasSld  ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--muted)">No</span>'],
+    ['Layout Provided',hasLayout?'<span style="color:var(--green)">Yes</span>':'<span style="color:var(--muted)">No</span>'],
+    ['Scan Time',     ts],
+    ['Model',         'Google Gemini (via Panel Inspector)'],
+  ];
+  document.getElementById('metaBody').innerHTML=`
+    <table style="width:100%;border-collapse:collapse">
+      ${rows.map(([k,v])=>`<tr>
+        <td style="padding:9px 12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:40%">${k}</td>
+        <td style="padding:9px 12px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${v}</td>
+      </tr>`).join('')}
+    </table>`;
+}
+
+/* ─── Canvas drawing (shared logic) ─── */
+function drawCanvas(canvasId){
+  const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   const img = new Image();
-  img.onload = () => {
-    const maxW = Math.min(600, window.innerWidth - 80);
-    const scale= Math.min(maxW/img.naturalWidth, 500/img.naturalHeight, 1);
+  img.onload = ()=>{
+    const maxW = Math.min(560, window.innerWidth - 100);
+    const scale = Math.min(maxW/img.naturalWidth, 480/img.naturalHeight, 1);
     canvas.width  = img.naturalWidth  * scale;
     canvas.height = img.naturalHeight * scale;
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Draw work zone if available
-    const zr = meta.zoneRect;
-    const cW  = meta.canvasW;
-    const cH  = meta.canvasH;
+    // Work zone
+    const zr = meta.zoneRect, cW = meta.canvasW, cH = meta.canvasH;
     if(zr && cW && cH){
-      const sx = canvas.width / cW;
-      const sy = canvas.height/ cH;
+      const sx = canvas.width/cW, sy = canvas.height/cH;
       const x=zr.x*sx, y=zr.y*sy, w=zr.w*sx, h=zr.h*sy;
-      const buf=0.15;
-      // Safety buffer
-      ctx.strokeStyle='rgba(255,71,87,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+      const buf=0.12;
+      ctx.strokeStyle='rgba(255,71,87,.65)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
       ctx.strokeRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
-      ctx.fillStyle='rgba(255,71,87,.08)'; ctx.fillRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
+      ctx.fillStyle='rgba(255,71,87,.07)'; ctx.fillRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
       ctx.setLineDash([]);
-      // Work zone
       ctx.strokeStyle='#3DCD58'; ctx.lineWidth=2.5;
       ctx.strokeRect(x,y,w,h);
-      ctx.fillStyle='rgba(61,205,88,.12)'; ctx.fillRect(x,y,w,h);
+      ctx.fillStyle='rgba(61,205,88,.1)'; ctx.fillRect(x,y,w,h);
     }
 
-    // Draw breaker boxes
+    // Breaker boxes
     const breakers = data.breakers || [];
-    const COLORS = ['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
+    const COLORS=['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
     breakers.forEach((b,i)=>{
       if(!b.box||b.box.length<4) return;
-      const [yn,xn,yx,xx] = b.box;
-      const bx = xn/1000*canvas.width;
-      const by = yn/1000*canvas.height;
-      const bw = (xx-xn)/1000*canvas.width;
-      const bh = (yx-yn)/1000*canvas.height;
-      const col = COLORS[i % COLORS.length];
+      const [yn,xn,yx,xx]=b.box;
+      const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
+      const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
+      const col=COLORS[i%COLORS.length];
       ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([]);
       ctx.strokeRect(bx,by,bw,bh);
-      ctx.fillStyle=col+'33'; ctx.fillRect(bx,by,bw,bh);
-      // Label
-      const label = (b.type||'Breaker')+(b.rating?' '+b.rating:'');
-      ctx.fillStyle='rgba(10,22,40,.8)'; ctx.fillRect(bx,by-20,ctx.measureText(label).width+12,20);
+      ctx.fillStyle=col+'22'; ctx.fillRect(bx,by,bw,bh);
+      const label=(b.type||'B')+(b.rating?' '+b.rating:'');
+      const tw=ctx.measureText(label).width+12;
+      ctx.fillStyle='rgba(10,22,40,.85)'; ctx.fillRect(bx,by-20,tw,20);
       ctx.fillStyle=col; ctx.font='bold 11px Inter,sans-serif';
       ctx.fillText(label,bx+6,by-6);
     });
   };
-  img.src = 'data:'+mime+';base64,'+imgB64;
+  img.src='data:'+mime+';base64,'+imgB64;
 }
 
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1) }
+/* ─── Animated number counter ─── */
+function animateNum(id, target, delay=0){
+  const el = document.getElementById(id);
+  if(!el || isNaN(target)) return;
+  setTimeout(()=>{
+    let cur = 0;
+    const step = Math.max(1, Math.floor(target/30));
+    const iv = setInterval(()=>{
+      cur = Math.min(cur+step, target);
+      el.textContent = cur;
+      if(cur>=target) clearInterval(iv);
+    }, 30);
+  }, delay);
+}
+
+/* ─── Helpers ─── */
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1) }
 </script>
 </body>
 </html>

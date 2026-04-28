@@ -12,153 +12,216 @@
   --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
   --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
   --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;
-  --live-color:#FF4757;--dead-color:#3DCD58;
 }
 html,body{min-height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(61,205,88,.05) 0%,transparent 60%);
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(61,205,88,.06) 0%,transparent 60%);
 }
 
 /* ── Navbar ── */
 nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
-  padding:0 32px;height:64px;background:rgba(10,22,40,.92);backdrop-filter:blur(20px);
+  padding:0 32px;height:64px;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);
 }
 .nav-logo{display:flex;align-items:center;gap:12px}
 .nav-sq{width:36px;height:36px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0A1628}
 .nav-title{font-size:16px;font-weight:700}
 .nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px}
-.nav-right{display:flex;align-items:center;gap:20px}
+.nav-right{display:flex;align-items:center;gap:16px}
 .nav-user{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
-.nav-user-avatar{width:32px;height:32px;border-radius:50%;background:rgba(61,205,88,.15);border:1px solid var(--green);
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:rgba(61,205,88,.15);border:1px solid var(--green);
   display:flex;align-items:center;justify-content:center;color:var(--green);font-size:13px;font-weight:700;
 }
 .btn-logout{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-logout:hover{border-color:var(--red);color:var(--red)}
 
+/* ── Step Progress Bar ── */
+.step-bar{position:sticky;top:64px;z-index:99;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:0 32px;
+}
+.steps{max-width:1200px;margin:0 auto;display:flex;align-items:center;height:56px;gap:0}
+.step{display:flex;align-items:center;gap:10px;padding:0 20px 0 0;position:relative;cursor:pointer;transition:all .2s}
+.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);
+  transition:all .3s;flex-shrink:0;
+}
+.step-info{display:flex;flex-direction:column}
+.step-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .3s;white-space:nowrap}
+.step-sub{font-size:10px;color:var(--border);transition:color .3s;white-space:nowrap}
+.step-line{flex:1;height:2px;background:var(--border);margin:0 8px;transition:background .3s;min-width:20px}
+.step.done .step-num{background:var(--green);border-color:var(--green);color:#0A1628}
+.step.done .step-name{color:var(--green)}
+.step.done .step-sub{color:rgba(61,205,88,.6)}
+.step.active .step-num{border-color:var(--green);color:var(--green);box-shadow:0 0 12px var(--green-glow)}
+.step.active .step-name{color:var(--text)}
+.step.active .step-sub{color:var(--muted)}
+.step-line.done{background:var(--green)}
+
 /* ── Main ── */
-.main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:40px 32px 80px}
+.main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:36px 32px 80px}
 
-/* ── Section Header ── */
-.section-header{margin-bottom:8px}
-.section-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:6px}
-.section-title{font-size:26px;font-weight:700}
-.section-sub{font-size:14px;color:var(--muted);margin-top:6px}
-.divider{width:100%;height:1px;background:var(--border);margin:32px 0}
+/* ── Section ── */
+.section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:20px;
+  transition:all .3s;
+}
+.section.locked{opacity:.45;pointer-events:none;filter:grayscale(.3)}
+.section-head{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.section-icon{width:42px;height:42px;border-radius:10px;background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);
+  display:flex;align-items:center;justify-content:center;color:var(--green);font-size:17px;flex-shrink:0;
+}
+.section-icon.red{background:rgba(255,71,87,.1);border-color:rgba(255,71,87,.2);color:var(--red)}
+.section-icon.blue{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.2);color:#4A9EFF}
+.section-icon.orange{background:rgba(255,165,2,.1);border-color:rgba(255,165,2,.2);color:var(--orange)}
+.section-label-wrap{}
+.section-step{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:3px}
+.section-title{font-size:18px;font-weight:700}
+.section-sub{font-size:13px;color:var(--muted);margin-top:3px}
+.step-check{margin-left:auto;width:28px;height:28px;border-radius:50%;background:var(--green);
+  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:12px;
+  opacity:0;transform:scale(0);transition:all .3s;
+}
+.step-check.show{opacity:1;transform:scale(1)}
 
-/* ── Dead/Live Toggle ── */
-.toggle-section{display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px;
-  background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:32px;
-}
-.toggle-label{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-.toggle-wrap{display:flex;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:rgba(10,22,40,.5);
-}
-.toggle-btn{padding:14px 48px;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .2s;letter-spacing:.5px}
-.toggle-btn.dead{background:var(--dead-color);color:#0A1628}
-.toggle-btn.dead.inactive{background:rgba(10,22,40,.8);color:var(--muted)}
-.toggle-btn.live{background:var(--live-color);color:#fff}
-.toggle-btn.live.inactive{background:rgba(10,22,40,.8);color:var(--muted)}
-.toggle-badge{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.badge-dead{background:rgba(61,205,88,.15);color:var(--green);border:1px solid rgba(61,205,88,.3)}
-.badge-live{background:rgba(255,71,87,.15);color:var(--red);border:1px solid rgba(255,71,87,.3)}
-.toggle-info{font-size:13px;color:var(--muted);text-align:center;max-width:500px;line-height:1.6}
+/* ── Energy Toggle ── */
+.toggle-wrap{display:inline-flex;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:rgba(10,22,40,.5)}
+.toggle-btn{padding:13px 44px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .25s;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.toggle-btn.dead-active{background:var(--green);color:#0A1628}
+.toggle-btn.dead-inactive{background:transparent;color:var(--muted)}
+.toggle-btn.live-active{background:var(--red);color:#fff}
+.toggle-btn.live-inactive{background:transparent;color:var(--muted)}
+.energy-info{margin-top:14px;padding:12px 18px;border-radius:10px;font-size:13px;line-height:1.6;max-width:540px;text-align:center}
+.energy-info.dead{background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);color:rgba(61,205,88,.9)}
+.energy-info.live{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);color:rgba(255,71,87,.9)}
+.toggle-center{display:flex;flex-direction:column;align-items:center;gap:12px}
 
-/* ── Task Cards ── */
-.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
-.task-card{
-  background:var(--card);border:2px solid var(--border);border-radius:14px;
-  padding:24px 20px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;gap:12px;
+/* ── Task Grid ── */
+.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.task-card{background:var(--card2);border:2px solid var(--border);border-radius:13px;
+  padding:22px 18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
 }
-.task-card::before{content:'';position:absolute;inset:0;background:var(--green);opacity:0;transition:opacity .2s}
-.task-card:hover{border-color:rgba(61,205,88,.4);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
-.task-card:hover::before{opacity:.04}
-.task-card.selected{border-color:var(--green);background:rgba(61,205,88,.08);box-shadow:0 0 24px var(--green-glow)}
-.task-card.selected .task-icon-wrap{background:var(--green);color:#0A1628}
-.task-icon-wrap{width:44px;height:44px;border-radius:10px;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);
-  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--green);transition:all .2s;
+.task-card::after{content:'';position:absolute;inset:0;background:var(--green);opacity:0;transition:opacity .2s;pointer-events:none}
+.task-card:hover{border-color:rgba(61,205,88,.35);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3)}
+.task-card:hover::after{opacity:.03}
+.task-card.selected{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
+.task-card.selected .task-icon{background:var(--green);color:#0A1628;border-color:var(--green)}
+.task-icon{width:42px;height:42px;border-radius:9px;background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.15);
+  display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--green);transition:all .2s;margin-bottom:12px;
 }
-.task-name{font-size:15px;font-weight:700}
+.task-name{font-size:14px;font-weight:700;margin-bottom:5px}
 .task-desc{font-size:12px;color:var(--muted);line-height:1.5}
-.task-check{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:var(--green);
-  display:flex;align-items:center;justify-content:center;font-size:10px;color:#0A1628;
+.task-tick{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);
+  display:flex;align-items:center;justify-content:center;font-size:9px;color:#0A1628;
   opacity:0;transform:scale(0);transition:all .2s;
 }
-.task-card.selected .task-check{opacity:1;transform:scale(1)}
+.task-card.selected .task-tick{opacity:1;transform:scale(1)}
 
-/* ── Upload Section ── */
-.upload-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;
-  display:none;
-  animation:slideIn .3s ease;
+/* ── Documents Section ── */
+.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.doc-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
+.doc-card.has-file{border-color:rgba(61,205,88,.3)}
+.doc-card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.doc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.doc-icon.sld{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.doc-icon.layout{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:#4A9EFF}
+.doc-title{font-size:14px;font-weight:700}
+.doc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.doc-preview{display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;background:#000;max-height:140px;align-items:center;justify-content:center}
+.doc-preview.show{display:flex}
+.doc-preview img{max-width:100%;max-height:140px;object-fit:contain}
+.doc-preview-pdf{width:100%;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(10,22,40,.5)}
+.doc-preview-pdf i{font-size:32px;color:var(--red)}
+.doc-preview-pdf span{font-size:12px;color:var(--muted);text-align:center;padding:0 8px;word-break:break-all}
+.doc-status{display:none;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;
 }
-.upload-section.visible{display:block}
-@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.doc-status.green{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.doc-status.blue{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:#4A9EFF}
+.doc-status.hidden{display:none!important}
+.doc-upload-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:rgba(10,22,40,.6);border:1px dashed var(--border);border-radius:8px;
+  cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s;width:100%;
+}
+.doc-upload-btn:hover{border-color:var(--green);color:var(--green)}
+.doc-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;transition:all .2s;margin-left:auto}
+.doc-clear:hover{color:var(--red)}
 
-.drop-zone{
-  border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;
-  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+/* ── Upload / Drop Zone ── */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;
 }
-.drop-zone:hover,.drop-zone.dragover{border-color:var(--green);background:rgba(61,205,88,.04)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--green);background:rgba(61,205,88,.03)}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.drop-icon{font-size:40px;color:var(--muted);margin-bottom:16px}
-.drop-title{font-size:16px;font-weight:600;margin-bottom:8px}
-.drop-sub{font-size:13px;color:var(--muted)}
+.drop-icon{font-size:36px;color:var(--muted);margin-bottom:14px;transition:color .2s}
+.drop-zone:hover .drop-icon,.drop-zone.dragover .drop-icon{color:var(--green)}
+.drop-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.drop-sub{font-size:12px;color:var(--muted)}
 .drop-sub span{color:var(--green);font-weight:500}
 
-/* ── Image Preview + Canvas Zone ── */
-.preview-area{display:none;margin-top:24px}
-.preview-area.visible{display:block}
-.canvas-container{position:relative;background:#000;border-radius:12px;overflow:hidden;margin-bottom:20px;
-  display:flex;align-items:center;justify-content:center;max-height:480px;
+/* ── Canvas Zone Drawing ── */
+.preview-wrap{display:none;margin-top:20px}
+.preview-wrap.show{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.zone-hint{display:flex;align-items:center;gap:10px;padding:10px 16px;
+  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.15);border-radius:8px;
+  font-size:13px;color:var(--muted);margin-bottom:14px;
 }
-.canvas-container canvas{max-width:100%;max-height:480px;display:block;cursor:crosshair}
-.zone-hint{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;
-  padding:10px;background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.15);border-radius:8px;
-}
-.zone-hint .zone-set{color:var(--green);font-weight:600}
+.zone-hint i{color:var(--green);flex-shrink:0}
+.zone-status{font-weight:600;color:var(--green)}
+.canvas-box{border-radius:12px;overflow:hidden;background:#000;display:flex;justify-content:center;margin-bottom:18px}
+.canvas-box canvas{max-width:100%;cursor:crosshair;display:block}
 
 /* ── Action Buttons ── */
-.action-row{display:flex;gap:14px}
-.btn-primary{flex:1;padding:16px;background:var(--green);border:none;border-radius:12px;
-  color:#0A1628;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;
+.action-row{display:flex;gap:12px}
+.btn-primary{flex:1;padding:15px;background:var(--green);border:none;border-radius:11px;
+  color:#0A1628;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;
 }
 .btn-primary:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 8px 24px var(--green-glow)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btn-secondary{flex:.6;padding:16px;background:transparent;border:1px solid var(--border);border-radius:12px;
-  color:var(--text);font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{flex:.55;padding:15px;background:transparent;border:1px solid var(--border);border-radius:11px;
+  color:var(--text);font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;
 }
 .btn-secondary:hover{border-color:var(--green);color:var(--green)}
 
 /* ── Loading Overlay ── */
 .loading-overlay{display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(10,22,40,.92);backdrop-filter:blur(12px);
+  background:rgba(10,22,40,.93);backdrop-filter:blur(16px);
   flex-direction:column;align-items:center;justify-content:center;gap:24px;
 }
 .loading-overlay.active{display:flex}
-.loader-ring{width:72px;height:72px;border:3px solid rgba(61,205,88,.2);border-top:3px solid var(--green);
+.loader-wrap{position:relative;width:80px;height:80px}
+.loader-ring{position:absolute;inset:0;border:3px solid rgba(61,205,88,.15);border-top:3px solid var(--green);
   border-radius:50%;animation:spin .9s linear infinite;
 }
+.loader-ring2{position:absolute;inset:8px;border:2px solid rgba(61,205,88,.08);border-bottom:2px solid rgba(61,205,88,.4);
+  border-radius:50%;animation:spin 1.4s linear infinite reverse;
+}
+.loader-dot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--green)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-title{font-size:20px;font-weight:700}
-.loading-sub{font-size:14px;color:var(--muted);animation:blink 2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
-.loading-steps{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-.loading-step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
-.loading-step .dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
-.loading-step.active .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
-.loading-step.active{color:var(--text)}
+.loading-title{font-size:22px;font-weight:700}
+.loading-sub{font-size:14px;color:var(--muted)}
+.progress-steps{display:flex;flex-direction:column;gap:10px;margin-top:4px;width:260px}
+.ps{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);padding:8px 14px;border-radius:8px;transition:all .3s}
+.ps.active{background:rgba(61,205,88,.08);color:var(--text)}
+.ps.done{color:var(--green)}
+.ps-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .3s}
+.ps.active .ps-dot{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse-dot 1s ease infinite}
+.ps.done .ps-dot{background:var(--green)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Responsive ── */
 @media(max-width:768px){
   .task-grid{grid-template-columns:repeat(2,1fr)}
+  .docs-grid{grid-template-columns:1fr}
   .action-row{flex-direction:column}
-  .main{padding:24px 16px 60px}
+  .main{padding:20px 16px 60px}
+  .steps{gap:0;padding:0 8px}
+  .step-sub{display:none}
+  .step-line{min-width:10px}
+  nav,.step-bar{padding:0 16px}
 }
-@media(max-width:500px){
-  .task-grid{grid-template-columns:1fr}
-}
+@media(max-width:500px){.task-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -172,160 +235,229 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
   </div>
   <div class="nav-right">
     <div class="nav-user">
-      <div class="nav-user-avatar" id="userAvatar">?</div>
-      <span id="navUsername"></span>
+      <div class="nav-avatar" id="userAvatar">?</div>
+      <span id="navUsername" style="font-size:14px"></span>
     </div>
     <button class="btn-logout" onclick="logout()"><i class="fas fa-right-from-bracket"></i> Sign Out</button>
   </div>
 </nav>
 
+<!-- Step Progress Bar -->
+<div class="step-bar">
+  <div class="steps">
+    <div class="step active" id="stepEl1">
+      <div class="step-num" id="stepNum1">1</div>
+      <div class="step-info">
+        <div class="step-name">Energy State</div>
+        <div class="step-sub">Dead or Live</div>
+      </div>
+    </div>
+    <div class="step-line" id="stepLine1"></div>
+    <div class="step" id="stepEl2">
+      <div class="step-num" id="stepNum2">2</div>
+      <div class="step-info">
+        <div class="step-name">Select Task</div>
+        <div class="step-sub">Intervention type</div>
+      </div>
+    </div>
+    <div class="step-line" id="stepLine2"></div>
+    <div class="step" id="stepEl3">
+      <div class="step-num" id="stepNum3">3</div>
+      <div class="step-info">
+        <div class="step-name">Documents</div>
+        <div class="step-sub">SLD &amp; Layout</div>
+      </div>
+    </div>
+    <div class="step-line" id="stepLine3"></div>
+    <div class="step" id="stepEl4">
+      <div class="step-num" id="stepNum4">4</div>
+      <div class="step-info">
+        <div class="step-name">Capture &amp; Analyse</div>
+        <div class="step-sub">AI detection</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Main -->
 <div class="main">
 
   <!-- Step 1: Energy State -->
-  <div class="section-header">
-    <div class="section-label"><i class="fas fa-circle-dot"></i> Step 1</div>
-    <div class="section-title">Energy State</div>
-    <div class="section-sub">Select whether the panel is de-energised (Dead) or energised (Live)</div>
-  </div>
-
-  <div class="toggle-section">
-    <div class="toggle-label">Panel Energy State</div>
-    <div class="toggle-wrap">
-      <button class="toggle-btn dead" id="btnDead" onclick="setEnergy('dead')">
-        <i class="fas fa-plug-circle-xmark"></i> DEAD
-      </button>
-      <button class="toggle-btn live inactive" id="btnLive" onclick="setEnergy('live')">
-        <i class="fas fa-bolt"></i> LIVE
-      </button>
+  <div class="section" id="sec1">
+    <div class="section-head">
+      <div class="section-icon"><i class="fas fa-bolt"></i></div>
+      <div class="section-label-wrap">
+        <div class="section-step">Step 1</div>
+        <div class="section-title">Panel Energy State</div>
+        <div class="section-sub">Is the panel currently energised?</div>
+      </div>
+      <div class="step-check" id="check1"><i class="fas fa-check"></i></div>
     </div>
-    <div class="toggle-badge badge-dead" id="energyBadge">DE-ENERGISED — Safe to open panel</div>
-    <div class="toggle-info" id="energyInfo">
-      Panel is de-energised. Arc Flash hazard only if adjacent live sections — ensure LOTO is applied.
+    <div class="toggle-center">
+      <div class="toggle-wrap">
+        <button class="toggle-btn dead-active" id="btnDead" onclick="setEnergy('dead')">
+          <i class="fas fa-plug-circle-xmark"></i> DEAD
+        </button>
+        <button class="toggle-btn live-inactive" id="btnLive" onclick="setEnergy('live')">
+          <i class="fas fa-bolt"></i> LIVE
+        </button>
+      </div>
+      <div class="energy-info dead" id="energyInfo">
+        <i class="fas fa-shield-check"></i> De-energised — Arc Flash hazard only near adjacent live sections. Ensure LOTO is applied before opening.
+      </div>
     </div>
   </div>
-
-  <div class="divider"></div>
 
   <!-- Step 2: Task -->
-  <div class="section-header" style="margin-bottom:20px">
-    <div class="section-label"><i class="fas fa-circle-dot"></i> Step 2</div>
-    <div class="section-title">Select Task</div>
-    <div class="section-sub">Choose the intervention type to load the correct safety checklist</div>
+  <div class="section locked" id="sec2">
+    <div class="section-head">
+      <div class="section-icon orange"><i class="fas fa-list-check"></i></div>
+      <div class="section-label-wrap">
+        <div class="section-step">Step 2</div>
+        <div class="section-title">Select Task</div>
+        <div class="section-sub">Choose intervention type to load the correct safety checklist</div>
+      </div>
+      <div class="step-check" id="check2"><i class="fas fa-check"></i></div>
+    </div>
+    <div class="task-grid">
+      <div class="task-card" onclick="selectTask('commissioning',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-hammer"></i></div>
+        <div class="task-name">Commissioning</div>
+        <div class="task-desc">Initial installation, racking, functional testing of new equipment</div>
+      </div>
+      <div class="task-card" onclick="selectTask('operation',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-gears"></i></div>
+        <div class="task-name">Operation</div>
+        <div class="task-desc">Normal operation: consignation, LOTO, switching procedures</div>
+      </div>
+      <div class="task-card" onclick="selectTask('modification',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-pen-to-square"></i></div>
+        <div class="task-name">Modification</div>
+        <div class="task-desc">Adding new feeders, rewiring inside live panel sections</div>
+      </div>
+      <div class="task-card" onclick="selectTask('replacement',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-arrows-rotate"></i></div>
+        <div class="task-name">Replacement</div>
+        <div class="task-desc">Swap breakers, contactors or components inside switchboard</div>
+      </div>
+      <div class="task-card" onclick="selectTask('service',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+        <div class="task-name">Service &amp; Inspection</div>
+        <div class="task-desc">Maintenance, thermal inspection, functional testing, calibration</div>
+      </div>
+      <div class="task-card" onclick="selectTask('others',this)">
+        <div class="task-tick"><i class="fas fa-check"></i></div>
+        <div class="task-icon"><i class="fas fa-ellipsis"></i></div>
+        <div class="task-name">Others</div>
+        <div class="task-desc">Visual inspection, diagnostics, or any other intervention</div>
+      </div>
+    </div>
   </div>
 
-  <div class="task-grid">
-    <div class="task-card" onclick="selectTask('commissioning',this)">
-      <div class="task-icon-wrap"><i class="fas fa-hammer"></i></div>
-      <div class="task-name">Commissioning</div>
-      <div class="task-desc">Initial installation, racking, functional testing of new equipment</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
+  <!-- Step 3: Documents -->
+  <div class="section locked" id="sec3">
+    <div class="section-head">
+      <div class="section-icon blue"><i class="fas fa-folder-open"></i></div>
+      <div class="section-label-wrap">
+        <div class="section-step">Step 3 — Optional but recommended</div>
+        <div class="section-title">Upload Reference Documents</div>
+        <div class="section-sub">SLD and Layout help the AI read circuit labels, ratings and connections more accurately</div>
+      </div>
+      <div class="step-check" id="check3"><i class="fas fa-check"></i></div>
     </div>
-    <div class="task-card" onclick="selectTask('operation',this)">
-      <div class="task-icon-wrap"><i class="fas fa-gears"></i></div>
-      <div class="task-name">Operation</div>
-      <div class="task-desc">Normal operation tasks: consignation, LOTO, switching procedures</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
-    </div>
-    <div class="task-card" onclick="selectTask('modification',this)">
-      <div class="task-icon-wrap"><i class="fas fa-pen-to-square"></i></div>
-      <div class="task-name">Modification</div>
-      <div class="task-desc">Adding new feeders, rewiring inside live panel sections</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
-    </div>
-    <div class="task-card" onclick="selectTask('replacement',this)">
-      <div class="task-icon-wrap"><i class="fas fa-arrows-rotate"></i></div>
-      <div class="task-name">Replacement</div>
-      <div class="task-desc">Swap breakers, contactors or components inside switchboard</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
-    </div>
-    <div class="task-card" onclick="selectTask('service',this)">
-      <div class="task-icon-wrap"><i class="fas fa-screwdriver-wrench"></i></div>
-      <div class="task-name">Service &amp; Inspection</div>
-      <div class="task-desc">Maintenance, functional testing, thermal inspection, calibration</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
-    </div>
-    <div class="task-card" onclick="selectTask('others',this)">
-      <div class="task-icon-wrap"><i class="fas fa-ellipsis"></i></div>
-      <div class="task-name">Others</div>
-      <div class="task-desc">Visual inspection, diagnostics, or any other intervention type</div>
-      <div class="task-check"><i class="fas fa-check"></i></div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- Step 2.5: Documents (SLD / Layout) -->
-  <div class="upload-section" id="docsSection" style="margin-bottom:24px">
-    <div class="section-header" style="margin-bottom:24px">
-      <div class="section-label"><i class="fas fa-circle-dot"></i> Step 2.5 — Optional</div>
-      <div class="section-title">Upload Reference Documents</div>
-      <div class="section-sub">Upload Single Line Diagram (SLD) and/or Mechanical Layout — PDF or image. The AI will cross-reference them for better accuracy.</div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="docs-grid">
       <!-- SLD -->
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <div style="width:34px;height:34px;border-radius:8px;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);display:flex;align-items:center;justify-content:center;color:var(--green)"><i class="fas fa-diagram-project"></i></div>
-          <div style="font-size:14px;font-weight:700">Single Line Diagram</div>
-        </div>
-        <div id="sldPreview" style="display:none;margin-bottom:10px">
-          <div style="padding:10px 14px;background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.25);border-radius:8px;font-size:13px;color:var(--green);display:flex;align-items:center;gap:8px">
-            <i class="fas fa-check-circle"></i><span id="sldFileName">file.pdf</span>
-            <button onclick="clearDoc('sld')" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px"><i class="fas fa-xmark"></i></button>
+      <div class="doc-card" id="sldCard">
+        <div class="doc-card-head">
+          <div class="doc-icon sld"><i class="fas fa-diagram-project"></i></div>
+          <div>
+            <div class="doc-title">Single Line Diagram (SLD)</div>
+            <div class="doc-sub">PDF or image — used to cross-reference circuit labels &amp; ratings</div>
           </div>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--card);border:1px dashed var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s" id="sldLabel">
-          <i class="fas fa-upload"></i> Upload SLD (PDF / Image)
-          <input type="file" id="sldInput" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('sld',this)">
+        <div class="doc-preview" id="sldPreviewBox">
+          <div class="doc-preview-pdf" id="sldPdfIcon" style="display:none">
+            <i class="fas fa-file-pdf"></i>
+            <span id="sldPdfName"></span>
+          </div>
+          <img id="sldImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:140px">
+        </div>
+        <div class="doc-status green hidden" id="sldStatus">
+          <i class="fas fa-check-circle"></i>
+          <span id="sldStatusText">SLD ready</span>
+          <button class="doc-clear" onclick="clearDoc('sld')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <label class="doc-upload-btn" id="sldUploadBtn">
+          <i class="fas fa-cloud-arrow-up"></i> Upload SLD (PDF or Image)
+          <input type="file" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('sld',this)">
         </label>
       </div>
       <!-- Layout -->
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <div style="width:34px;height:34px;border-radius:8px;background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.2);display:flex;align-items:center;justify-content:center;color:#4A9EFF"><i class="fas fa-table-cells-large"></i></div>
-          <div style="font-size:14px;font-weight:700">Mechanical Layout</div>
-        </div>
-        <div id="layoutPreview" style="display:none;margin-bottom:10px">
-          <div style="padding:10px 14px;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.25);border-radius:8px;font-size:13px;color:#4A9EFF;display:flex;align-items:center;gap:8px">
-            <i class="fas fa-check-circle"></i><span id="layoutFileName">file.pdf</span>
-            <button onclick="clearDoc('layout')" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px"><i class="fas fa-xmark"></i></button>
+      <div class="doc-card" id="layoutCard">
+        <div class="doc-card-head">
+          <div class="doc-icon layout"><i class="fas fa-table-cells-large"></i></div>
+          <div>
+            <div class="doc-title">Mechanical Layout</div>
+            <div class="doc-sub">PDF or image — used to verify cubicle positions &amp; dimensions</div>
           </div>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--card);border:1px dashed var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s" id="layoutLabel">
-          <i class="fas fa-upload"></i> Upload Layout (PDF / Image)
-          <input type="file" id="layoutInput" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('layout',this)">
+        <div class="doc-preview" id="layoutPreviewBox">
+          <div class="doc-preview-pdf" id="layoutPdfIcon" style="display:none">
+            <i class="fas fa-file-pdf"></i>
+            <span id="layoutPdfName"></span>
+          </div>
+          <img id="layoutImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:140px">
+        </div>
+        <div class="doc-status blue hidden" id="layoutStatus">
+          <i class="fas fa-check-circle"></i>
+          <span id="layoutStatusText">Layout ready</span>
+          <button class="doc-clear" onclick="clearDoc('layout')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <label class="doc-upload-btn" id="layoutUploadBtn">
+          <i class="fas fa-cloud-arrow-up"></i> Upload Layout (PDF or Image)
+          <input type="file" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('layout',this)">
         </label>
       </div>
     </div>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn-secondary" style="display:inline-flex;padding:10px 20px;font-size:13px" onclick="skipDocs()">
+        Skip for now <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
   </div>
-  <div class="divider"></div>
 
-  <!-- Step 3: Upload -->
-  <div class="upload-section" id="uploadSection">
-    <div class="section-header" style="margin-bottom:24px">
-      <div class="section-label"><i class="fas fa-circle-dot"></i> Step 3</div>
-      <div class="section-title">Upload Panel Photo</div>
-      <div class="section-sub">Take or upload a clear photo of the electrical panel</div>
+  <!-- Step 4: Capture & Analyse -->
+  <div class="section locked" id="sec4">
+    <div class="section-head">
+      <div class="section-icon"><i class="fas fa-camera"></i></div>
+      <div class="section-label-wrap">
+        <div class="section-step">Step 4</div>
+        <div class="section-title">Capture &amp; Analyse</div>
+        <div class="section-sub">Upload a panel photo then draw your work zone</div>
+      </div>
     </div>
 
     <div class="drop-zone" id="dropZone">
       <input type="file" id="fileInput" accept="image/*">
-      <div class="drop-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-      <div class="drop-title">Drop image here or click to browse</div>
-      <div class="drop-sub">Supports JPG, PNG — <span>or use your phone camera</span></div>
+      <div class="drop-icon"><i class="fas fa-camera"></i></div>
+      <div class="drop-title">Drop photo here or click to browse</div>
+      <div class="drop-sub">Supports JPG, PNG — <span>take a photo or pick from gallery</span></div>
     </div>
 
-    <!-- Image Preview with Zone Drawing -->
-    <div class="preview-area" id="previewArea">
+    <div class="preview-wrap" id="previewWrap">
       <div class="zone-hint">
         <i class="fas fa-hand-pointer"></i>
-        <strong>Draw Work Zone:</strong> Click and drag on the image to select the area where you will work.
-        Zone set: <span class="zone-set" id="zoneStatus">Not set — click Identify Panel to skip</span>
+        <div>
+          <strong style="color:var(--text)">Draw your work zone</strong> — click and drag on the image to select the area where you will work.
+          <span class="zone-status" id="zoneStatus"> Not set — or use Identify Panel Only below.</span>
+        </div>
       </div>
-      <div class="canvas-container">
-        <canvas id="imgCanvas"></canvas>
-      </div>
+      <div class="canvas-box"><canvas id="imgCanvas"></canvas></div>
       <div class="action-row">
         <button class="btn-primary" id="btnAnalyze" onclick="runAnalysis(false)">
           <i class="fas fa-magnifying-glass-chart"></i> Analyze Work Zone
@@ -341,14 +473,18 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
-  <div class="loader-ring"></div>
+  <div class="loader-wrap">
+    <div class="loader-ring"></div>
+    <div class="loader-ring2"></div>
+    <div class="loader-dot"><i class="fas fa-bolt"></i></div>
+  </div>
   <div class="loading-title">Analysing Panel...</div>
   <div class="loading-sub" id="loadingSub">Sending to Gemini AI</div>
-  <div class="loading-steps">
-    <div class="loading-step active" id="step1"><div class="dot"></div>Uploading image</div>
-    <div class="loading-step" id="step2"><div class="dot"></div>Identifying panel type</div>
-    <div class="loading-step" id="step3"><div class="dot"></div>Detecting circuit breakers</div>
-    <div class="loading-step" id="step4"><div class="dot"></div>Generating safety assessment</div>
+  <div class="progress-steps">
+    <div class="ps active" id="ps1"><div class="ps-dot"></div>Uploading image to server</div>
+    <div class="ps" id="ps2"><div class="ps-dot"></div>Identifying panel type</div>
+    <div class="ps" id="ps3"><div class="ps-dot"></div>Detecting circuit breakers</div>
+    <div class="ps" id="ps4"><div class="ps-dot"></div>Generating safety assessment</div>
   </div>
 </div>
 
@@ -358,236 +494,253 @@ const username = sessionStorage.getItem('username');
 if(!username) location.href='index.html';
 document.getElementById('navUsername').textContent = username;
 document.getElementById('userAvatar').textContent  = username.charAt(0).toUpperCase();
-
-function logout(){
-  sessionStorage.clear();
-  location.href='index.html';
-}
+function logout(){ sessionStorage.clear(); location.href='index.html'; }
 
 // ── State ──
-let isLive       = false;
-let selectedTask = null;
-let imageFile    = null;
-let imageBase64  = null;
-let zone         = null;
-let safetyBuf    = null;
-let sldBase64    = null; let sldMime    = null;
-let layoutBase64 = null; let layoutMime = null;
+let isLive=false, selectedTask=null, imageFile=null, imageBase64=null;
+let zone=null, safetyBuf=null, currentZoneRect=null;
+let sldBase64=null, sldMime=null, layoutBase64=null, layoutMime=null;
+let currentStep=1;
 
-// ── Energy Toggle ──
-function setEnergy(state){
-  isLive = (state==='live');
-  const btnDead = document.getElementById('btnDead');
-  const btnLive = document.getElementById('btnLive');
-  const badge   = document.getElementById('energyBadge');
-  const info    = document.getElementById('energyInfo');
-  if(isLive){
-    btnDead.classList.add('inactive');    btnDead.classList.remove('dead');
-    btnLive.classList.remove('inactive'); btnLive.classList.add('live');
-    badge.className='toggle-badge badge-live';
-    badge.textContent='LIVE — Enhanced PPE Required';
-    info.textContent='Panel is energised. Arc Flash AND Electric Shock hazards present. ERMS activation strongly recommended before any intervention.';
-  } else {
-    btnLive.classList.add('inactive');    btnLive.classList.remove('live');
-    btnDead.classList.remove('inactive'); btnDead.classList.add('dead');
-    badge.className='toggle-badge badge-dead';
-    badge.textContent='DE-ENERGISED — Safe to open panel';
-    info.textContent='Panel is de-energised. Arc Flash hazard only if adjacent live sections — ensure LOTO is applied.';
+// ── Step Progress ──
+function setStep(n){
+  currentStep=n;
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('stepEl'+i);
+    const num=document.getElementById('stepNum'+i);
+    if(i<n){ el.className='step done'; num.innerHTML='<i class="fas fa-check" style="font-size:10px"></i>'; if(i<4) document.getElementById('stepLine'+i).className='step-line done'; }
+    else if(i===n){ el.className='step active'; num.textContent=i; }
+    else{ el.className='step'; num.textContent=i; if(i<4) document.getElementById('stepLine'+(i-1))?.classList.remove('done'); }
   }
 }
 
-// ── Document Upload (SLD / Layout) ──
+function unlockSection(id){ document.getElementById(id).classList.remove('locked'); document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'}); }
+function showCheck(n){ const c=document.getElementById('check'+n); if(c){ c.classList.add('show'); }}
+
+// ── Step 1: Energy ──
+setStep(1);
+// Energy is pre-selected as dead — mark step 1 done after brief moment
+setTimeout(()=>{ showCheck(1); unlockSection('sec2'); setStep(2); }, 400);
+
+function setEnergy(state){
+  isLive=(state==='live');
+  const btnD=document.getElementById('btnDead'), btnL=document.getElementById('btnLive');
+  const info=document.getElementById('energyInfo');
+  if(isLive){
+    btnD.className='toggle-btn dead-inactive'; btnL.className='toggle-btn live-active';
+    info.className='energy-info live';
+    info.innerHTML='<i class="fas fa-triangle-exclamation"></i> Energised — Arc Flash AND Electric Shock hazards present. ERMS activation recommended before any intervention.';
+  } else {
+    btnL.className='toggle-btn live-inactive'; btnD.className='toggle-btn dead-active';
+    info.className='energy-info dead';
+    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — Arc Flash hazard only near adjacent live sections. Ensure LOTO is applied before opening.';
+  }
+}
+
+// ── Step 2: Task ──
+function selectTask(task, el){
+  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selectedTask=task;
+  showCheck(2); unlockSection('sec3'); setStep(3);
+}
+
+// ── Step 3: Documents ──
 function handleDoc(type, input){
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const b64 = e.target.result.split(',')[1];
-    if(type==='sld'){ sldBase64=b64; sldMime=file.type||'application/pdf'; }
-    else            { layoutBase64=b64; layoutMime=file.type||'application/pdf'; }
-    document.getElementById(type+'FileName').textContent = file.name;
-    document.getElementById(type+'Preview').style.display = 'block';
+  const file=input.files[0]; if(!file) return;
+  const isPdf=file.type==='application/pdf';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result.split(',')[1];
+    if(type==='sld'){
+      sldBase64=b64; sldMime=file.type||'application/pdf';
+      // Preview
+      document.getElementById('sldPreviewBox').classList.add('show');
+      if(isPdf){
+        document.getElementById('sldPdfIcon').style.display='flex';
+        document.getElementById('sldPdfName').textContent=file.name;
+        document.getElementById('sldImgThumb').style.display='none';
+      } else {
+        document.getElementById('sldImgThumb').src=e.target.result;
+        document.getElementById('sldImgThumb').style.display='block';
+        document.getElementById('sldPdfIcon').style.display='none';
+      }
+      document.getElementById('sldStatus').className='doc-status green';
+      document.getElementById('sldStatusText').textContent=file.name;
+      document.getElementById('sldUploadBtn').style.display='none';
+      document.getElementById('sldCard').classList.add('has-file');
+    } else {
+      layoutBase64=b64; layoutMime=file.type||'application/pdf';
+      document.getElementById('layoutPreviewBox').classList.add('show');
+      if(isPdf){
+        document.getElementById('layoutPdfIcon').style.display='flex';
+        document.getElementById('layoutPdfName').textContent=file.name;
+        document.getElementById('layoutImgThumb').style.display='none';
+      } else {
+        document.getElementById('layoutImgThumb').src=e.target.result;
+        document.getElementById('layoutImgThumb').style.display='block';
+        document.getElementById('layoutPdfIcon').style.display='none';
+      }
+      document.getElementById('layoutStatus').className='doc-status blue';
+      document.getElementById('layoutStatusText').textContent=file.name;
+      document.getElementById('layoutUploadBtn').style.display='none';
+      document.getElementById('layoutCard').classList.add('has-file');
+    }
+    checkDocsDone();
   };
   reader.readAsDataURL(file);
 }
+
 function clearDoc(type){
-  if(type==='sld'){ sldBase64=null; sldMime=null; document.getElementById('sldPreview').style.display='none'; document.getElementById('sldInput').value=''; }
-  else{ layoutBase64=null; layoutMime=null; document.getElementById('layoutPreview').style.display='none'; document.getElementById('layoutInput').value=''; }
+  if(type==='sld'){
+    sldBase64=null; sldMime=null;
+    document.getElementById('sldPreviewBox').classList.remove('show');
+    document.getElementById('sldImgThumb').style.display='none';
+    document.getElementById('sldPdfIcon').style.display='none';
+    document.getElementById('sldStatus').className='doc-status green hidden';
+    document.getElementById('sldUploadBtn').style.display='';
+    document.getElementById('sldCard').classList.remove('has-file');
+  } else {
+    layoutBase64=null; layoutMime=null;
+    document.getElementById('layoutPreviewBox').classList.remove('show');
+    document.getElementById('layoutImgThumb').style.display='none';
+    document.getElementById('layoutPdfIcon').style.display='none';
+    document.getElementById('layoutStatus').className='doc-status blue hidden';
+    document.getElementById('layoutUploadBtn').style.display='';
+    document.getElementById('layoutCard').classList.remove('has-file');
+  }
 }
 
-// ── Task Selection ──
-function selectTask(task, el){
-  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedTask = task;
-  document.getElementById('docsSection').classList.add('visible');
-  document.getElementById('uploadSection').classList.add('visible');
-  document.getElementById('docsSection').scrollIntoView({behavior:'smooth',block:'start'});
+function checkDocsDone(){
+  if(sldBase64||layoutBase64){ showCheck(3); goToStep4(); }
 }
 
-// ── File Upload ──
-const dropZone = document.getElementById('dropZone');
-const fileInput= document.getElementById('fileInput');
+function skipDocs(){ showCheck(3); goToStep4(); }
 
-dropZone.addEventListener('dragover', e=>{e.preventDefault();dropZone.classList.add('dragover')});
+function goToStep4(){ unlockSection('sec4'); setStep(4); }
+
+// ── Step 4: Image Upload ──
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
 dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e=>{
-  e.preventDefault(); dropZone.classList.remove('dragover');
-  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change',()=>{if(fileInput.files[0]) handleFile(fileInput.files[0])});
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',()=>{if(fileInput.files[0])handleFile(fileInput.files[0])});
 
 function handleFile(file){
   if(!file.type.startsWith('image/')){ alert('Please upload an image file.'); return; }
-  imageFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    imageBase64 = e.target.result.split(',')[1];
-    loadImageOnCanvas(e.target.result);
-  };
+  imageFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{ imageBase64=e.target.result.split(',')[1]; loadCanvas(e.target.result); };
   reader.readAsDataURL(file);
 }
 
-// ── Canvas Zone Drawing ──
-const canvas  = document.getElementById('imgCanvas');
-const ctx     = canvas.getContext('2d');
-let imgEl     = null;
-let drawing   = false;
-let startX,startY,endX,endY;
-let currentZoneRect = null;
+// ── Canvas ──
+const canvas=document.getElementById('imgCanvas');
+const ctx=canvas.getContext('2d');
+let imgEl=null, drawing=false, startX,startY,endX,endY;
 
-function loadImageOnCanvas(src){
-  imgEl = new Image();
-  imgEl.onload = () => {
-    // Size canvas to fit container (max 800px wide)
-    const maxW = Math.min(800, window.innerWidth - 80);
-    const scale= Math.min(maxW/imgEl.naturalWidth, 480/imgEl.naturalHeight, 1);
-    canvas.width  = imgEl.naturalWidth  * scale;
-    canvas.height = imgEl.naturalHeight * scale;
+function loadCanvas(src){
+  imgEl=new Image();
+  imgEl.onload=()=>{
+    const maxW=Math.min(760,window.innerWidth-80);
+    const scale=Math.min(maxW/imgEl.naturalWidth,460/imgEl.naturalHeight,1);
+    canvas.width=imgEl.naturalWidth*scale; canvas.height=imgEl.naturalHeight*scale;
     drawCanvas();
-    document.getElementById('previewArea').classList.add('visible');
-    zone = null; currentZoneRect = null;
-    document.getElementById('zoneStatus').textContent = 'Not set — click Identify Panel to skip';
+    document.getElementById('previewWrap').classList.add('show');
+    zone=null; currentZoneRect=null;
+    document.getElementById('zoneStatus').textContent=' Not set — or use Identify Panel Only below.';
+    document.getElementById('zoneStatus').style.color='var(--muted)';
+    dropZone.style.display='none';
   };
-  imgEl.src = src;
+  imgEl.src=src;
 }
 
 function drawCanvas(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(imgEl,0,0,canvas.width,canvas.height);
   if(currentZoneRect){
-    // Safety buffer (red, semi-transparent)
-    const buf = 0.15;
-    const bx  = currentZoneRect.x - currentZoneRect.w*buf;
-    const by  = currentZoneRect.y - currentZoneRect.h*buf;
-    const bw  = currentZoneRect.w*(1+2*buf);
-    const bh  = currentZoneRect.h*(1+2*buf);
+    const buf=0.15;
+    const bx=currentZoneRect.x-currentZoneRect.w*buf, by=currentZoneRect.y-currentZoneRect.h*buf;
+    const bw=currentZoneRect.w*(1+2*buf), bh=currentZoneRect.h*(1+2*buf);
     ctx.strokeStyle='rgba(255,71,87,.6)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
     ctx.strokeRect(bx,by,bw,bh);
     ctx.fillStyle='rgba(255,71,87,.08)'; ctx.fillRect(bx,by,bw,bh);
     ctx.setLineDash([]);
-    // Work zone (green, solid)
     ctx.strokeStyle='#3DCD58'; ctx.lineWidth=2.5;
     ctx.strokeRect(currentZoneRect.x,currentZoneRect.y,currentZoneRect.w,currentZoneRect.h);
-    ctx.fillStyle='rgba(61,205,88,.12)';
-    ctx.fillRect(currentZoneRect.x,currentZoneRect.y,currentZoneRect.w,currentZoneRect.h);
-    // Label
-    ctx.fillStyle='#3DCD58'; ctx.font='bold 13px Inter,sans-serif';
+    ctx.fillStyle='rgba(61,205,88,.12)'; ctx.fillRect(currentZoneRect.x,currentZoneRect.y,currentZoneRect.w,currentZoneRect.h);
+    ctx.fillStyle='#3DCD58'; ctx.font='bold 12px Inter,sans-serif';
     ctx.fillText('Work Zone',currentZoneRect.x+6,currentZoneRect.y-6);
   }
 }
 
-canvas.addEventListener('mousedown',e=>{
+function getCanvasPos(e){
   const r=canvas.getBoundingClientRect();
-  startX=e.clientX-r.left; startY=e.clientY-r.top;
-  drawing=true;
-});
+  return{x:(e.clientX-r.left),y:(e.clientY-r.top)};
+}
+canvas.addEventListener('mousedown',e=>{const p=getCanvasPos(e);startX=p.x;startY=p.y;drawing=true});
 canvas.addEventListener('mousemove',e=>{
-  if(!drawing) return;
-  const r=canvas.getBoundingClientRect();
-  endX=e.clientX-r.left; endY=e.clientY-r.top;
+  if(!drawing)return;
+  const p=getCanvasPos(e); endX=p.x; endY=p.y;
   currentZoneRect={x:Math.min(startX,endX),y:Math.min(startY,endY),w:Math.abs(endX-startX),h:Math.abs(endY-startY)};
   drawCanvas();
 });
 canvas.addEventListener('mouseup',()=>{
-  if(!drawing) return; drawing=false;
-  if(!currentZoneRect||currentZoneRect.w<10||currentZoneRect.h<10){ currentZoneRect=null; zone=null; return; }
-  // Normalize to 0-1000
-  zone={
-    ymin: Math.round(currentZoneRect.y/canvas.height*1000),
-    xmin: Math.round(currentZoneRect.x/canvas.width*1000),
-    ymax: Math.round((currentZoneRect.y+currentZoneRect.h)/canvas.height*1000),
-    xmax: Math.round((currentZoneRect.x+currentZoneRect.w)/canvas.width*1000),
-  };
+  if(!drawing)return; drawing=false;
+  if(!currentZoneRect||currentZoneRect.w<10||currentZoneRect.h<10){currentZoneRect=null;zone=null;return;}
+  zone={ymin:Math.round(currentZoneRect.y/canvas.height*1000),xmin:Math.round(currentZoneRect.x/canvas.width*1000),
+        ymax:Math.round((currentZoneRect.y+currentZoneRect.h)/canvas.height*1000),xmax:Math.round((currentZoneRect.x+currentZoneRect.w)/canvas.width*1000)};
   const buf=80;
-  safetyBuf={
-    ymin:Math.max(0,zone.ymin-buf),xmin:Math.max(0,zone.xmin-buf),
-    ymax:Math.min(1000,zone.ymax+buf),xmax:Math.min(1000,zone.xmax+buf),
-  };
-  document.getElementById('zoneStatus').textContent='Zone set ✓';
+  safetyBuf={ymin:Math.max(0,zone.ymin-buf),xmin:Math.max(0,zone.xmin-buf),ymax:Math.min(1000,zone.ymax+buf),xmax:Math.min(1000,zone.xmax+buf)};
+  document.getElementById('zoneStatus').textContent=' Zone set ✓';
+  document.getElementById('zoneStatus').style.color='var(--green)';
 });
-// Touch support
 canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];canvas.dispatchEvent(new MouseEvent('mousedown',{clientX:t.clientX,clientY:t.clientY}))},{passive:false});
 canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];canvas.dispatchEvent(new MouseEvent('mousemove',{clientX:t.clientX,clientY:t.clientY}))},{passive:false});
 canvas.addEventListener('touchend',e=>{e.preventDefault();canvas.dispatchEvent(new MouseEvent('mouseup',{}))},{passive:false});
 
 // ── Loading Steps ──
-let stepIdx=0;
-let stepInterval=null;
-function startLoadingSteps(){
-  stepIdx=1;
-  ['step1','step2','step3','step4'].forEach(id=>document.getElementById(id).classList.remove('active'));
-  document.getElementById('step1').classList.add('active');
-  stepInterval=setInterval(()=>{
-    stepIdx++;
-    if(stepIdx<=4) document.getElementById('step'+stepIdx).classList.add('active');
-  },3000);
+let psIdx=0, psTimer=null;
+function startLoading(){
+  psIdx=1; ['ps1','ps2','ps3','ps4'].forEach(id=>{ const el=document.getElementById(id); el.className='ps'; });
+  document.getElementById('ps1').classList.add('active');
+  psTimer=setInterval(()=>{
+    if(psIdx>1) document.getElementById('ps'+(psIdx-1)).className='ps done';
+    psIdx++; if(psIdx<=4){ document.getElementById('ps'+psIdx).classList.add('active'); }
+  },3500);
 }
-function stopLoadingSteps(){ clearInterval(stepInterval); }
+function stopLoading(){ clearInterval(psTimer); }
 
-// ── Analyze ──
+// ── Analyse ──
 async function runAnalysis(identifyOnly){
-  if(!imageBase64){ alert('Please upload an image first.'); return; }
-  if(!selectedTask){ alert('Please select a task first.'); return; }
+  if(!imageBase64){ alert('Please upload a panel photo first.'); return; }
   if(!identifyOnly && !zone){ alert('Please draw a work zone on the image, or use "Identify Panel Only".'); return; }
-
   document.getElementById('loadingOverlay').classList.add('active');
-  startLoadingSteps();
-
+  startLoading();
   const body={
-    imageBase64:  imageBase64,
-    mimeType:     imageFile?imageFile.type:'image/jpeg',
-    task:         selectedTask,
-    identifyOnly: identifyOnly,
-    workZone:     identifyOnly ? null : zone,
-    safetyBuffer: identifyOnly ? null : safetyBuf,
-    username:     username,
-    ...(sldBase64    ? {sldBase64,    sldMimeType:    sldMime}    : {}),
-    ...(layoutBase64 ? {layoutBase64, layoutMimeType: layoutMime} : {}),
+    imageBase64, mimeType:imageFile?imageFile.type:'image/jpeg',
+    task:selectedTask||'others', identifyOnly,
+    workZone:identifyOnly?null:zone, safetyBuffer:identifyOnly?null:safetyBuf,
+    username,
+    ...(sldBase64    ?{sldBase64,    sldMimeType:sldMime}    :{}),
+    ...(layoutBase64 ?{layoutBase64, layoutMimeType:layoutMime}:{}),
   };
-
   try {
-    const res  = await fetch('/api/analyze', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    stopLoadingSteps();
-    document.getElementById('loadingOverlay').classList.remove('active');
-
-    // Store results + image for results page
+    const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    stopLoading(); document.getElementById('loadingOverlay').classList.remove('active');
     sessionStorage.setItem('analysisResult', JSON.stringify(data));
     sessionStorage.setItem('analysisImage',  imageBase64);
     sessionStorage.setItem('imageMime',      imageFile?imageFile.type:'image/jpeg');
-    sessionStorage.setItem('analysisMeta', JSON.stringify({
-      task: selectedTask, isLive, identifyOnly,
-      zoneRect: currentZoneRect,
-      canvasW: canvas.width, canvasH: canvas.height,
+    sessionStorage.setItem('analysisMeta',   JSON.stringify({
+      task:selectedTask||'others', isLive, identifyOnly,
+      zoneRect:currentZoneRect, canvasW:canvas.width, canvasH:canvas.height,
+      hasSld:!!sldBase64, sldName:sldBase64?document.getElementById('sldStatusText')?.textContent:'',
+      hasLayout:!!layoutBase64,
     }));
-    location.href = 'results.html';
+    location.href='results.html';
   } catch(err){
-    stopLoadingSteps();
-    document.getElementById('loadingOverlay').classList.remove('active');
+    stopLoading(); document.getElementById('loadingOverlay').classList.remove('active');
     alert('Server error: '+err.message+'\n\nMake sure the server is running.');
   }
 }

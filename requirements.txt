@@ -7,5 +7,4 @@ opencv-python-headless==4.10.0.84
 google-genai==1.5.0
 anthropic==0.34.2
 aiofiles==23.2.1
-experta==1.9.4
 python-multipart==0.0.12

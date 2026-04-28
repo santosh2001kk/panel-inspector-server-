@@ -32,37 +32,12 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
-from experta import *
-
-# --- Expert system for panel classification ---
-class PanelFact(Fact):
-    acb     = int
-    mccb    = int
-    mcb     = int
-    drawers = int
-
-class PanelClassifier(KnowledgeEngine):
-    result = "Unknown"
-
-    @Rule(PanelFact(acb=P(lambda x: x >= 1), drawers=P(lambda x: x > 4)))
-    def okken(self):
-        self.result = "Okken"
-
-    @Rule(PanelFact(acb=P(lambda x: x >= 1), drawers=P(lambda x: x <= 4)))
-    def prisma_p(self):
-        self.result = "PrismaSeT P"
-
-    @Rule(PanelFact(acb=0))
-    def prisma_g(self):
-        self.result = "PrismaSeT G"
-
 def classify_panel(acb: int, mccb: int, mcb: int, drawers: int = 0) -> str:
-    engine = PanelClassifier()
-    engine.reset()
-    engine.declare(PanelFact(acb=acb, mccb=mccb, mcb=mcb, drawers=drawers))
-    engine.run()
-    return engine.result
-# ----------------------------------------------
+    if acb >= 1 and drawers > 4:
+        return "Okken"
+    if acb >= 1 and drawers <= 4:
+        return "PrismaSeT P"
+    return "PrismaSeT G"
 
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_KEY", "")
 GEMINI_KEY    = os.environ.get("GEMINI_KEY", "")

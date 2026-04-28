@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Santosh Kathirvelu Kumaraguru — Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.2);
+  --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
+  --text:#E0EAF4;--muted:#6B8EAE;--accent:#4A9EFF;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:999;height:64px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 48px;
+  background:rgba(10,22,40,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(30,58,95,.6);
+  transition:all .3s;
+}
+.nav-logo{font-size:16px;font-weight:800;color:var(--green);letter-spacing:-.3px}
+.nav-links{display:flex;gap:32px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--green)}
+.nav-cta{padding:8px 20px;background:var(--green);border-radius:8px;font-size:13px;font-weight:700;
+  color:#0A1628;text-decoration:none;transition:all .2s;
+}
+.nav-cta:hover{background:var(--green-dark);transform:translateY(-1px)}
+@media(max-width:768px){.nav-links{display:none}}
+
+/* ── Hero ── */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 48px 60px;position:relative;overflow:hidden;
+}
+.hero-bg{position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%,rgba(61,205,88,.08) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 60%,rgba(74,158,255,.05) 0%,transparent 50%);
+}
+.hero-grid{position:absolute;inset:0;z-index:0;opacity:.03;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.hero-content{position:relative;z-index:1;max-width:860px;text-align:center}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;
+  background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);border-radius:20px;
+  font-size:12px;font-weight:600;color:var(--green);letter-spacing:.5px;text-transform:uppercase;
+  margin-bottom:28px;
+}
+.hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.hero-name{font-size:clamp(38px,6vw,72px);font-weight:900;line-height:1.05;letter-spacing:-2px;
+  background:linear-gradient(135deg,#fff 0%,rgba(224,234,244,.7) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:16px;
+}
+.hero-name span{background:linear-gradient(135deg,var(--green),#2BAE47);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-title{font-size:clamp(16px,2.5vw,22px);font-weight:400;color:var(--muted);margin-bottom:28px;line-height:1.5}
+.hero-title strong{color:var(--text);font-weight:600}
+.hero-desc{font-size:16px;color:var(--muted);line-height:1.8;max-width:640px;margin:0 auto 36px}
+.hero-desc strong{color:var(--text)}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+.btn-primary{padding:13px 28px;background:var(--green);border-radius:10px;font-size:14px;font-weight:700;
+  color:#0A1628;text-decoration:none;display:flex;align-items:center;gap:8px;transition:all .2s;
+}
+.btn-primary:hover{background:var(--green-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(61,205,88,.25)}
+.btn-outline{padding:13px 28px;background:transparent;border:1px solid var(--border);border-radius:10px;
+  font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:8px;transition:all .2s;
+}
+.btn-outline:hover{border-color:var(--green);color:var(--green);transform:translateY(-2px)}
+.hero-stats{display:flex;gap:48px;justify-content:center;flex-wrap:wrap}
+.hero-stat .num{font-size:32px;font-weight:800;color:var(--green)}
+.hero-stat .lbl{font-size:12px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:11px;
+  animation:bounce 2s infinite;
+}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+/* ── Section base ── */
+section{padding:100px 48px}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--green);margin-bottom:12px;
+}
+.section-title{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-1px;margin-bottom:14px}
+.section-sub{font-size:15px;color:var(--muted);line-height:1.7;max-width:560px}
+
+/* ── About ── */
+#about{background:var(--card)}
+.about-grid{display:grid;grid-template-columns:1fr 1.6fr;gap:56px;align-items:center;margin-top:56px}
+@media(max-width:768px){.about-grid{grid-template-columns:1fr}}
+.about-photo-wrap{position:relative}
+.about-photo-ring{width:260px;height:260px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green),var(--accent));padding:3px;
+  margin:0 auto;
+}
+.about-photo-inner{width:100%;height:100%;border-radius:50%;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;font-size:80px;color:var(--green);overflow:hidden;
+}
+.about-photo-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.about-badge{position:absolute;bottom:10px;right:calc(50% - 150px);
+  background:var(--green);color:#0A1628;padding:6px 14px;border-radius:20px;
+  font-size:11px;font-weight:700;white-space:nowrap;
+}
+.about-text p{font-size:15px;color:var(--muted);line-height:1.85;margin-bottom:18px}
+.about-text p strong{color:var(--text)}
+.about-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);color:var(--muted);
+  display:flex;align-items:center;gap:6px;transition:all .2s;
+}
+.chip:hover{border-color:var(--green);color:var(--green)}
+.chip.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.2);color:var(--green)}
+
+/* ── Skills ── */
+.skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:56px}
+@media(max-width:768px){.skills-grid{grid-template-columns:1fr}}
+.skill-group{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+.skill-group-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--green);margin-bottom:24px;display:flex;align-items:center;gap:8px;
+}
+.skill-item{margin-bottom:18px}
+.skill-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
+.skill-name{font-weight:500}
+.skill-pct{color:var(--muted);font-variant-numeric:tabular-nums}
+.skill-bar{height:6px;background:var(--card2);border-radius:4px;overflow:hidden}
+.skill-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--accent));
+  width:0%;transition:width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.lang-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.lang-chip{padding:8px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:13px}
+.lang-chip span{color:var(--green);font-weight:700;margin-left:6px}
+
+/* ── Projects ── */
+#projects{background:var(--card)}
+.projects-grid{display:grid;gap:24px;margin-top:56px}
+.project-featured{background:var(--bg);border:1px solid rgba(61,205,88,.25);border-radius:20px;
+  padding:36px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center;
+  position:relative;overflow:hidden;
+}
+.project-featured::before{content:'FEATURED';position:absolute;top:20px;right:20px;
+  font-size:10px;font-weight:700;letter-spacing:1px;color:var(--green);
+  background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);padding:3px 10px;border-radius:4px;
+}
+@media(max-width:768px){.project-featured{grid-template-columns:1fr}}
+.project-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--green);margin-bottom:12px;
+}
+.project-title{font-size:26px;font-weight:800;margin-bottom:12px;letter-spacing:-.5px}
+.project-desc{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:20px}
+.tech-stack{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.tech{padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);color:var(--muted);
+}
+.tech.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.2);color:var(--green)}
+.project-links{display:flex;gap:12px;flex-wrap:wrap}
+.proj-btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
+  display:flex;align-items:center;gap:7px;transition:all .2s;
+}
+.proj-btn.green{background:var(--green);color:#0A1628}
+.proj-btn.green:hover{background:var(--green-dark);transform:translateY(-1px)}
+.proj-btn.outline{border:1px solid var(--border);color:var(--muted)}
+.proj-btn.outline:hover{border-color:var(--green);color:var(--green)}
+.project-visual{background:var(--card2);border-radius:14px;border:1px solid var(--border);
+  padding:28px;display:flex;flex-direction:column;gap:12px;
+}
+.pv-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border)}
+.pv-icon{width:36px;height:36px;border-radius:8px;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--green);flex-shrink:0;
+}
+.pv-text{font-size:12px;font-weight:600}
+.pv-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+.projects-small{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px}
+@media(max-width:900px){.projects-small{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.projects-small{grid-template-columns:1fr}}
+.project-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:24px;
+  transition:all .25s;
+}
+.project-card:hover{border-color:rgba(61,205,88,.25);transform:translateY(-3px)}
+.pc-icon{width:44px;height:44px;border-radius:10px;background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.15);
+  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--green);margin-bottom:16px;
+}
+.pc-title{font-size:15px;font-weight:700;margin-bottom:8px}
+.pc-desc{font-size:13px;color:var(--muted);line-height:1.7}
+.pc-tech{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.pc-t{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);color:var(--muted);
+}
+
+/* ── Experience ── */
+.timeline{margin-top:56px;position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(to bottom,var(--green),transparent);
+}
+.tl-item{position:relative;margin-bottom:48px}
+.tl-item::before{content:'';position:absolute;left:-39px;top:6px;width:14px;height:14px;
+  border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(61,205,88,.15);
+}
+.tl-date{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--green);margin-bottom:6px}
+.tl-role{font-size:18px;font-weight:700;margin-bottom:2px}
+.tl-company{font-size:14px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.tl-company i{font-size:12px}
+.tl-bullets{list-style:none;display:flex;flex-direction:column;gap:8px}
+.tl-bullets li{font-size:14px;color:var(--muted);line-height:1.65;padding-left:16px;position:relative}
+.tl-bullets li::before{content:'→';position:absolute;left:0;color:var(--green);font-size:12px;top:1px}
+.tl-bullets strong{color:var(--text)}
+
+/* ── Education ── */
+#education{background:var(--card)}
+.edu-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:56px}
+@media(max-width:768px){.edu-grid{grid-template-columns:1fr}}
+.edu-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px;
+  transition:border-color .2s;
+}
+.edu-card:hover{border-color:rgba(61,205,88,.2)}
+.edu-card.current{border-color:rgba(61,205,88,.25)}
+.edu-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;
+  font-size:11px;font-weight:700;margin-bottom:14px;
+}
+.edu-badge.current{background:rgba(61,205,88,.1);color:var(--green);border:1px solid rgba(61,205,88,.2)}
+.edu-badge.done{background:rgba(74,158,255,.1);color:var(--accent);border:1px solid rgba(74,158,255,.2)}
+.edu-degree{font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.4}
+.edu-school{font-size:13px;color:var(--muted);margin-bottom:4px}
+.edu-meta{font-size:12px;color:var(--muted)}
+.edu-meta strong{color:var(--green)}
+
+/* ── Contact ── */
+#contact{text-align:center}
+.contact-card{background:var(--card);border:1px solid rgba(61,205,88,.15);border-radius:24px;
+  padding:64px 48px;max-width:700px;margin:56px auto 0;
+  background:linear-gradient(135deg,var(--card) 0%,rgba(61,205,88,.03) 100%);
+}
+.contact-title{font-size:32px;font-weight:800;margin-bottom:14px}
+.contact-sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:36px}
+.contact-links{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
+.contact-link{padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;
+  display:flex;align-items:center;gap:8px;transition:all .2s;
+}
+.cl-linkedin{background:rgba(10,102,194,.15);border:1px solid rgba(10,102,194,.3);color:#4A9EFF}
+.cl-linkedin:hover{background:rgba(10,102,194,.25);transform:translateY(-2px)}
+.cl-email{background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.cl-email:hover{background:rgba(61,205,88,.15);transform:translateY(-2px)}
+.cl-demo{background:var(--green);color:#0A1628}
+.cl-demo:hover{background:var(--green-dark);transform:translateY(-2px)}
+.contact-note{font-size:13px;color:var(--muted)}
+.contact-note strong{color:var(--text)}
+
+/* ── Footer ── */
+footer{padding:32px 48px;border-top:1px solid var(--border);display:flex;
+  align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.footer-name{font-size:14px;font-weight:700;color:var(--green)}
+.footer-copy{font-size:12px;color:var(--muted)}
+
+/* ── Animations ── */
+.fade-up{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+
+/* ── Availability banner ── */
+.avail-bar{background:rgba(61,205,88,.08);border-bottom:1px solid rgba(61,205,88,.15);
+  padding:10px 48px;text-align:center;font-size:13px;font-weight:500;color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.avail-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+</style>
+</head>
+<body>
+
+<!-- Availability Banner -->
+<div class="avail-bar">
+  <div class="avail-dot"></div>
+  Available for 6-month internship from <strong style="color:var(--green);margin:0 4px">January 2026</strong> — Open to Electrical Engineering & AI roles
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">SK.</div>
+  <div class="nav-links">
+    <a href="#about">About</a>
+    <a href="#skills">Skills</a>
+    <a href="#projects">Projects</a>
+    <a href="#experience">Experience</a>
+    <a href="#education">Education</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a href="https://www.linkedin.com/in/santosh-kathirvelu-kumaraguru" target="_blank" class="nav-cta"><i class="fab fa-linkedin"></i> LinkedIn</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-tag"><div class="dot"></div> Electrical Engineering & AI</div>
+    <h1 class="hero-name">Santosh<br><span>Kathirvelu Kumaraguru</span></h1>
+    <p class="hero-title">
+      <strong>Master's Student</strong> · Grenoble INP – Ense3 ·
+      Electrical Energy & Smart Grids
+    </p>
+    <p class="hero-desc">
+      Building AI-powered tools for electrical safety — from Android apps with
+      <strong>Google Gemini</strong> to full-stack web platforms for
+      <strong>Schneider Electric panel inspection</strong>.
+    </p>
+    <div class="hero-btns">
+      <a href="#projects" class="btn-primary"><i class="fas fa-bolt"></i> View My Work</a>
+      <a href="https://www.linkedin.com/in/santosh-kathirvelu-kumaraguru" target="_blank" class="btn-outline"><i class="fab fa-linkedin"></i> LinkedIn</a>
+      <a href="mailto:santosh2001kk@gmail.com" class="btn-outline"><i class="fas fa-envelope"></i> Contact Me</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num" data-target="3">0</div><div class="lbl">Years Experience</div></div>
+      <div class="hero-stat"><div class="num" data-target="4">0</div><div class="lbl">Projects Built</div></div>
+      <div class="hero-stat"><div class="num" data-target="92">0</div><div class="lbl">% AI Accuracy</div></div>
+      <div class="hero-stat"><div class="num" data-target="2">0</div><div class="lbl">Internships</div></div>
+    </div>
+  </div>
+  <div class="hero-scroll"><i class="fas fa-chevron-down"></i> Scroll</div>
+</section>
+
+<!-- About -->
+<section id="about">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">About Me</div>
+      <h2 class="section-title">Electrical Engineer<br>who builds with AI</h2>
+    </div>
+    <div class="about-grid fade-up">
+      <div class="about-photo-wrap">
+        <div class="about-photo-ring">
+          <div class="about-photo-inner">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+        <div class="about-badge">📍 Grenoble, France</div>
+      </div>
+      <div class="about-text">
+        <p>
+          I'm a <strong>Master's student in Electrical Energy and Smart Grids</strong> at Grenoble INP – Ense3, France.
+          My background spans both hardware and software — from optimising PCB layouts at <strong>Hyundai Mobis</strong>
+          to building real-time data processing systems at <strong>KaaShiv InfoTech</strong>.
+        </p>
+        <p>
+          My most recent work is <strong>Panel Inspector Pro</strong> — an AI-powered Android app and web platform
+          that identifies Schneider Electric LV switchboards, detects circuit breakers with bounding boxes,
+          and generates task-specific safety checklists using <strong>Google Gemini</strong>.
+          Both the Android app and the web version are fully deployed and live.
+        </p>
+        <p>
+          I'm fluent in <strong>English (C2)</strong>, conversational in <strong>French (B1)</strong>, and
+          available for a <strong>6-month internship from January 2026</strong> in electrical engineering,
+          AI, smart grids, or energy systems.
+        </p>
+        <div class="about-chips">
+          <div class="chip green"><i class="fas fa-graduation-cap"></i> Grenoble INP – Ense3</div>
+          <div class="chip"><i class="fas fa-location-dot"></i> Grenoble, France</div>
+          <div class="chip"><i class="fas fa-phone"></i> +33 781 977 486</div>
+          <div class="chip"><i class="fas fa-language"></i> EN (C2) · FR (B1)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Skills -->
+<section id="skills">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Skills</div>
+      <h2 class="section-title">Technical Toolkit</h2>
+      <p class="section-sub">Combining electrical engineering foundations with modern software and AI development.</p>
+    </div>
+    <div class="skills-grid">
+      <div class="skill-group fade-up">
+        <div class="skill-group-title"><i class="fas fa-bolt"></i> Electrical & Simulation</div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">MATLAB / Simulink</span><span class="skill-pct">90%</span></div><div class="skill-bar"><div class="skill-fill" data-w="90"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">DIgSILENT PowerFactory</span><span class="skill-pct">75%</span></div><div class="skill-bar"><div class="skill-fill" data-w="75"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">PVsyst</span><span class="skill-pct">70%</span></div><div class="skill-bar"><div class="skill-fill" data-w="70"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">LV Switchboard Systems</span><span class="skill-pct">85%</span></div><div class="skill-bar"><div class="skill-fill" data-w="85"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">GIS / Power BI</span><span class="skill-pct">65%</span></div><div class="skill-bar"><div class="skill-fill" data-w="65"></div></div></div>
+      </div>
+      <div class="skill-group fade-up">
+        <div class="skill-group-title"><i class="fas fa-code"></i> Software & AI</div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">Python (FastAPI, AI)</span><span class="skill-pct">88%</span></div><div class="skill-bar"><div class="skill-fill" data-w="88"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">Android (Kotlin)</span><span class="skill-pct">75%</span></div><div class="skill-bar"><div class="skill-fill" data-w="75"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">Google Gemini AI</span><span class="skill-pct">82%</span></div><div class="skill-bar"><div class="skill-fill" data-w="82"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">Web (HTML/CSS/JS)</span><span class="skill-pct">78%</span></div><div class="skill-bar"><div class="skill-fill" data-w="78"></div></div></div>
+        <div class="skill-item"><div class="skill-row"><span class="skill-name">C / C++</span><span class="skill-pct">70%</span></div><div class="skill-bar"><div class="skill-fill" data-w="70"></div></div></div>
+      </div>
+      <div class="skill-group fade-up">
+        <div class="skill-group-title"><i class="fas fa-globe"></i> Languages</div>
+        <div class="lang-chips">
+          <div class="lang-chip">Tamil <span>Native</span></div>
+          <div class="lang-chip">English <span>C2</span></div>
+          <div class="lang-chip">French <span>B1</span></div>
+        </div>
+      </div>
+      <div class="skill-group fade-up">
+        <div class="skill-group-title"><i class="fas fa-star"></i> Soft Skills</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+          <div class="chip green"><i class="fas fa-lightbulb"></i> Problem Solving</div>
+          <div class="chip"><i class="fas fa-users"></i> Teamwork</div>
+          <div class="chip"><i class="fas fa-arrows-rotate"></i> Adaptability</div>
+          <div class="chip"><i class="fas fa-comments"></i> Communication</div>
+          <div class="chip"><i class="fas fa-clock"></i> Self-Management</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Projects -->
+<section id="projects">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Projects</div>
+      <h2 class="section-title">What I've Built</h2>
+      <p class="section-sub">From AI-powered field tools to signal processing algorithms — each project solves a real problem.</p>
+    </div>
+
+    <!-- Featured Project -->
+    <div class="project-featured fade-up" style="margin-top:56px">
+      <div>
+        <div class="project-tag">⚡ Featured Project — 2024/2025</div>
+        <h3 class="project-title">Panel Inspector Pro</h3>
+        <p class="project-desc">
+          An AI-powered Android app and web platform for inspecting Schneider Electric LV switchboards on-site.
+          Upload a panel photo — the AI identifies the panel type (PrismaSeT G/P, Okken), detects every circuit breaker
+          with precise bounding boxes, reads ratings and labels, generates task-specific safety checklists,
+          and cross-references the Schneider catalogue. Works with Single Line Diagrams (SLD) as PDF or image.
+        </p>
+        <div class="tech-stack">
+          <span class="tech green">Google Gemini AI</span>
+          <span class="tech green">Python FastAPI</span>
+          <span class="tech green">Android (Kotlin)</span>
+          <span class="tech">OpenCV</span>
+          <span class="tech">SQLite</span>
+          <span class="tech">Render Cloud</span>
+          <span class="tech">REST API</span>
+        </div>
+        <div class="project-links">
+          <a href="https://panel-inspector-server.onrender.com" target="_blank" class="proj-btn green"><i class="fas fa-arrow-up-right-from-square"></i> Live Demo</a>
+          <a href="https://panel-inspector-server.onrender.com/dashboard.html" target="_blank" class="proj-btn outline"><i class="fas fa-bolt"></i> Try the Scanner</a>
+        </div>
+      </div>
+      <div class="project-visual">
+        <div class="pv-row">
+          <div class="pv-icon"><i class="fas fa-mobile-alt"></i></div>
+          <div><div class="pv-text">Android App</div><div class="pv-sub">Kotlin · Camera · GPS · SQLite</div></div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-icon"><i class="fas fa-globe"></i></div>
+          <div><div class="pv-text">Web Platform</div><div class="pv-sub">Deployed on Render — public access</div></div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-icon"><i class="fas fa-robot"></i></div>
+          <div><div class="pv-text">Gemini Vision AI</div><div class="pv-sub">Breaker detection + safety assessment</div></div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-icon"><i class="fas fa-diagram-project"></i></div>
+          <div><div class="pv-text">SLD Cross-reference</div><div class="pv-sub">PDF & image support</div></div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-icon"><i class="fas fa-shield-halved"></i></div>
+          <div><div class="pv-text">Safety Checklists</div><div class="pv-sub">IEC 60900 · Arc flash · PPE guidance</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Small projects -->
+    <div class="projects-small">
+      <div class="project-card fade-up">
+        <div class="pc-icon"><i class="fas fa-bug"></i></div>
+        <div class="pc-title">Insect Detection Algorithm</div>
+        <p class="pc-desc">Automated pest classification system using CNN with 92% accuracy. Reduced pesticide usage through early-stage identification in field crops.</p>
+        <div class="pc-tech">
+          <span class="pc-t">MATLAB</span><span class="pc-t">CNN</span><span class="pc-t">Deep Learning</span>
+        </div>
+      </div>
+      <div class="project-card fade-up">
+        <div class="pc-icon"><i class="fas fa-gear"></i></div>
+        <div class="pc-title">Electrical Machine Optimisation</div>
+        <p class="pc-desc">Modelled synchronous and induction machines under steady and transient conditions. Analysed torque, flux, and efficiency characteristics.</p>
+        <div class="pc-tech">
+          <span class="pc-t">MATLAB</span><span class="pc-t">Simulink</span><span class="pc-t">Power Systems</span>
+        </div>
+      </div>
+      <div class="project-card fade-up">
+        <div class="pc-icon"><i class="fas fa-graduation-cap"></i></div>
+        <div class="pc-title">University Admission AI</div>
+        <p class="pc-desc">Built a CGPA-to-GPA converter and predictive algorithm to estimate admission probability. Team project under IBM Skills Network.</p>
+        <div class="pc-tech">
+          <span class="pc-t">Python</span><span class="pc-t">scikit-learn</span><span class="pc-t">IBM Watson</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Experience -->
+<section id="experience">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Experience</div>
+      <h2 class="section-title">Work History</h2>
+    </div>
+    <div class="timeline fade-up">
+      <div class="tl-item">
+        <div class="tl-date">Jul 2023 – May 2024</div>
+        <div class="tl-role">Control Engineering Intern</div>
+        <div class="tl-company"><i class="fas fa-building"></i> KaaShiv InfoTech · Chennai, India</div>
+        <ul class="tl-bullets">
+          <li>Designed a <strong>real-time data processing system</strong> computing MIN, MAX, MED values — achieved <strong>15% reduction</strong> in area usage.</li>
+          <li>Developed advanced <strong>CS module rotation and placement techniques</strong>, improving processing performance by <strong>20%</strong>.</li>
+          <li>Conducted comprehensive testing and debugging, achieving <strong>98% successful sorting rate</strong> across all test cases.</li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Jun 2021 – Jul 2021</div>
+        <div class="tl-role">Research Intern</div>
+        <div class="tl-company"><i class="fas fa-building"></i> Hyundai Mobis · India</div>
+        <ul class="tl-bullets">
+          <li>Optimised <strong>PCB layouts for automotive systems</strong> (ADAS, infotainment, EV components) — improved signal integrity by <strong>18%</strong> and reduced power losses by <strong>10%</strong>.</li>
+          <li>Conducted compliance testing ensuring <strong>100% adherence</strong> to automotive standards ISO 16750 and IPC-2221.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Education -->
+<section id="education">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Education</div>
+      <h2 class="section-title">Academic Background</h2>
+    </div>
+    <div class="edu-grid fade-up">
+      <div class="edu-card current">
+        <div class="edu-badge current"><i class="fas fa-circle-dot"></i> Currently Enrolled</div>
+        <div class="edu-degree">International Master in Electrical Engineering for Smart Grids and Buildings</div>
+        <div class="edu-school">Grenoble INP – Ense3</div>
+        <div class="edu-meta">📍 Grenoble (38000), France · <strong>2024 – 2026</strong></div>
+      </div>
+      <div class="edu-card">
+        <div class="edu-badge done"><i class="fas fa-check-circle"></i> Completed</div>
+        <div class="edu-degree">Bachelor of Engineering — Electronics and Communication</div>
+        <div class="edu-school">Sri Sairam Engineering College, Anna University</div>
+        <div class="edu-meta">📍 Chennai, India · 2023 · <strong>CGPA 8.33 / 10</strong></div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+          <i class="fas fa-file-lines" style="color:var(--green);margin-right:6px"></i>
+          Thesis: Insect detection algorithm using CNN for pest classification in Field Crops
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section id="contact">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Contact</div>
+      <h2 class="section-title">Let's Connect</h2>
+    </div>
+    <div class="contact-card fade-up">
+      <div class="contact-title">Open to Internship Opportunities</div>
+      <p class="contact-sub">
+        Available for a <strong style="color:var(--green)">6-month internship from January 2026</strong> in electrical engineering, AI, smart grids, or energy systems.
+        Based in Grenoble, open to relocation across France and Europe.
+      </p>
+      <div class="contact-links">
+        <a href="https://www.linkedin.com/in/santosh-kathirvelu-kumaraguru" target="_blank" class="contact-link cl-linkedin"><i class="fab fa-linkedin"></i> LinkedIn</a>
+        <a href="mailto:santosh2001kk@gmail.com" class="contact-link cl-email"><i class="fas fa-envelope"></i> santosh2001kk@gmail.com</a>
+        <a href="https://panel-inspector-server.onrender.com/dashboard.html" target="_blank" class="contact-link cl-demo"><i class="fas fa-bolt"></i> Live Project Demo</a>
+      </div>
+      <p class="contact-note">📞 <strong>+33 781 977 486</strong> · 📍 Grenoble, France</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-name">Santosh Kathirvelu Kumaraguru</div>
+  <div class="footer-copy">Built with FastAPI + HTML · Hosted on Render</div>
+</footer>
+
+<script>
+// ── Intersection Observer — fade up on scroll ──
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible') });
+}, {threshold:0.12});
+document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+
+// ── Animate skill bars when visible ──
+const barObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.skill-fill').forEach(bar=>{
+        bar.style.width = bar.dataset.w + '%';
+      });
+      barObserver.unobserve(e.target);
+    }
+  });
+},{threshold:0.3});
+document.querySelectorAll('.skill-group').forEach(g=>barObserver.observe(g));
+
+// ── Animate hero counters ──
+function animateCounter(el){
+  const target = parseInt(el.dataset.target);
+  const suffix = el.textContent.includes('%') ? '%' : '';
+  let cur = 0;
+  const step = Math.max(1, Math.floor(target / 40));
+  const iv = setInterval(()=>{
+    cur = Math.min(cur + step, target);
+    el.textContent = cur + (target >= 90 ? '%' : '+');
+    if(cur >= target){ el.textContent = target + (target >= 90 ? '%' : '+'); clearInterval(iv); }
+  }, 40);
+}
+setTimeout(()=>{
+  document.querySelectorAll('.hero-stat .num').forEach(animateCounter);
+}, 600);
+
+// ── Nav shrink on scroll ──
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav').style.height = window.scrollY > 60 ? '54px' : '64px';
+});
+</script>
+</body>
+</html>

@@ -1406,8 +1406,17 @@ def analyze(body: AnalyzeRequest):
             circuit_label: str = _F(default="", description="Circuit name or description printed on the breaker label or adjacent label strip — e.g. 'LV MAIN', 'DIST-1', 'UPS FEEDER', 'LIGHTING'. Return empty string if not visible or not readable.")
             rating: str = _F(default="", description="Rated current printed on the breaker face — e.g. '400A', '250A', '63A', '16A'. Return empty string if not visible.")
         class _DetectionResult(_BM):
+            is_panel: bool = _F(description=(
+                "Set to TRUE only if the image shows an electrical switchboard, distribution board, "
+                "LV panel, or similar electrical enclosure containing circuit breakers or busbars. "
+                "Set to FALSE for any non-electrical image (people, animals, vehicles, buildings, nature, food, etc.)."
+            ))
+            not_panel_reason: str = _F(default="", description=(
+                "If is_panel is FALSE, briefly describe what the image actually shows (e.g. 'a cat', 'a car', 'a landscape'). "
+                "Leave empty when is_panel is TRUE."
+            ))
             breakers: list[_Breaker] = _F(description="One entry per individual breaker. Do NOT group multiple breakers into one entry.")
-            panel_type: str = _F(description="Exactly one of: PrismaSeT G, PrismaSeT P, Okken")
+            panel_type: str = _F(description="Exactly one of: PrismaSeT G, PrismaSeT P, Okken. Set to empty string if is_panel is FALSE.")
             busbar_side: str = _F(description=(
                 "Only for PrismaSeT P: identify which side has the 150mm busbar compartment. "
                 "Look for the side with a BLANK solid metal door/panel with NO visible breakers — that is the busbar compartment. "
@@ -1418,6 +1427,11 @@ def analyze(body: AnalyzeRequest):
             notes: str
             safety_warnings: list[str]
         gemini_prompt = (
+            "FIRST CHECK — GATE: Look at the image. Is this an electrical switchboard, distribution board, "
+            "LV panel, or any electrical enclosure? If it is NOT (e.g. it shows a person, animal, car, food, "
+            "nature scene, or anything non-electrical), set is_panel=false, fill not_panel_reason with what "
+            "you actually see, leave panel_type empty, and return empty lists for breakers and safety_warnings. "
+            "Only proceed with the full analysis below if is_panel=true.\n\n" +
             prompt +
             "\nCRITICAL: Return ONE separate entry in 'breakers' for EACH individual breaker unit you see. "
             "If you see 8 MCBs, return 8 separate entries each with their own tight bounding box. "
@@ -1448,6 +1462,19 @@ def analyze(body: AnalyzeRequest):
         data = json.loads(response.text)
 
     print(f"[GEMINI RAW] {json.dumps(data)[:500]}")
+
+    # Gate: reject non-panel images before any further processing
+    if not data.get("is_panel", True):
+        reason = data.get("not_panel_reason", "not an electrical panel")
+        print(f"[GATE] Rejected non-panel image: {reason}")
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "not_a_panel",
+                "message": f"This image does not appear to be an electrical panel. The AI identified it as: {reason}. Please upload a photo of a Schneider Electric switchboard or distribution board.",
+                "detected_as": reason,
+            }
+        )
 
     # Capture raw 0-1000 breaker Y range BEFORE pixel conversion
     # Used to compute work zone position relative to panel content (not photo edges)

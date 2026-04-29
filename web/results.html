@@ -286,6 +286,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
     <button class="tab-btn active" onclick="switchTab('overview',this)"><i class="fas fa-chart-pie"></i> Overview</button>
     <button class="tab-btn" onclick="switchTab('detections',this)"><i class="fas fa-microchip"></i> Detections <span class="tab-badge" id="tbBreakers">0</span></button>
     <button class="tab-btn" onclick="switchTab('safety',this)"><i class="fas fa-shield-halved"></i> Safety <span class="tab-badge" id="tbWarnings">0</span></button>
+    <button class="tab-btn" onclick="switchTab('recommendations',this)"><i class="fas fa-list-check"></i> Recommendations <span class="tab-badge" id="tbRecs">0</span></button>
     <button class="tab-btn" onclick="switchTab('catalogue',this)"><i class="fas fa-book-open"></i> Catalogue</button>
     <button class="tab-btn" onclick="switchTab('documents',this)"><i class="fas fa-file-lines"></i> Documents</button>
   </div>
@@ -430,6 +431,20 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
     </div>
   </div>
 
+  <!-- RECOMMENDATIONS TAB -->
+  <div class="tab-panel" id="tab-recommendations">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon ci-orange"><i class="fas fa-list-check"></i></div>
+        <div>
+          <div class="card-title">Task Recommendations</div>
+          <div class="card-sub" id="recsSub">Operations and safety requirements for your selected task and work zone</div>
+        </div>
+      </div>
+      <div class="card-body" id="recsBody"></div>
+    </div>
+  </div>
+
   <!-- CATALOGUE TAB -->
   <div class="tab-panel" id="tab-catalogue">
     <div class="card">
@@ -533,6 +548,7 @@ function renderAll(){
   renderDocsOverview();
   renderDetections(breakers);
   renderSafetyTab(warnings);
+  renderRecommendations();
   renderCatalogue();
   renderDocumentsTab();
   renderMetaCard();
@@ -748,6 +764,63 @@ function renderSafetyTab(warnings){
       Maintain LOTO as per site procedures.
     </p>`;
   }
+}
+
+/* ─── Recommendations tab ─── */
+function renderRecommendations(){
+  const recs  = data.task_recommendations || [];
+  const task  = (meta.task || 'others').toLowerCase();
+  const zone  = meta.zoneRect ? 'Inside switchboard (work zone drawn)' : 'Outside / near panel';
+  const body  = document.getElementById('recsBody');
+  const sub   = document.getElementById('recsSub');
+  const badge = document.getElementById('tbRecs');
+
+  badge.textContent = recs.length;
+  sub.textContent   = `Task: ${cap(task)}  ·  Work zone: ${zone}  ·  ${recs.length} operation(s)`;
+
+  if(!recs.length){
+    body.innerHTML = '<p style="color:var(--muted);font-size:14px">No recommendations available for this task.</p>';
+    return;
+  }
+
+  const _ERMS_COLOR = {ON:'var(--red)', recommended:'var(--orange)', OFF:'var(--green)', none:'var(--muted)'};
+  const _ERMS_LABEL = {ON:'ERMS ON required', recommended:'ERMS recommended', OFF:'ERMS OFF', none:'—'};
+  const _POS_LABEL  = {inside:'Inside switchboard (doors open)', outside:'Electrical room <0.3m (doors closed)', near:'Electrical room 0.3–1m', room:'Electrical room >1m'};
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border)">
+        <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Operation</th>
+        <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Position / Doors</th>
+        <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Hazards</th>
+        <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">ERMS</th>
+        <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Alternative</th>
+      </tr>
+    </thead><tbody>`;
+
+  recs.forEach((r,i)=>{
+    const hazards  = (r.hazards||[]).map(h=>h==='Arc Flash'?'🔥 Arc Flash':'⚡ Electric Shock').join('<br>') || '<span style="color:var(--muted)">No direct hazard</span>';
+    const ermsCol  = r.erms && r.erms!=='none' ? `<span style="font-weight:700;color:${_ERMS_COLOR[r.erms]||'var(--muted)'}">${_ERMS_LABEL[r.erms]||r.erms}</span>` : '<span style="color:var(--muted)">—</span>';
+    const altCol   = r.alternative ? `<span style="color:var(--green);font-size:12px">💡 ${esc(r.alternative)}</span>` : '<span style="color:var(--muted)">—</span>';
+    const posLabel = _POS_LABEL[r.position] || r.position;
+    const bg       = i%2===0 ? 'background:var(--card2)' : '';
+    html += `<tr style="border-bottom:1px solid var(--border);${bg}">
+      <td style="padding:12px;font-weight:600;color:var(--text)">${esc(r.operation)}</td>
+      <td style="padding:12px;color:var(--muted);font-size:12px">${esc(posLabel)}</td>
+      <td style="padding:12px;line-height:1.7">${hazards}</td>
+      <td style="padding:12px">${ermsCol}</td>
+      <td style="padding:12px">${altCol}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+  <p style="margin-top:16px;font-size:12px;color:var(--muted);line-height:1.6">
+    ⚠ <strong>ERMS Note:</strong> Energy Reduction Maintenance Setting only protects the <strong>LOAD side</strong> of the main incomer.
+    Work near incoming supply cables (top of panel) is <strong>not covered</strong> by ERMS — additional precautions required.
+    Source: Schneider Electric — List of Use Cases ERMS.
+  </p>`;
+
+  body.innerHTML = html;
 }
 
 /* ─── Catalogue tab ─── */

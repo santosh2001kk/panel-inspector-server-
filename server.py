@@ -822,6 +822,110 @@ def location_safety_prompt(work_zone: Optional[Zone]) -> str:
     )
 
 
+# ── Excel: "List of Use Cases ERMS" — operations per task type ─────────────────
+# Source: Copy of List of Uses cases ERMS-2.xlsx (EW activities + USe cases ERMS sheets)
+# erms: "ON" = mandatory, "recommended" = should activate, "OFF" = not needed
+_EW_ACTIVITIES = {
+    "commissioning": [
+        {"op": "First racking in of incomer",                   "position": "outside", "hazards": ["Arc Flash"],                       "erms": "none",        "alt": ""},
+        {"op": "First energization / re-energization",          "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Remote O/C — operator stays at panel front face"},
+        {"op": "Voltage & phase sequence checks",               "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "recommended", "alt": "Use installed panel meter — avoids direct contact with live parts"},
+        {"op": "Auxiliary voltage checks",                      "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "recommended", "alt": "Use installed panel meter — insulated probes only"},
+        {"op": "First racking in of feeder",                    "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "none",        "alt": ""},
+        {"op": "First closing of feeder / functional testing",  "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Remote O/C"},
+    ],
+    "operation": [
+        {"op": "Racking in / out of incomer",                   "position": "outside", "hazards": ["Arc Flash"],                       "erms": "none",        "alt": ""},
+        {"op": "Feeder closing",                                 "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Remote O/C"},
+        {"op": "Feeder opening",                                 "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "recommended", "alt": "Remote O/C"},
+        {"op": "Racking in / out of feeder",                    "position": "outside", "hazards": ["Arc Flash"],                       "erms": "none",        "alt": ""},
+        {"op": "Feeder consignation / padlocking",              "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "recommended", "alt": "Disconnect and padlock at load / downstream equipment"},
+        {"op": "Feeder deconsignation / unpadlocking",          "position": "outside", "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Remote O/C at switchboard level"},
+        {"op": "Meter reading behind doors",                    "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "recommended", "alt": "MTZ App / Smartpanel — no physical door opening needed"},
+        {"op": "Reading panel meter / display (doors closed)",  "position": "outside", "hazards": [],                                  "erms": "OFF",         "alt": "Remote monitoring system"},
+    ],
+    "service": [
+        {"op": "Thermographic inspection",                      "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Install permanent thermal monitoring — avoids future live access"},
+        {"op": "Cable inspection",                              "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+        {"op": "Portable measurements (U, I, power quality)",  "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Install Power meter / Digital module in MTZ — avoids future access"},
+        {"op": "Troubleshooting (auxiliary issues)",            "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+    ],
+    "modification": [
+        {"op": "Addition of feeder in spare slot",              "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": "Forbid work with energized switchboard where possible"},
+        {"op": "Cable addition / handling (power or control)",  "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+        {"op": "Equipment upgrade / addition of auxiliaries",   "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+    ],
+    "replacement": [
+        {"op": "Breaker / component replacement",               "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+        {"op": "Cable replacement / handling",                  "position": "inside",  "hazards": ["Arc Flash", "Electric Shock"],      "erms": "ON",          "alt": ""},
+    ],
+    "others": [
+        {"op": "Non-electrical work <0.3m from switchboard",   "position": "near",    "hazards": [],                                  "erms": "ON",          "alt": "Forbid access with energized switchboard"},
+        {"op": "Non-electrical work 0.3–1m from switchboard",  "position": "near",    "hazards": [],                                  "erms": "ON",          "alt": "Forbid access with energized switchboard"},
+        {"op": "Non-electrical work 1–3m from switchboard",    "position": "room",    "hazards": [],                                  "erms": "recommended", "alt": ""},
+        {"op": "Non-electrical work >3m from switchboard",     "position": "room",    "hazards": [],                                  "erms": "OFF",         "alt": ""},
+    ],
+}
+
+
+def _task_recommendations(task: str, has_work_zone: bool) -> tuple:
+    """
+    Returns (warnings: list[str], recommendations: list[dict]) from the Excel use-case table.
+    warnings   → prepended to safety_warnings (shown in Safety tab)
+    recommendations → returned as data["task_recommendations"] (shown as a table in the web app)
+    Note from Excel: ERMS only protects LOAD side of incomer — supply side is NOT covered.
+    """
+    t  = task.lower().strip()
+    ew = _EW_ACTIVITIES.get(t, _EW_ACTIVITIES["others"])
+
+    # Filter operations by where the worker is
+    if has_work_zone:
+        ops = [a for a in ew if a["position"] == "inside"] or ew
+    else:
+        ops = [a for a in ew if a["position"] in ("outside", "near")] or ew
+
+    warnings = []
+
+    # One warning per operation — full picture: hazards + ERMS + alternative
+    _ERMS_LABEL = {"ON": "ERMS ON required", "recommended": "ERMS recommended", "OFF": "ERMS OFF", "none": ""}
+    _HAZARD_ICON = {"Arc Flash": "🔥", "Electric Shock": "⚡"}
+
+    for a in ops:
+        parts = []
+        hazard_str = " + ".join(f"{_HAZARD_ICON.get(h, '')} {h}" for h in a["hazards"]) if a["hazards"] else "No direct electrical hazard"
+        erms_str   = _ERMS_LABEL.get(a["erms"], "")
+        parts.append(f"[{a['op']}]")
+        parts.append(f"Position: {a['position'].replace('inside','Inside switchboard (doors open)').replace('outside','Electrical room <0.3m (doors closed)').replace('near','Electrical room 0.3–1m').replace('room','Electrical room >1m')}")
+        parts.append(f"Hazard: {hazard_str}")
+        if erms_str:
+            parts.append(erms_str)
+        if a["alt"]:
+            parts.append(f"Alternative: {a['alt']}")
+        warnings.append("  |  ".join(parts))
+
+    # Add the ERMS supply-side note once if any operation uses ERMS
+    if any(a["erms"] in ("ON", "recommended") for a in ops):
+        warnings.append(
+            "⚠ ERMS Note: ERMS only protects the LOAD side of the main incomer. "
+            "Work near incoming supply cables (top of panel) is NOT covered by ERMS — "
+            "additional precautions required there."
+        )
+
+    # Structured form for web app table rendering
+    recommendations = [
+        {
+            "operation":  a["op"],
+            "position":   a["position"],
+            "hazards":    a["hazards"],
+            "erms":       a["erms"],
+            "alternative": a["alt"],
+        }
+        for a in ops
+    ]
+
+    return warnings, recommendations
+
+
 def generate_safety_assessment(panel_type: str, work_zone: Optional[Zone], breakers: list,
                                panel_ymin: Optional[float] = None, panel_ymax: Optional[float] = None,
                                vbb_cubicle: Optional[dict] = None, cubicle_count: int = 0,
@@ -1603,7 +1707,9 @@ def analyze(body: AnalyzeRequest):
                     f"and BEHIND the panel. Keep clear of the top section during intervention."
                 ).strip()
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-                if sw: data["safety_warnings"] = sw
+                erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+                data["task_recommendations"] = erms_recs
+                data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
@@ -1616,7 +1722,9 @@ def analyze(body: AnalyzeRequest):
                 data["cubicles"]      = cubicles_px
                 data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-                if sw: data["safety_warnings"] = sw
+                erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+                data["task_recommendations"] = erms_recs
+                data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
@@ -1678,16 +1786,19 @@ def analyze(body: AnalyzeRequest):
 
             # Apply slide warnings last for PrismaSeT P — pass VBB cubicle + cubicle count for large/small detection
             sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw, vbb_cubicle, len(raw_cubicles), body.safetyBuffer)
-            if sw: data["safety_warnings"] = sw
+            erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+            data["task_recommendations"] = erms_recs
+            data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
 
         except Exception as _e:
             print(f"[CUBICLE] Auto-detect failed (non-fatal): {_e}")
             data["cubicle_count"] = 0
             data["cubicles"]      = []
             data["cubicle_line"]  = ""
-            # Still apply slide warnings even if cubicle detection failed
             sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-            if sw: data["safety_warnings"] = sw
+            erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+            data["task_recommendations"] = erms_recs
+            data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
 
     # Ensure catalogue_guidance always present in response
     if "catalogue_guidance" not in data:
@@ -2024,70 +2135,61 @@ _CHECKLIST_COMMON_LIVE = [
     {"id": "live_7", "text": "Hazard identified: Arc Flash + Electric Shock risk. Working distance ≥ 300 mm from live parts.", "critical": False},
 ]
 
-# Task checklists aligned with Excel 'EW activities' and 'Use cases ERMS'
+# Task checklists — sourced from Excel 'EW activities' + 'Use cases ERMS'
+# Each item carries an 'erms' field: "ON" | "recommended" | "OFF" | None
 _CHECKLIST_BY_TASK = {
-    # Commissioning: first racking in, first energization, voltage checks, functional testing
     "commissioning": [
-        {"id": "com_1", "text": "All wiring verified against SLD before first energization.", "critical": True},
-        {"id": "com_2", "text": "Insulation resistance test completed — results within acceptable range.", "critical": True},
-        {"id": "com_3", "text": "All protective devices (overcurrent, earth fault) set to correct ratings per design.", "critical": True},
-        # Racking in / first energization — doors closed — Arc Flash only, no electric shock
-        {"id": "com_4", "text": "Racking in / first energization: doors CLOSED → Arc Flash risk only. ERMS ON recommended.", "critical": True},
-        {"id": "com_5", "text": "Remote O/C considered for first energization — operator behind panel front face.", "critical": False},
-        # Voltage checks / auxiliary checks — doors open, inside switchboard — Arc Flash + Electric Shock
-        {"id": "com_6", "text": "Voltage & phase sequence checks: doors OPEN → Arc Flash + Electric Shock risk. Use installed panel meter to avoid direct contact.", "critical": True},
-        {"id": "com_7", "text": "Auxiliary voltage checks: doors OPEN → insulated probes only, no bare contact with terminals.", "critical": True},
-        {"id": "com_8", "text": "First energization plan communicated to all team members before starting.", "critical": False},
+        {"id": "com_1", "text": "All wiring verified against SLD before first energization.", "critical": True, "erms": None},
+        {"id": "com_2", "text": "Insulation resistance test completed — results within acceptable range.", "critical": True, "erms": None},
+        {"id": "com_3", "text": "All protective devices set to correct ratings per design.", "critical": True, "erms": None},
+        {"id": "com_4", "text": "First racking in of incomer: doors CLOSED/OPEN. Position: Electrical room <0.3m. Hazard: 🔥 Arc Flash only. ERMS: not required for racking alone.", "critical": True, "erms": None},
+        {"id": "com_5", "text": "First energization / re-energization: doors CLOSED. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required. Consider Remote O/C — operator stays at panel front face.", "critical": True, "erms": "ON"},
+        {"id": "com_6", "text": "Voltage & phase sequence checks: doors OPEN, inside switchboard. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS recommended. Alternative: use installed panel meter — avoids direct contact.", "critical": True, "erms": "recommended"},
+        {"id": "com_7", "text": "Auxiliary voltage checks: doors OPEN, inside switchboard. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS recommended. Insulated probes only.", "critical": True, "erms": "recommended"},
+        {"id": "com_8", "text": "First closing of feeder / functional testing: doors CLOSED/OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required. Alternative: Remote O/C.", "critical": True, "erms": "ON"},
+        {"id": "com_9", "text": "First energization plan communicated to all team members before starting.", "critical": False, "erms": None},
     ],
-    # Operation: racking in/out, feeder open/close, consignation, padlocking, meter reading
     "operation": [
-        {"id": "op_1",  "text": "Identified the correct feeder/incomer — confirmed by panel label and SLD.", "critical": True},
-        # Racking in/out, feeder closing — doors closed — Arc Flash only
-        {"id": "op_2",  "text": "Racking in/out & feeder closing: doors CLOSED → Arc Flash risk only. ERMS ON required.", "critical": True},
-        {"id": "op_3",  "text": "CB type confirmed (fixed or withdrawable) — operator stays at panel front face.", "critical": False},
-        # Consignation / padlocking — inside switchboard possible — Arc Flash + Electric Shock
-        {"id": "op_4",  "text": "Consignation/padlocking: if inside switchboard → Arc Flash + Electric Shock risk. Use Remote O/C where available.", "critical": True},
-        # Meter reading — doors closed — no direct hazard
-        {"id": "op_5",  "text": "Meter reading / display reading: doors CLOSED → ERMS OFF acceptable. Use remote monitoring if available.", "critical": False},
+        {"id": "op_1", "text": "Identified the correct feeder/incomer — confirmed by panel label and SLD.", "critical": True, "erms": None},
+        {"id": "op_2", "text": "Racking in/out of incomer: doors CLOSED/OPEN. Position: Electrical room <0.3m. Hazard: 🔥 Arc Flash only. ERMS: not required for racking alone.", "critical": True, "erms": None},
+        {"id": "op_3", "text": "Feeder closing: doors CLOSED/OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required. Alternative: Remote O/C.", "critical": True, "erms": "ON"},
+        {"id": "op_4", "text": "Feeder opening: doors CLOSED/OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS recommended. Alternative: Remote O/C.", "critical": False, "erms": "recommended"},
+        {"id": "op_5", "text": "Feeder consignation / padlocking: doors CLOSED/OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS recommended. Alternative: disconnect and padlock at load side.", "critical": True, "erms": "recommended"},
+        {"id": "op_6", "text": "Feeder deconsignation: doors CLOSED/OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required. Alternative: Remote O/C at switchboard level.", "critical": True, "erms": "ON"},
+        {"id": "op_7", "text": "Meter reading behind doors (inside SWB): doors OPEN. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS recommended. Alternative: MTZ App / Smartpanel — no door opening needed.", "critical": False, "erms": "recommended"},
+        {"id": "op_8", "text": "Reading panel meter / display: doors CLOSED. No direct electrical hazard. ERMS OFF acceptable. Alternative: remote monitoring system.", "critical": False, "erms": "OFF"},
     ],
-    # Service & Inspection — always inside switchboard, doors open → Arc Flash + Electric Shock
     "service": [
-        {"id": "svc_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON required.", "critical": True},
-        {"id": "svc_2", "text": "Thermographic inspection: use thermal camera only — no direct contact with live parts.", "critical": True},
-        {"id": "svc_3", "text": "Portable measurements (U, I, power quality): use calibrated insulated probes, rated for this voltage.", "critical": True},
-        {"id": "svc_4", "text": "Cable inspection: check for mechanical damage, loose connections — no bare hand contact near live cables.", "critical": True},
-        {"id": "svc_5", "text": "Troubleshooting: root cause documented — no re-energization until fault is fully cleared.", "critical": False},
-        {"id": "svc_6", "text": "Consider installing Smartpanel / MTZ App / permanent meter to avoid future live access.", "critical": False},
+        {"id": "svc_1", "text": "All service work: doors OPEN, inside switchboard. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required.", "critical": True, "erms": "ON"},
+        {"id": "svc_2", "text": "Thermographic inspection: use thermal camera — no direct contact with live parts. ERMS ON. Alternative: install permanent thermal monitoring.", "critical": True, "erms": "ON"},
+        {"id": "svc_3", "text": "Portable measurements (U, I, power quality): calibrated insulated probes only. ERMS ON. Alternative: install Power meter / Digital module in MTZ.", "critical": True, "erms": "ON"},
+        {"id": "svc_4", "text": "Cable inspection: check for damage, loose connections — no bare hand contact near live cables. ERMS ON.", "critical": True, "erms": "ON"},
+        {"id": "svc_5", "text": "Troubleshooting: root cause documented — no re-energization until fault fully cleared. ERMS ON.", "critical": False, "erms": "ON"},
+        {"id": "svc_6", "text": "⚠ ERMS Note: ERMS only protects load side of incomer. Work near supply cables is NOT covered.", "critical": False, "erms": None},
     ],
-    # Modification — inside switchboard, doors open, adjacent busbars live → Arc Flash + Electric Shock
     "modification": [
-        {"id": "mod_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON mandatory.", "critical": True},
-        {"id": "mod_2", "text": "⚠ Adjacent busbars remain LIVE — insulating barriers placed over all live busbars before starting.", "critical": True},
-        {"id": "mod_3", "text": "Magnetic parts tray in use — screws, nuts, washers secured to prevent drops onto live busbars.", "critical": True},
-        {"id": "mod_4", "text": "New cables pre-cut and pre-terminated BEFORE approaching the busbar area.", "critical": True},
-        {"id": "mod_5", "text": "Spare slot confirmed empty and busbar capacity checked before installing new feeder.", "critical": True},
-        {"id": "mod_6", "text": "Change permit / work order signed. Supervisor informed of live adjacent sections.", "critical": False},
+        {"id": "mod_1", "text": "All modification work: doors OPEN, inside switchboard. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON mandatory.", "critical": True, "erms": "ON"},
+        {"id": "mod_2", "text": "Adjacent busbars remain LIVE — insulating barriers placed over all live busbars before starting.", "critical": True, "erms": None},
+        {"id": "mod_3", "text": "Magnetic parts tray in use — screws, nuts, washers secured to prevent drops onto live busbars.", "critical": True, "erms": None},
+        {"id": "mod_4", "text": "New cables pre-cut and pre-terminated BEFORE approaching the busbar area.", "critical": True, "erms": None},
+        {"id": "mod_5", "text": "Spare slot confirmed empty and busbar capacity checked before installing new feeder.", "critical": True, "erms": None},
+        {"id": "mod_6", "text": "Change permit / work order signed. Supervisor informed of live adjacent sections.", "critical": False, "erms": None},
+        {"id": "mod_7", "text": "⚠ ERMS Note: ERMS only protects load side of incomer. Work near supply cables is NOT covered.", "critical": False, "erms": None},
     ],
-    # Replacement — inside switchboard, doors open → Arc Flash + Electric Shock
     "replacement": [
-        {"id": "rep_1", "text": "Doors OPEN / inside switchboard → Arc Flash + Electric Shock risk. ERMS ON required.", "critical": True},
-        {"id": "rep_2", "text": "⚠ Adjacent busbars may still be live — insulating barriers placed before starting.", "critical": True},
-        {"id": "rep_3", "text": "Replacement breaker has the CORRECT rating — type, current, voltage matches original exactly.", "critical": True},
-        {"id": "rep_4", "text": "Correct polarity and phase sequence verified before installing the new breaker.", "critical": True},
-        {"id": "rep_5", "text": "Torque settings for connections confirmed from manufacturer datasheet.", "critical": False},
-        {"id": "rep_6", "text": "Old breaker safely removed and disposed — not left inside the panel.", "critical": False},
+        {"id": "rep_1", "text": "Replacement work: doors OPEN, inside switchboard. Hazard: 🔥 Arc Flash + ⚡ Electric Shock. ERMS ON required.", "critical": True, "erms": "ON"},
+        {"id": "rep_2", "text": "Adjacent busbars may still be live — insulating barriers placed before starting.", "critical": True, "erms": None},
+        {"id": "rep_3", "text": "Replacement breaker has the CORRECT rating — type, current, voltage matches original exactly.", "critical": True, "erms": None},
+        {"id": "rep_4", "text": "Correct polarity and phase sequence verified before installing the new breaker.", "critical": True, "erms": None},
+        {"id": "rep_5", "text": "Torque settings for connections confirmed from manufacturer datasheet.", "critical": False, "erms": None},
+        {"id": "rep_6", "text": "Old breaker safely removed and disposed — not left inside the panel.", "critical": False, "erms": None},
     ],
-    # Others — non-electrical work in electrical room — hazard depends on distance to switchboard
     "others": [
-        {"id": "oth_1", "text": "Work scope clearly defined and approved by supervisor before entering electrical room.", "critical": True},
-        # < 0.3 m from switchboard: Arc Flash risk even with doors closed
-        {"id": "oth_2", "text": "Working < 0.3 m from switchboard: Arc Flash risk (even doors closed). ERMS ON recommended.", "critical": True},
-        # 0.3 – 1 m: still Arc Flash risk
-        {"id": "oth_3", "text": "Working 0.3–1 m from switchboard: Arc Flash risk. Panel doors CLOSED. ERMS ON recommended.", "critical": False},
-        # 1 – 3 m: lower risk, ERMS recommended
-        {"id": "oth_4", "text": "Working 1–3 m from switchboard: panel doors CLOSED. ERMS recommended as precaution.", "critical": False},
-        # > 3 m: no significant hazard
-        {"id": "oth_5", "text": "Working > 3 m from switchboard: no direct electrical hazard. ERMS OFF acceptable.", "critical": False},
+        {"id": "oth_1", "text": "Work scope clearly defined and approved by supervisor before entering electrical room.", "critical": True, "erms": None},
+        {"id": "oth_2", "text": "Non-electrical work <0.3m from switchboard: doors CLOSED. No direct electrical hazard but Arc Flash risk present. ERMS ON required. Alternative: forbid access with energized switchboard.", "critical": True, "erms": "ON"},
+        {"id": "oth_3", "text": "Non-electrical work 0.3–1m from switchboard: doors CLOSED. ERMS ON required. Alternative: forbid access with energized switchboard.", "critical": False, "erms": "ON"},
+        {"id": "oth_4", "text": "Non-electrical work 1–3m from switchboard: doors CLOSED. ERMS recommended.", "critical": False, "erms": "recommended"},
+        {"id": "oth_5", "text": "Non-electrical work >3m from switchboard: no direct electrical hazard. ERMS OFF acceptable.", "critical": False, "erms": "OFF"},
     ],
 }
 
@@ -2135,14 +2237,28 @@ def get_checklist(body: ChecklistRequest):
     total    = len(items)
     critical = sum(1 for i in items if i["critical"])
 
+    # Attach Excel-sourced operation-level recommendations (hazards + ERMS + alternatives)
+    ew_ops = _EW_ACTIVITIES.get(task, _EW_ACTIVITIES["others"])
+    task_recommendations = [
+        {
+            "operation":   a["op"],
+            "position":    a["position"],
+            "hazards":     a["hazards"],
+            "erms":        a["erms"],
+            "alternative": a["alt"],
+        }
+        for a in ew_ops
+    ]
+
     print(f"[CHECKLIST] task={task} live={body.is_live} panel={body.panel_type} items={total} critical={critical}")
     return JSONResponse(content={
-        "task_type":  task,
-        "is_live":    body.is_live,
-        "panel_type": body.panel_type,
-        "items":      items,
-        "total":      total,
-        "critical":   critical,
+        "task_type":           task,
+        "is_live":             body.is_live,
+        "panel_type":          body.panel_type,
+        "items":               items,
+        "total":               total,
+        "critical":            critical,
+        "task_recommendations": task_recommendations,
     })
 
 

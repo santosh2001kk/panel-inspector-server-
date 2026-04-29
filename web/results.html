@@ -370,7 +370,8 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           <div class="card-body" style="padding:0">
             <div class="canvas-wrap"><canvas id="resultCanvas"></canvas></div>
             <div class="canvas-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#3DCD58"></div> Breaker</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#3DCD58"></div> Component</div>
+              <div class="legend-item"><div class="legend-dot" style="background:rgba(74,158,255,.15);border:2px dashed #4A9EFF;box-sizing:border-box"></div> Column/Structure</div>
               <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.25);border:2px solid #3DCD58;box-sizing:border-box"></div> Work zone</div>
               <div class="legend-item"><div class="legend-dot" style="background:rgba(255,71,87,.2);border:2px dashed #FF4757;box-sizing:border-box"></div> Safety buffer</div>
             </div>
@@ -771,24 +772,36 @@ function renderDetections(breakers){
     wrap.innerHTML='<div class="no-det"><i class="fas fa-search" style="margin-right:8px"></i>No breakers detected in this zone.</div>';
   } else {
     const COLORS=['green','blue','orange',''];
-    wrap.innerHTML=`<table class="det-table">
-      <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th><th>Confidence</th></tr></thead>
-      <tbody>`+
-      breakers.map((b,i)=>{
-        const col = COLORS[i%COLORS.length]||'';
-        const conf = b.confidence != null ? Math.round(b.confidence*100) : null;
-        return `<tr>
-          <td class="row-idx">${i+1}</td>
-          <td><span class="det-type">${esc(b.type||'Unknown')}</span></td>
-          <td>${b.rating?`<span class="det-badge ${col}">${esc(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+    const components = breakers.filter(b=>b.category!=='structure');
+    const structures = breakers.filter(b=>b.category==='structure');
+    let tableHtml = `<table class="det-table">
+      <thead><tr><th>#</th><th>Type</th><th>Brand</th><th>Rating</th><th>Label / Circuit</th></tr></thead>
+      <tbody>`;
+    if(structures.length){
+      tableHtml += `<tr><td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);background:rgba(74,158,255,.05)">Panel Structure (${structures.length} section${structures.length>1?'s':''})</td></tr>`;
+      structures.forEach((b,i)=>{
+        tableHtml += `<tr>
+          <td class="row-idx" style="color:var(--blue)">S${i+1}</td>
+          <td><span class="det-type" style="color:var(--blue)">${esc(b.type||'Column')}</span></td>
+          <td style="color:var(--muted)">—</td>
+          <td style="color:var(--muted)">—</td>
           <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
-          <td>${conf!=null?`<div class="conf-bar-wrap">
-              <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:0%" data-target="${conf}%" style="background:${conf>80?'var(--green)':conf>50?'var(--orange)':'var(--red)'}"></div></div>
-              <span class="conf-pct">${conf}%</span>
-            </div>`:'<span style="color:var(--muted)">—</span>'}</td>
         </tr>`;
-      }).join('')+
-      '</tbody></table>';
+      });
+      if(components.length) tableHtml += `<tr><td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);background:rgba(61,205,88,.05)">Components (${components.length})</td></tr>`;
+    }
+    components.forEach((b,i)=>{
+      const col = COLORS[i%COLORS.length]||'';
+      tableHtml += `<tr>
+        <td class="row-idx">${i+1}</td>
+        <td><span class="det-type">${esc(b.type||'Unknown')}</span>${b.type_detail?` <span style="font-size:11px;color:var(--muted)">(${esc(b.type_detail)})</span>`:''}</td>
+        <td style="font-size:12px;color:var(--muted)">${b.brand?`<span style="color:var(--blue)">${esc(b.brand)}</span>`:'—'}</td>
+        <td>${b.rating?`<span class="det-badge ${col}">${esc(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
+      </tr>`;
+    });
+    tableHtml += '</tbody></table>';
+    wrap.innerHTML = tableHtml;
     setTimeout(animateConfBars, 300);
   }
 
@@ -1032,23 +1045,51 @@ function drawCanvas(canvasId){
       ctx.fillStyle='rgba(61,205,88,.1)'; ctx.fillRect(x,y,w,h);
     }
 
-    // Breaker boxes
+    // Draw structure items (columns/drawers) first so components render on top
     const breakers = data.breakers || [];
-    const COLORS=['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
-    breakers.forEach((b,i)=>{
+    const COMP_COLORS=['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
+    let compIdx = 0;
+
+    // Pass 1: structure (columns/drawers) — light blue dashed outline
+    breakers.forEach(b=>{
       if(!b.box||b.box.length<4) return;
+      if(b.category !== 'structure') return;
       const [yn,xn,yx,xx]=b.box;
       const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
       const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
-      const col=COLORS[i%COLORS.length];
+      ctx.strokeStyle='rgba(74,158,255,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.strokeRect(bx,by,bw,bh);
+      ctx.fillStyle='rgba(74,158,255,.05)'; ctx.fillRect(bx,by,bw,bh);
+      ctx.setLineDash([]);
+      const label=b.type||'Column';
+      ctx.font='bold 10px Inter,sans-serif';
+      const tw=ctx.measureText(label).width+10;
+      ctx.fillStyle='rgba(74,158,255,.75)'; ctx.fillRect(bx,by,tw,16);
+      ctx.fillStyle='#fff'; ctx.fillText(label,bx+5,by+11);
+    });
+
+    // Pass 2: components (breakers, contactors, PLCs, etc.)
+    breakers.forEach(b=>{
+      if(!b.box||b.box.length<4) return;
+      if(b.category === 'structure') return;
+      const [yn,xn,yx,xx]=b.box;
+      const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
+      const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
+      const col=COMP_COLORS[compIdx%COMP_COLORS.length]; compIdx++;
       ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([]);
       ctx.strokeRect(bx,by,bw,bh);
       ctx.fillStyle=col+'22'; ctx.fillRect(bx,by,bw,bh);
-      const label=(b.type||'B')+(b.rating?' '+b.rating:'');
+      // Label: brand (if any) · type · rating
+      const parts=[];
+      if(b.brand) parts.push(b.brand);
+      parts.push(b.type||'?');
+      if(b.rating) parts.push(b.rating);
+      const label=parts.join(' · ');
+      ctx.font='bold 11px Inter,sans-serif';
       const tw=ctx.measureText(label).width+12;
-      ctx.fillStyle='rgba(10,22,40,.85)'; ctx.fillRect(bx,by-20,tw,20);
-      ctx.fillStyle=col; ctx.font='bold 11px Inter,sans-serif';
-      ctx.fillText(label,bx+6,by-6);
+      const labelY = by >= 20 ? by-20 : by+bh;
+      ctx.fillStyle='rgba(10,22,40,.88)'; ctx.fillRect(bx,labelY,tw,18);
+      ctx.fillStyle=col; ctx.fillText(label,bx+6,labelY+13);
     });
   };
   img.src='data:'+mime+';base64,'+imgB64;

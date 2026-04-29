@@ -325,6 +325,17 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 .cm-btn-confirm:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
 
+/* ── Detection Mode Selector ── */
+.mode-btn{flex:1;padding:10px 10px 8px;border:1px solid var(--border);border-radius:10px;background:var(--card2);
+  cursor:pointer;font-family:'Inter',sans-serif;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mode-btn i{font-size:16px;color:var(--muted);transition:color .2s}
+.mode-btn span{font-size:13px;font-weight:700;color:var(--muted);transition:color .2s}
+.mode-btn small{font-size:10px;color:var(--border);line-height:1.3;transition:color .2s}
+.mode-btn:hover{border-color:rgba(61,205,88,.3)}
+.mode-btn-active{border-color:var(--green)!important;background:rgba(61,205,88,.07)}
+.mode-btn-active i,.mode-btn-active span{color:var(--green)}
+.mode-btn-active small{color:rgba(61,205,88,.6)}
+
 /* ── Project Details ── */
 .proj-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
 .proj-input{width:100%;padding:11px 14px;background:rgba(10,22,40,.6);border:1px solid var(--border);border-radius:9px;
@@ -607,6 +618,26 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
         </div>
       </div>
       <div class="canvas-box"><canvas id="imgCanvas"></canvas></div>
+
+      <!-- Detection mode selector -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">Detection Mode</div>
+        <div style="display:flex;gap:8px">
+          <button class="mode-btn" id="modefast" onclick="setMode('fast')">
+            <i class="fas fa-bolt"></i><span>Fast</span>
+            <small>Major breakers only · Flash model</small>
+          </button>
+          <button class="mode-btn mode-btn-active" id="modestandard" onclick="setMode('standard')">
+            <i class="fas fa-magnifying-glass"></i><span>Standard</span>
+            <small>All components + columns</small>
+          </button>
+          <button class="mode-btn" id="modeexpert" onclick="setMode('expert')">
+            <i class="fas fa-microscope"></i><span>Expert</span>
+            <small>Full inventory + brand + dimensions</small>
+          </button>
+        </div>
+      </div>
+
       <div class="action-row">
         <button class="btn-primary" id="btnAnalyze" onclick="runAnalysis(false)">
           <i class="fas fa-magnifying-glass-chart"></i> Analyze Work Zone
@@ -822,6 +853,15 @@ function logout(){ sessionStorage.clear(); location.href='index.html'; }
 
 // ── State ──
 let isLive=false, openDoors=null, selectedTask=null, imageFile=null, imageBase64=null;
+let selectedMode='standard';
+
+function setMode(m){
+  selectedMode=m;
+  ['fast','standard','expert'].forEach(id=>{
+    const el=document.getElementById('mode'+id);
+    if(el) el.classList.toggle('mode-btn-active', id===m);
+  });
+}
 let zone=null, safetyBuf=null, currentZoneRect=null;
 let sldBase64=null, sldMime=null, layoutBase64=null, layoutMime=null;
 let currentStep=1;
@@ -1289,7 +1329,7 @@ async function _doAnalysis(identifyOnly){
   startLoading();
   const body={
     imageBase64, mimeType:imageFile?imageFile.type:'image/jpeg',
-    task:selectedTask||'others', identifyOnly,
+    task:selectedTask||'others', identifyOnly, mode:selectedMode,
     workZone:identifyOnly?null:zone, safetyBuffer:identifyOnly?null:safetyBuf,
     username,
     ...(sldBase64    ?{sldBase64,    sldMimeType:sldMime}    :{}),
@@ -1320,7 +1360,7 @@ async function _doAnalysis(identifyOnly){
     sessionStorage.setItem('hasSld',    sldBase64    ? 'true' : 'false');
     sessionStorage.setItem('hasLayout', layoutBase64 ? 'true' : 'false');
     sessionStorage.setItem('analysisMeta',   JSON.stringify({
-      task:selectedTask||'others', isLive, identifyOnly, openDoors,
+      task:selectedTask||'others', isLive, identifyOnly, openDoors, mode:selectedMode,
       zoneRect:currentZoneRect, canvasW:canvas.width, canvasH:canvas.height,
       hasSld:!!sldBase64, sldName:sldBase64?document.getElementById('sldStatusText')?.textContent:'',
       hasLayout:!!layoutBase64,

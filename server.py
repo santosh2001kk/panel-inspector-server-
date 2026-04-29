@@ -50,17 +50,20 @@ VERTEX_LOCATION = "us-central1"
 
 if PROVIDER == "claude":
     import anthropic as _anthropic
-    MODEL  = "claude-opus-4-7"
+    MODEL      = "claude-opus-4-7"
+    FAST_MODEL = "claude-opus-4-7"
     client = _anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 elif PROVIDER == "vertexai":
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL  = "gemini-3.1-pro-preview"
+    MODEL      = "gemini-3.1-pro-preview"
+    FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(vertexai=True, project=VERTEX_PROJECT, location=VERTEX_LOCATION)
 else:
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL  = "gemini-3.1-pro-preview"
+    MODEL      = "gemini-3.1-pro-preview"
+    FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(api_key=GEMINI_KEY)
 
 app = FastAPI(title="Breaker Detection API", version="1.0.0")
@@ -149,6 +152,7 @@ class AnalyzeRequest(BaseModel):
     layoutBase64: Optional[str] = None    # optional mechanical layout upload (image or PDF)
     layoutMimeType: str = "image/jpeg"    # mime type for layoutBase64
     task: str = "others"                  # commissioning | maintenance | modification | replacement | others
+    mode: str = "standard"               # fast | standard | expert
     # Project / user metadata (optional — sent from Android app)
     username: Optional[str] = None
     projectName: Optional[str] = None
@@ -1513,13 +1517,18 @@ def analyze(body: AnalyzeRequest):
         data = json.loads(raw)
     else:
         from pydantic import BaseModel as _BM, Field as _F
+        _active_model = FAST_MODEL if body.mode == "fast" else MODEL
         class _Breaker(_BM):
-            type: str = _F(description="Exact Schneider product name: MasterPact MTZ, MasterPact NT, MasterPact, Compact NSX, Compact NS, Acti9, iC60, or Multi9")
-            box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000. ONE entry per individual breaker unit.")
-            circuit_label: str = _F(default="", description="Circuit name or description printed on the breaker label or adjacent label strip — e.g. 'LV MAIN', 'DIST-1', 'UPS FEEDER', 'LIGHTING'. Return empty string if not visible or not readable.")
-            rating: str = _F(default="", description="Rated current printed on the breaker face — e.g. '400A', '250A', '63A', '16A'. Return empty string if not visible.")
+            type: str = _F(description="Component name. For breakers use Schneider product name (MasterPact MTZ, MasterPact NT, Compact NSX, Compact NS, Acti9, iC60, Multi9). For other components use: Contactor, Relay, PLC, Meter, Terminal Block, Cable Duct, or Column.")
+            box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000.")
+            category: str = _F(default="component", description="'component' for breakers, contactors, PLCs, meters, relays. 'structure' for panel columns, drawers, and cubicle sections.")
+            brand: str = _F(default="", description="Manufacturer brand if identifiable — e.g. 'Schneider', 'ABB', 'Siemens', 'Legrand'. Empty string if unknown.")
+            type_detail: str = _F(default="", description="Specific sub-type — e.g. 'ACB', 'MCCB', 'MCB', 'Contactor', 'PLC', 'Power Meter'. Empty string if already in type field.")
+            circuit_label: str = _F(default="", description="Circuit name/description on label strip — e.g. 'LV MAIN', 'LIGHTING DB'. Empty if not visible.")
+            rating: str = _F(default="", description="Current rating on breaker face — e.g. '400A', '63A'. Empty if not visible.")
+            estimated_dimensions: str = _F(default="", description="Estimated physical size if determinable — e.g. '250x150mm'. Empty if not estimable.")
         class _DetectionResult(_BM):
-            breakers: list[_Breaker] = _F(description="One entry per individual breaker. Do NOT group multiple breakers into one entry.")
+            breakers: list[_Breaker] = _F(description="One entry per individual component. For 'standard'/'expert' mode include all visible components. For 'fast' mode include only major breakers.")
             panel_type: str = _F(description=(
                 "Exactly one of: PrismaSeT G, PrismaSeT P, Okken, Not a Panel. "
                 "Use 'Not a Panel' if the image does not show an electrical switchboard, distribution board, "
@@ -1538,15 +1547,33 @@ def analyze(body: AnalyzeRequest):
                 "Otherwise: one sentence summarising the breakers found in the work zone."
             ))
             safety_warnings: list[str]
-        gemini_prompt = (
-            prompt +
-            "\nCRITICAL: Return ONE separate entry in 'breakers' for EACH individual breaker unit you see. "
-            "If you see 8 MCBs, return 8 separate entries each with their own tight bounding box. "
-            "Do NOT group them. Each box must tightly fit around one single breaker body.\n"
-            "LABEL READING: For each breaker, read any text printed on its face or on the label strip next to it. "
-            "Extract the circuit_label (what the circuit is called, e.g. 'LV MAIN', 'LIGHTING DB', 'PUMP 1') "
-            "and rating (the current rating, e.g. '250A', '63A'). If not readable, return empty string."
-        )
+            summary: str = _F(default="", description="One-sentence technical summary of the panel and its main components.")
+
+        _mode = body.mode or "standard"
+        if _mode == "fast":
+            _detection_instructions = (
+                "\nDETECTION MODE: FAST — detect only the major circuit breakers (ACB, MCCB). "
+                "Assign category='component' to all. Skip minor MCBs, terminals, and accessories.\n"
+            )
+        elif _mode == "expert":
+            _detection_instructions = (
+                "\nDETECTION MODE: EXPERT — perform a full component inventory:\n"
+                "1. Detect EVERY visible component: ACB, MCCB, MCB, Contactors, Relays, PLCs, Power Meters, Terminal Blocks.\n"
+                "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
+                "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
+                "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
+                "4. Return ONE entry per individual component — do NOT group.\n"
+                "5. Read circuit_label and rating from breaker faces and label strips.\n"
+            )
+        else:  # standard
+            _detection_instructions = (
+                "\nDETECTION MODE: STANDARD — detect all visible components:\n"
+                "1. Detect every circuit breaker (ACB, MCCB, MCB) with ONE entry per unit and tight bounding box.\n"
+                "2. Also detect any visible Contactors, PLCs, Meters, Relays — assign category='component'.\n"
+                "3. Detect each vertical panel column/cubicle section as category='structure', type='Column'.\n"
+                "4. Read circuit_label and rating from faces/label strips. If not readable, return empty string.\n"
+            )
+        gemini_prompt = prompt + _detection_instructions
         # Build parts — add SLD and layout if provided
         parts = []
         if body.sldBase64:
@@ -1559,7 +1586,7 @@ def analyze(body: AnalyzeRequest):
         parts.append({"text": gemini_prompt})
 
         response = _gemini_with_retry(lambda: client.models.generate_content(
-            model=MODEL,
+            model=_active_model,
             contents=[{"parts": parts}],
             config=_types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -1592,8 +1619,9 @@ def analyze(body: AnalyzeRequest):
             continue
         ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
 
-        # Drop anything whose center is outside the safety buffer
-        if body.safetyBuffer and not inside_zone([ymin, xmin, ymax, xmax], body.safetyBuffer):
+        # Structure items (columns/drawers) always pass through — only filter components by safety buffer
+        is_structure = b.get("category", "component") == "structure"
+        if not is_structure and body.safetyBuffer and not inside_zone([ymin, xmin, ymax, xmax], body.safetyBuffer):
             continue
 
         b["box"] = [

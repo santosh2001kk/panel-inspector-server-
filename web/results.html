@@ -228,6 +228,48 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
   .tab-panel{display:block!important}
   .main{padding:16px}
 }
+
+/* ── Stage 2: Post-Analysis Checklist Modal ── */
+.checklist-overlay{position:fixed;inset:0;z-index:500;background:rgba(5,12,24,.96);backdrop-filter:blur(8px);
+  display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.checklist-overlay.active{display:flex}
+.checklist-modal{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  width:100%;max-width:760px;margin:auto;display:flex;flex-direction:column;
+  box-shadow:0 32px 80px rgba(0,0,0,.7)}
+.cm-header{padding:28px 32px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
+.cm-icon-wrap{width:52px;height:52px;border-radius:14px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
+  display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--red);flex-shrink:0}
+.cm-title{font-size:20px;font-weight:800;color:var(--text)}
+.cm-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.cm-progress-row{padding:14px 32px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:16px}
+.cm-prog-label{font-size:13px;font-weight:600;white-space:nowrap;min-width:180px}
+.cm-prog-track{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+.cm-prog-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
+.cm-body{padding:24px 32px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto}
+.cm-section{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:12px 0 6px;border-bottom:1px solid var(--border);margin-top:4px}
+.cm-row{display:flex;align-items:flex-start;gap:14px;padding:13px 15px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s}
+.cm-row:hover{border-color:rgba(61,205,88,.3)}
+.cm-row.checked{background:rgba(61,205,88,.06);border-color:rgba(61,205,88,.35)}
+.cm-row.crit{border-left:3px solid var(--red)}
+.cm-row.crit.checked{border-left-color:var(--green)}
+.cm-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--card);
+  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#0A1628;transition:all .2s}
+.cm-row.checked .cm-check{background:var(--green);border-color:var(--green)}
+.cm-row-text{font-size:13px;line-height:1.5;flex:1;color:var(--text)}
+.cm-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;
+  background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;flex-shrink:0}
+.cm-badge.ok{background:rgba(61,205,88,.15);color:var(--green)}
+.cm-footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.cm-footer-note{flex:1;font-size:12px;color:var(--muted)}
+.cm-btn-confirm{padding:14px 28px;border-radius:12px;border:none;background:var(--green);
+  color:#0A1628;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:10px;
+  transition:opacity .2s,transform .1s;white-space:nowrap}
+.cm-btn-confirm:disabled{opacity:.3;cursor:not-allowed}
+.cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -517,6 +559,10 @@ if(!imgB64){
     '<br><button class="btn-nav btn-new" style="margin:0 auto" onclick="location.href=\'dashboard.html\'"><i class="fas fa-plus"></i> New Scan</button></div>';
 } else {
   renderAll();
+  // Show Stage 2 checklist modal — worker must confirm before viewing results
+  if(!meta.identifyOnly){
+    showChecklistModal();
+  }
 }
 
 /* ─── Tab switching ─── */
@@ -974,6 +1020,193 @@ function animateNum(id, target, delay=0){
 /* ─── Helpers ─── */
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1) }
+
+/* ─── Stage 2: Post-Analysis Pre-Work Checklist Modal ─── */
+let _s2Total = 0, _s2Done = 0;
+
+async function showChecklistModal(){
+  const overlay = document.getElementById('s2Overlay');
+  if(!overlay) return;
+
+  const panelType   = data.panel_type    || 'Unknown';
+  const task        = meta.task          || 'others';
+  const isLive      = meta.isLive        || false;
+  const hasSld_     = !!meta.hasSld;
+  const vbbSide     = data.busbar_side   || 'unknown';
+  const cubicleCount= data.cubicle_count || 0;
+  const zoneRect    = meta.zoneRect;
+
+  // Determine work zone position label
+  let zonePosLabel = 'Not specified';
+  if(zoneRect && meta.canvasH){
+    const cy = (zoneRect.y + zoneRect.h/2) / meta.canvasH;
+    zonePosLabel = cy < 0.4 ? 'TOP — near incomer / supply cables'
+                : cy > 0.6 ? 'BOTTOM — near outgoing cable entry'
+                :             'MIDDLE — feeder / breaker zone';
+  }
+
+  document.getElementById('s2Sub').innerHTML =
+    `<strong>${panelType}</strong> &nbsp;·&nbsp; Task: <strong>${cap(task)}</strong> &nbsp;·&nbsp; `+
+    `Panel: <strong>${isLive?'⚡ LIVE':'🔒 DEAD'}</strong> &nbsp;·&nbsp; `+
+    `Work zone: <strong>${zonePosLabel}</strong>`;
+
+  // Fetch checklist from server
+  let items = [];
+  let taskRecs = [];
+  try {
+    const res = await fetch('/api/checklist', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({task_type:task, is_live:isLive, panel_type:panelType,
+                            has_sld:hasSld_, vbb_side:vbbSide, cubicle_count:cubicleCount})
+    });
+    const d = await res.json();
+    items    = d.items || [];
+    taskRecs = d.task_recommendations || [];
+  } catch(e){
+    console.warn('Checklist fetch failed', e);
+  }
+
+  const body = document.getElementById('s2Items');
+  body.innerHTML = '';
+
+  // ── Add zone-position-specific items at the top ──
+  const zoneItems = _getZoneItems(panelType, task, zoneRect, meta.canvasH);
+  if(zoneItems.length){
+    const sl = document.createElement('div'); sl.className='cm-section';
+    sl.textContent = `Work Zone Safety — ${zonePosLabel}`;
+    body.appendChild(sl);
+    zoneItems.forEach(item=>body.appendChild(_makeCheckRow(item)));
+  }
+
+  // ── Common + task-specific + panel-specific items from API ──
+  const sections = {
+    common:   items.filter(i=>i.id.startsWith('dead_')||i.id.startsWith('live_')),
+    task:     items.filter(i=>!i.id.startsWith('dead_')&&!i.id.startsWith('live_')&&!i.id.startsWith('psp_')&&!i.id.startsWith('okk_')&&i.id!=='sld_1'),
+    panel:    items.filter(i=>i.id.startsWith('psp_')||i.id.startsWith('okk_')),
+    sld:      items.filter(i=>i.id==='sld_1'),
+  };
+  const sectionLabels = {
+    common: isLive?'Live Work — Common Requirements':'De-energized Work — Common Requirements',
+    task:   `Task: ${cap(task)} — Specific Requirements`,
+    panel:  `Panel: ${panelType} — Specific Warnings`,
+    sld:    'Documents',
+  };
+  ['sld','common','task','panel'].forEach(key=>{
+    const grp = sections[key]; if(!grp.length) return;
+    const sl = document.createElement('div'); sl.className='cm-section';
+    sl.textContent = sectionLabels[key];
+    body.appendChild(sl);
+    grp.forEach(item=>body.appendChild(_makeCheckRow(item)));
+  });
+
+  // ── Excel recommendations summary ──
+  if(taskRecs.length){
+    const sl = document.createElement('div'); sl.className='cm-section';
+    sl.textContent = 'Operations — Hazards & ERMS Status';
+    body.appendChild(sl);
+    taskRecs.forEach((r,i)=>{
+      const hazStr  = (r.hazards||[]).join(' + ') || 'No direct hazard';
+      const ermsStr = {ON:'ERMS ON required',recommended:'ERMS recommended',OFF:'ERMS OFF',none:''}[r.erms]||'';
+      const row = document.createElement('div');
+      row.className = 'cm-row';
+      row.style.cursor = 'default';
+      row.style.background = i%2===0?'var(--card2)':'transparent';
+      row.innerHTML = `<div class="cm-row-text">
+        <strong>${esc(r.operation)}</strong><br>
+        <span style="color:var(--muted);font-size:12px">${esc(hazStr)}${ermsStr?' &nbsp;·&nbsp; <span style="color:'+(r.erms==='ON'?'var(--red)':r.erms==='recommended'?'var(--orange)':'var(--green)')+'">'+ermsStr+'</span>':''}</span>
+        ${r.alternative?'<br><span style="color:var(--green);font-size:12px">💡 '+esc(r.alternative)+'</span>':''}
+      </div>`;
+      body.appendChild(row);
+    });
+  }
+
+  // Count critical items and update progress
+  _s2Total = body.querySelectorAll('.cm-row.crit').length;
+  _s2Done  = 0;
+  document.getElementById('s2TotalCrit').textContent = _s2Total;
+  document.getElementById('s2DoneCount').textContent = '0';
+  document.getElementById('s2Fill').style.width = '0%';
+  document.getElementById('s2Confirm').disabled = _s2Total > 0;
+
+  overlay.classList.add('active');
+}
+
+function _getZoneItems(panelType, task, zoneRect, canvasH){
+  if(!zoneRect||!canvasH) return [];
+  const cy = (zoneRect.y + zoneRect.h/2) / canvasH;
+  const pt = (panelType||'').toLowerCase();
+  const items = [];
+
+  if(cy < 0.4){
+    items.push({id:'z_t1', text:'TOP zone — incoming supply cables are present. ERMS does NOT protect on supply side of incomer. Treat as always live.', critical:true});
+    items.push({id:'z_t2', text:'TOP zone — maintain minimum safe working clearance from main cable lugs. Do not touch bare conductors.', critical:true});
+    if(pt.includes('prismaset p')||pt.includes('prisma p'))
+      items.push({id:'z_t3', text:'PrismaSeT P — top of VBB busbar compartment is ALWAYS live. Never open VBB door without full upstream isolation.', critical:true});
+    if(pt.includes('okken'))
+      items.push({id:'z_t4', text:'Okken — Horizontal Busbar (HBB) at top is ALWAYS live. Do not access HBB compartment under any circumstances without full upstream isolation.', critical:true});
+  } else if(cy > 0.6){
+    items.push({id:'z_b1', text:'BOTTOM zone — outgoing cable entry area. Ensure all cable ends at bottom are isolated or insulated before working.', critical:true});
+    items.push({id:'z_b2', text:'BOTTOM zone — risk of dropping conductive parts onto live cable connections below. Use insulated tools only.', critical:false});
+  } else {
+    items.push({id:'z_m1', text:'MIDDLE zone — feeder/breaker area. Isolate each outgoing feeder individually before touching downstream side.', critical:true});
+    if(pt.includes('prismaset p')||pt.includes('prisma p'))
+      items.push({id:'z_m2', text:'PrismaSeT P — VBB busbar compartment adjacent to feeders is ALWAYS live. Keep clear of VBB door.', critical:true});
+  }
+  return items;
+}
+
+function _makeCheckRow(item){
+  const div = document.createElement('div');
+  div.className = 'cm-row' + (item.critical?' crit':'');
+  div.dataset.crit = item.critical?'1':'0';
+  div.innerHTML = `
+    <div class="cm-check"></div>
+    <div class="cm-row-text">${esc(item.text)}</div>
+    ${item.critical?'<span class="cm-badge">Critical</span>':''}
+  `;
+  div.addEventListener('click', ()=>{
+    div.classList.toggle('checked');
+    div.querySelector('.cm-check').innerHTML = div.classList.contains('checked')
+      ? '<i class="fas fa-check"></i>' : '';
+    // Recount
+    const all = document.querySelectorAll('#s2Items .cm-row.crit');
+    const done= document.querySelectorAll('#s2Items .cm-row.crit.checked').length;
+    _s2Done   = done;
+    document.getElementById('s2DoneCount').textContent = done;
+    document.getElementById('s2Fill').style.width = all.length?(done/all.length*100)+'%':'100%';
+    document.getElementById('s2Confirm').disabled = done < all.length;
+  });
+  return div;
+}
+
+function confirmChecklist(){
+  document.getElementById('s2Overlay').classList.remove('active');
+}
 </script>
+
+<!-- Stage 2 Modal HTML -->
+<div class="checklist-overlay" id="s2Overlay">
+  <div class="checklist-modal">
+    <div class="cm-header">
+      <div class="cm-icon-wrap"><i class="fas fa-clipboard-check"></i></div>
+      <div>
+        <div class="cm-title">Pre-Work Safety Confirmation</div>
+        <div class="cm-sub" id="s2Sub">Loading checklist...</div>
+      </div>
+    </div>
+    <div class="cm-progress-row">
+      <div class="cm-prog-label"><span id="s2DoneCount">0</span> / <span id="s2TotalCrit">0</span> critical items confirmed</div>
+      <div class="cm-prog-track"><div class="cm-prog-fill" id="s2Fill"></div></div>
+    </div>
+    <div class="cm-body" id="s2Items"></div>
+    <div class="cm-footer">
+      <div class="cm-footer-note">Tick all <span style="color:var(--red);font-weight:700">Critical</span> items to confirm you are safe to proceed.</div>
+      <button class="cm-btn-confirm" id="s2Confirm" disabled onclick="confirmChecklist()">
+        <i class="fas fa-shield-check"></i> Confirmed — View Results
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

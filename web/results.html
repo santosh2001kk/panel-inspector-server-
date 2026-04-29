@@ -223,10 +223,29 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
 /* ── Print ── */
+#printArea{display:none}
 @media print{
-  nav,.tab-bar,.stats-bar,.btn-nav{display:none!important}
-  .tab-panel{display:block!important}
-  .main{padding:16px}
+  nav,.tab-bar,.stats-bar,.btn-nav,.checklist-overlay,#main{display:none!important}
+  .bg-glow{display:none!important}
+  body{background:#fff!important;color:#000!important}
+  #printArea{display:block!important;padding:20px;font-family:'Inter',Arial,sans-serif;font-size:12px;color:#111}
+  .pr-logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .pr-logo-sq{width:32px;height:32px;background:#3DCD58;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#0A1628}
+  .pr-logo-title{font-size:16px;font-weight:800}
+  .pr-logo-sub{font-size:10px;color:#666}
+  .pr-divider{border:none;border-top:2px solid #3DCD58;margin:10px 0}
+  .pr-section{margin-bottom:18px}
+  .pr-section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#3DCD58;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  .pr-table{width:100%;border-collapse:collapse;margin-bottom:8px}
+  .pr-table td{padding:5px 8px;border:1px solid #ddd;font-size:11px;vertical-align:top}
+  .pr-table td:first-child{font-weight:600;color:#555;width:36%;background:#f9f9f9}
+  .pr-img{max-width:380px;max-height:300px;display:block;border:1px solid #ddd;border-radius:4px;margin-bottom:8px}
+  .pr-warn{padding:5px 8px;border-left:3px solid #FF4757;margin-bottom:5px;background:#fff5f5;font-size:11px;page-break-inside:avoid}
+  .pr-warn.ok{border-left-color:#3DCD58;background:#f0fff4}
+  .pr-rec-table{width:100%;border-collapse:collapse}
+  .pr-rec-table th{font-size:10px;font-weight:700;text-transform:uppercase;padding:5px 7px;border:1px solid #ddd;background:#f2f2f2;color:#444}
+  .pr-rec-table td{padding:5px 7px;border:1px solid #ddd;font-size:11px}
+  .pr-footer{border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#888;text-align:center;margin-top:20px}
 }
 
 /* ── Stage 2: Post-Analysis Checklist Modal ── */
@@ -370,6 +389,14 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 
       <!-- Right -->
       <div class="col-stack">
+        <!-- Project Details (shown only when filled) -->
+        <div class="card" id="projCard" style="display:none">
+          <div class="card-header">
+            <div class="card-icon ci-blue"><i class="fas fa-folder-open"></i></div>
+            <div><div class="card-title">Project Details</div><div class="card-sub" id="projCardSub">Inspection report header</div></div>
+          </div>
+          <div class="card-body" id="projCardBody"></div>
+        </div>
         <!-- Panel ID -->
         <div class="card">
           <div class="card-header">
@@ -540,6 +567,7 @@ const data   = JSON.parse(sessionStorage.getItem('analysisResult') || '{}');
 const imgB64 = sessionStorage.getItem('analysisImage');
 const mime   = sessionStorage.getItem('imageMime') || 'image/jpeg';
 const meta   = JSON.parse(sessionStorage.getItem('analysisMeta') || '{}');
+const proj   = JSON.parse(sessionStorage.getItem('projectDetails') || '{}');
 
 // SLD / Layout data stored by dashboard
 const sldB64  = sessionStorage.getItem('sldBase64');
@@ -589,6 +617,7 @@ function renderAll(){
   document.getElementById('tbBreakers').textContent = breakers.length;
   document.getElementById('tbWarnings').textContent = warnings.length;
 
+  renderProjectCard();
   renderPanelCard(panelType, breakers, warnings);
   renderWarnSnap(warnings);
   renderDocsOverview();
@@ -600,6 +629,29 @@ function renderAll(){
   renderMetaCard();
   drawCanvas('resultCanvas');
   drawCanvas('resultCanvas2');
+}
+
+/* ─── Project details card ─── */
+function renderProjectCard(){
+  const hasAny = proj.name||proj.site||proj.permit||proj.tech;
+  if(!hasAny) return;
+  const card = document.getElementById('projCard');
+  card.style.display='';
+  const rows = [
+    proj.name   && ['Project / Work Order', proj.name],
+    proj.site   && ['Site / Location',      proj.site],
+    proj.permit && ['Work Permit No.',       proj.permit],
+    proj.tech   && ['Technician',            proj.tech],
+    proj.date   && ['Scan Date',             proj.date],
+  ].filter(Boolean);
+  document.getElementById('projCardSub').textContent = proj.name || 'Inspection details';
+  document.getElementById('projCardBody').innerHTML=`
+    <table style="width:100%;border-collapse:collapse">
+      ${rows.map(([k,v])=>`<tr>
+        <td style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:38%">${k}</td>
+        <td style="padding:8px 12px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${esc(v)}</td>
+      </tr>`).join('')}
+    </table>`;
 }
 
 /* ─── Panel identification card ─── */
@@ -1183,7 +1235,109 @@ function _makeCheckRow(item){
 function confirmChecklist(){
   document.getElementById('s2Overlay').classList.remove('active');
 }
+
+/* ─── Print Report Builder ─── */
+window.addEventListener('beforeprint', buildPrintArea);
+function buildPrintArea(){
+  const panelType = data.panel_type || 'Unknown';
+  const warnings  = data.safety_warnings || [];
+  const breakers  = data.breakers || [];
+  const recs      = data.task_recommendations || [];
+  const task      = cap(meta.task || 'Others');
+  const isLive_   = meta.isLive;
+  const notes     = data.notes || '';
+
+  // Canvas image
+  const canvas1 = document.getElementById('resultCanvas');
+  const imgSrc  = canvas1 ? canvas1.toDataURL('image/jpeg', 0.9) : null;
+
+  // Project detail rows
+  const projRows = [
+    proj.name   ? `<tr><td>Project / Work Order</td><td>${esc(proj.name)}</td></tr>` : '',
+    proj.site   ? `<tr><td>Site / Location</td><td>${esc(proj.site)}</td></tr>` : '',
+    proj.permit ? `<tr><td>Work Permit No.</td><td>${esc(proj.permit)}</td></tr>` : '',
+    proj.tech   ? `<tr><td>Technician</td><td>${esc(proj.tech)}</td></tr>` : '',
+    proj.date   ? `<tr><td>Scan Date</td><td>${esc(proj.date)}</td></tr>` : '',
+    `<tr><td>Panel Type</td><td>${esc(panelType)}</td></tr>`,
+    `<tr><td>Intervention</td><td>${isLive_ ? '⚡ LIVE — Energised' : '🔒 DEAD — De-energised'}</td></tr>`,
+    `<tr><td>Task</td><td>${task}</td></tr>`,
+    `<tr><td>Breakers Found</td><td>${breakers.length}</td></tr>`,
+    `<tr><td>Safety Warnings</td><td>${warnings.length}</td></tr>`,
+  ].filter(Boolean).join('');
+
+  // Safety warnings
+  const warnHtml = warnings.length
+    ? warnings.map(w=>`<div class="pr-warn">${esc(w)}</div>`).join('')
+    : '<div class="pr-warn ok">No critical safety warnings detected.</div>';
+
+  // Detections table
+  const detHtml = breakers.length
+    ? `<table class="pr-rec-table"><thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th></tr></thead><tbody>`+
+      breakers.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(b.type||'—')}</td><td>${esc(b.rating||'—')}</td><td>${esc(b.circuit_label||'—')}</td></tr>`).join('')+
+      '</tbody></table>'
+    : '<p style="color:#666">No breakers detected.</p>';
+
+  // Recommendations table
+  const _POS = {inside:'Inside (doors open)',outside:'Outside (doors closed)',near:'Near (<1m)',room:'Room (>1m)'};
+  const recsHtml = recs.length
+    ? `<table class="pr-rec-table"><thead><tr><th>Operation</th><th>Position</th><th>Hazards</th><th>ERMS</th></tr></thead><tbody>`+
+      recs.map(r=>`<tr>
+        <td>${esc(r.operation)}</td>
+        <td>${esc(_POS[r.position]||r.position||'—')}</td>
+        <td>${(r.hazards||[]).join(', ')||'—'}</td>
+        <td>${r.erms&&r.erms!=='none'?esc(r.erms):'—'}</td>
+      </tr>`).join('')+
+      '</tbody></table>'
+    : '<p style="color:#666">No recommendations.</p>';
+
+  document.getElementById('printArea').innerHTML = `
+    <div class="pr-logo">
+      <div class="pr-logo-sq">SE</div>
+      <div>
+        <div class="pr-logo-title">Panel Inspector Pro</div>
+        <div class="pr-logo-sub">EcoStruxure™ AI — Schneider Electric</div>
+      </div>
+    </div>
+    <hr class="pr-divider">
+
+    <div class="pr-section">
+      <div class="pr-section-title">Inspection Report</div>
+      <table class="pr-table"><tbody>${projRows}</tbody></table>
+    </div>
+
+    ${imgSrc ? `<div class="pr-section">
+      <div class="pr-section-title">Detection Overlay</div>
+      <img class="pr-img" src="${imgSrc}" alt="Panel detection overlay">
+    </div>` : ''}
+
+    <div class="pr-section">
+      <div class="pr-section-title">Safety Warnings (${warnings.length})</div>
+      ${warnHtml}
+    </div>
+
+    <div class="pr-section">
+      <div class="pr-section-title">Detections (${breakers.length} breakers)</div>
+      ${detHtml}
+    </div>
+
+    <div class="pr-section">
+      <div class="pr-section-title">Task Recommendations</div>
+      ${recsHtml}
+    </div>
+
+    ${notes ? `<div class="pr-section">
+      <div class="pr-section-title">AI Assessment Notes</div>
+      <p style="font-size:12px;line-height:1.7;white-space:pre-wrap">${esc(notes)}</p>
+    </div>` : ''}
+
+    <div class="pr-footer">
+      Generated by Panel Inspector Pro · EcoStruxure™ AI · Schneider Electric &nbsp;|&nbsp; ${new Date().toLocaleString()}
+    </div>`;
+}
 </script>
+
+<!-- Print Area (hidden on screen, visible only when printing) -->
+<div id="printArea"></div>
 
 <!-- Stage 2 Modal HTML -->
 <div class="checklist-overlay" id="s2Overlay">

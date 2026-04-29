@@ -324,6 +324,13 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
   transition:opacity .2s,transform .1s;font-family:'Inter',sans-serif}
 .cm-btn-confirm:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
+
+/* ── Project Details ── */
+.proj-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.proj-input{width:100%;padding:11px 14px;background:rgba(10,22,40,.6);border:1px solid var(--border);border-radius:9px;
+  color:var(--text);font-size:14px;font-family:'Inter',sans-serif;transition:border-color .2s;outline:none}
+.proj-input::placeholder{color:rgba(107,142,174,.55)}
+.proj-input:focus{border-color:rgba(74,158,255,.5);background:rgba(10,22,40,.8)}
 </style>
 </head>
 <body>
@@ -383,6 +390,36 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 
 <!-- Main -->
 <div class="main">
+
+  <!-- Project Details -->
+  <div class="section" id="sec0">
+    <div class="section-head">
+      <div class="section-icon blue"><i class="fas fa-folder-open"></i></div>
+      <div class="section-label-wrap">
+        <div class="section-step">Project Info</div>
+        <div class="section-title">Project Details</div>
+        <div class="section-sub">Inspection report header — printed at the top of every report</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <label class="proj-label">Project / Work Order Name</label>
+        <input id="projName" class="proj-input" type="text" placeholder="e.g. MV-LV Panel Upgrade — Building A">
+      </div>
+      <div>
+        <label class="proj-label">Site / Location</label>
+        <input id="projSite" class="proj-input" type="text" placeholder="e.g. Data Centre — Floor 2, Room 3B">
+      </div>
+      <div>
+        <label class="proj-label">Work Permit / Reference No.</label>
+        <input id="projPermit" class="proj-input" type="text" placeholder="e.g. WP-2025-00142">
+      </div>
+      <div>
+        <label class="proj-label">Technician</label>
+        <input id="projTech" class="proj-input" type="text" placeholder="Technician name">
+      </div>
+    </div>
+  </div>
 
   <!-- Step 1: Intervention Type -->
   <div class="section" id="sec1">
@@ -780,6 +817,7 @@ const username = sessionStorage.getItem('username');
 if(!username) location.href='index.html';
 document.getElementById('navUsername').textContent = username;
 document.getElementById('userAvatar').textContent  = username.charAt(0).toUpperCase();
+document.getElementById('projTech').value = username;
 function logout(){ sessionStorage.clear(); location.href='index.html'; }
 
 // ── State ──
@@ -1277,11 +1315,22 @@ async function _doAnalysis(identifyOnly){
     const displayB64 = await compressForStorage(imageBase64, mime);
     sessionStorage.setItem('analysisImage',  displayB64);
     sessionStorage.setItem('imageMime',      'image/jpeg');
+    if(sldBase64)    { sessionStorage.setItem('sldBase64',    sldBase64);    sessionStorage.setItem('sldMime',    sldMime||'image/jpeg'); sessionStorage.setItem('sldName', document.getElementById('sldStatusText')?.textContent||'sld'); }
+    if(layoutBase64) { sessionStorage.setItem('layoutBase64', layoutBase64); sessionStorage.setItem('layoutMime', layoutMime||'image/jpeg'); }
+    sessionStorage.setItem('hasSld',    sldBase64    ? 'true' : 'false');
+    sessionStorage.setItem('hasLayout', layoutBase64 ? 'true' : 'false');
     sessionStorage.setItem('analysisMeta',   JSON.stringify({
-      task:selectedTask||'others', isLive, identifyOnly,
+      task:selectedTask||'others', isLive, identifyOnly, openDoors,
       zoneRect:currentZoneRect, canvasW:canvas.width, canvasH:canvas.height,
       hasSld:!!sldBase64, sldName:sldBase64?document.getElementById('sldStatusText')?.textContent:'',
       hasLayout:!!layoutBase64,
+    }));
+    sessionStorage.setItem('projectDetails', JSON.stringify({
+      name:    document.getElementById('projName').value.trim(),
+      site:    document.getElementById('projSite').value.trim(),
+      permit:  document.getElementById('projPermit').value.trim(),
+      tech:    document.getElementById('projTech').value.trim(),
+      date:    new Date().toLocaleString(),
     }));
     location.href='results.html';
   } catch(err){

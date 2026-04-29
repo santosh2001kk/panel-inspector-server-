@@ -6,6 +6,15 @@
 <title>Scan — Panel Inspector Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module" id="pdfjs-script"></script>
+<script>
+// Load PDF.js worker via dynamic import so it's available globally
+window._pdfjs = null;
+import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then(mod=>{
+  mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  window._pdfjs = mod;
+}).catch(()=>{});
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -496,8 +505,8 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
           <button class="doc-clear" onclick="clearDoc('sld')"><i class="fas fa-xmark"></i></button>
         </div>
         <label class="doc-upload-btn" id="sldUploadBtn">
-          <i class="fas fa-cloud-arrow-up"></i> Upload SLD (JPG or PNG)
-          <input type="file" accept="image/*" style="display:none" onchange="handleDoc('sld',this)">
+          <i class="fas fa-cloud-arrow-up"></i> Upload SLD (PDF or Image)
+          <input type="file" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('sld',this)">
         </label>
       </div>
       <!-- Layout -->
@@ -522,8 +531,8 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
           <button class="doc-clear" onclick="clearDoc('layout')"><i class="fas fa-xmark"></i></button>
         </div>
         <label class="doc-upload-btn" id="layoutUploadBtn">
-          <i class="fas fa-cloud-arrow-up"></i> Upload Layout (JPG or PNG)
-          <input type="file" accept="image/*" style="display:none" onchange="handleDoc('layout',this)">
+          <i class="fas fa-cloud-arrow-up"></i> Upload Layout (PDF or Image)
+          <input type="file" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('layout',this)">
         </label>
       </div>
     </div>
@@ -850,49 +859,72 @@ function selectTask(task, el){
 }
 
 // ── Step 3: Documents ──
-function handleDoc(type, input){
+async function handleDoc(type, input){
   const file=input.files[0]; if(!file) return;
   const isPdf=file.type==='application/pdf';
+
+  // For PDFs: render page 1 to canvas via PDF.js → use as JPEG image
+  if(isPdf){
+    const pdfLib = window._pdfjs;
+    if(!pdfLib){
+      alert('PDF renderer not ready yet — please wait a moment and try again.'); return;
+    }
+    // Show loading state
+    const uploadBtn = document.getElementById(type==='sld'?'sldUploadBtn':'layoutUploadBtn');
+    uploadBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Converting PDF…';
+
+    try{
+      const arrayBuf = await file.arrayBuffer();
+      const pdf = await pdfLib.getDocument({data: arrayBuf}).promise;
+      const page = await pdf.getPage(1);
+      const vp = page.getViewport({scale: 2.0}); // 2× for readable resolution
+      const cvs = document.createElement('canvas');
+      cvs.width=vp.width; cvs.height=vp.height;
+      await page.render({canvasContext:cvs.getContext('2d'), viewport:vp}).promise;
+      const dataUrl = cvs.toDataURL('image/jpeg', 0.90);
+      const b64 = dataUrl.split(',')[1];
+      _applyDoc(type, b64, 'image/jpeg', dataUrl, file.name, false);
+    } catch(err){
+      const uploadBtnEl = document.getElementById(type==='sld'?'sldUploadBtn':'layoutUploadBtn');
+      uploadBtnEl.innerHTML='<i class="fas fa-cloud-arrow-up"></i> Upload '+(type==='sld'?'SLD':'Layout')+' (PDF or Image)';
+      alert('Could not read PDF: '+err.message+'\nTry exporting a JPG/PNG screenshot instead.');
+    }
+    return;
+  }
+
+  // For images: read as data URL
   const reader=new FileReader();
   reader.onload=e=>{
     const b64=e.target.result.split(',')[1];
-    if(type==='sld'){
-      sldBase64=b64; sldMime=file.type||'application/pdf';
-      // Preview
-      document.getElementById('sldPreviewBox').classList.add('show');
-      if(isPdf){
-        document.getElementById('sldPdfIcon').style.display='flex';
-        document.getElementById('sldPdfName').textContent=file.name;
-        document.getElementById('sldImgThumb').style.display='none';
-      } else {
-        document.getElementById('sldImgThumb').src=e.target.result;
-        document.getElementById('sldImgThumb').style.display='block';
-        document.getElementById('sldPdfIcon').style.display='none';
-      }
-      document.getElementById('sldStatus').className='doc-status green';
-      document.getElementById('sldStatusText').textContent=file.name;
-      document.getElementById('sldUploadBtn').style.display='none';
-      document.getElementById('sldCard').classList.add('has-file');
-    } else {
-      layoutBase64=b64; layoutMime=file.type||'application/pdf';
-      document.getElementById('layoutPreviewBox').classList.add('show');
-      if(isPdf){
-        document.getElementById('layoutPdfIcon').style.display='flex';
-        document.getElementById('layoutPdfName').textContent=file.name;
-        document.getElementById('layoutImgThumb').style.display='none';
-      } else {
-        document.getElementById('layoutImgThumb').src=e.target.result;
-        document.getElementById('layoutImgThumb').style.display='block';
-        document.getElementById('layoutPdfIcon').style.display='none';
-      }
-      document.getElementById('layoutStatus').className='doc-status blue';
-      document.getElementById('layoutStatusText').textContent=file.name;
-      document.getElementById('layoutUploadBtn').style.display='none';
-      document.getElementById('layoutCard').classList.add('has-file');
-    }
-    checkDocsDone();
+    _applyDoc(type, b64, file.type||'image/jpeg', e.target.result, file.name, false);
   };
   reader.readAsDataURL(file);
+}
+
+function _applyDoc(type, b64, mime, dataUrl, name, isConverted){
+  const label = isConverted ? name+' (PDF→JPG)' : name;
+  if(type==='sld'){
+    sldBase64=b64; sldMime=mime;
+    document.getElementById('sldPreviewBox').classList.add('show');
+    document.getElementById('sldImgThumb').src=dataUrl;
+    document.getElementById('sldImgThumb').style.display='block';
+    document.getElementById('sldPdfIcon').style.display='none';
+    document.getElementById('sldStatus').className='doc-status green';
+    document.getElementById('sldStatusText').textContent=label;
+    document.getElementById('sldUploadBtn').style.display='none';
+    document.getElementById('sldCard').classList.add('has-file');
+  } else {
+    layoutBase64=b64; layoutMime=mime;
+    document.getElementById('layoutPreviewBox').classList.add('show');
+    document.getElementById('layoutImgThumb').src=dataUrl;
+    document.getElementById('layoutImgThumb').style.display='block';
+    document.getElementById('layoutPdfIcon').style.display='none';
+    document.getElementById('layoutStatus').className='doc-status blue';
+    document.getElementById('layoutStatusText').textContent=label;
+    document.getElementById('layoutUploadBtn').style.display='none';
+    document.getElementById('layoutCard').classList.add('has-file');
+  }
+  checkDocsDone();
 }
 
 function clearDoc(type){

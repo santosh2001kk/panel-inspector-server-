@@ -152,7 +152,6 @@ class AnalyzeRequest(BaseModel):
     layoutBase64: Optional[str] = None    # optional mechanical layout upload (image or PDF)
     layoutMimeType: str = "image/jpeg"    # mime type for layoutBase64
     task: str = "others"                  # commissioning | maintenance | modification | replacement | others
-    mode: str = "standard"               # fast | standard | expert
     # Project / user metadata (optional — sent from Android app)
     username: Optional[str] = None
     projectName: Optional[str] = None
@@ -1517,7 +1516,6 @@ def analyze(body: AnalyzeRequest):
         data = json.loads(raw)
     else:
         from pydantic import BaseModel as _BM, Field as _F
-        _active_model = FAST_MODEL if body.mode == "fast" else MODEL
         class _Breaker(_BM):
             type: str = _F(description="Component name. For breakers use Schneider product name (MasterPact MTZ, MasterPact NT, Compact NSX, Compact NS, Acti9, iC60, Multi9). For other components use: Contactor, Relay, PLC, Meter, Terminal Block, Cable Duct, or Column.")
             box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000.")
@@ -1549,30 +1547,18 @@ def analyze(body: AnalyzeRequest):
             safety_warnings: list[str]
             summary: str = _F(default="", description="One-sentence technical summary of the panel and its main components.")
 
-        _mode = body.mode or "standard"
-        if _mode == "fast":
-            _detection_instructions = (
-                "\nDETECTION MODE: FAST — detect only the major circuit breakers (ACB, MCCB). "
-                "Assign category='component' to all. Skip minor MCBs, terminals, and accessories.\n"
-            )
-        elif _mode == "expert":
-            _detection_instructions = (
-                "\nDETECTION MODE: EXPERT — perform a full component inventory:\n"
-                "1. Detect EVERY visible component: ACB, MCCB, MCB, Contactors, Relays, PLCs, Power Meters, Terminal Blocks.\n"
-                "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
-                "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
-                "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
-                "4. Return ONE entry per individual component — do NOT group.\n"
-                "5. Read circuit_label and rating from breaker faces and label strips.\n"
-            )
-        else:  # standard
-            _detection_instructions = (
-                "\nDETECTION MODE: STANDARD — detect all visible components:\n"
-                "1. Detect every circuit breaker (ACB, MCCB, MCB) with ONE entry per unit and tight bounding box.\n"
-                "2. Also detect any visible Contactors, PLCs, Meters, Relays — assign category='component'.\n"
-                "3. Detect each vertical panel column/cubicle section as category='structure', type='Column'.\n"
-                "4. Read circuit_label and rating from faces/label strips. If not readable, return empty string.\n"
-            )
+        # Unified high-detail detection instructions with improved precision
+        _detection_instructions = (
+            "\nPERFORM HIGH-PRECISION COMPONENT INVENTORY:\n"
+            "1. Detect EVERY visible component, especially those INSIDE the marked Work Zone.\n"
+            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
+            "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
+            "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
+            "4. Return ONE entry per individual component — do NOT group.\n"
+            "5. Read circuit_label and rating from breaker faces and label strips.\n"
+            "6. BOUNDING BOXES: Ensure boxes are extremely tight to the component body. Do not include wires or gaps.\n"
+        )
+
         gemini_prompt = prompt + _detection_instructions
         # Build parts — add SLD and layout if provided
         parts = []
@@ -1586,7 +1572,7 @@ def analyze(body: AnalyzeRequest):
         parts.append({"text": gemini_prompt})
 
         response = _gemini_with_retry(lambda: client.models.generate_content(
-            model=_active_model,
+            model=MODEL,
             contents=[{"parts": parts}],
             config=_types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -1619,17 +1605,12 @@ def analyze(body: AnalyzeRequest):
             continue
         ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
 
-        # Structure items (columns/drawers) always pass through — only filter components by safety buffer
+        # Filter components by safety buffer; structure items (columns) always pass
         is_structure = b.get("category", "component") == "structure"
         if not is_structure and body.safetyBuffer and not inside_zone([ymin, xmin, ymax, xmax], body.safetyBuffer):
             continue
 
-        b["box"] = [
-            int(ymin / 1000 * h),
-            int(xmin / 1000 * w),
-            int(ymax / 1000 * h),
-            int(xmax / 1000 * w),
-        ]
+        # Keep coordinates as 0-1000 normalized — canvas scales them to display size
         filtered_breakers.append(b)
 
     data["breakers"] = filtered_breakers
@@ -2312,4 +2293,5 @@ if __name__ == "__main__":
     print(f"   http://localhost:8000")
     print(f"   http://{local_ip}:8000  ← use this in the Android app\n")
     print(f"   Web UI: http://{local_ip}:8000/index.html\n")
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)

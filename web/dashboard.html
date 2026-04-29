@@ -711,6 +711,22 @@ function startLoading(){
 }
 function stopLoading(){ clearInterval(psTimer); }
 
+// ── Compress image for sessionStorage (display only — server still gets full res) ──
+function compressForStorage(b64, mime, maxPx=800, quality=0.65){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const scale=Math.min(maxPx/img.naturalWidth, maxPx/img.naturalHeight, 1);
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.naturalWidth*scale);
+      c.height=Math.round(img.naturalHeight*scale);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      resolve(c.toDataURL('image/jpeg', quality).split(',')[1]);
+    };
+    img.src='data:'+(mime||'image/jpeg')+';base64,'+b64;
+  });
+}
+
 // ── Analyse ──
 async function runAnalysis(identifyOnly){
   if(!imageBase64){ alert('Please upload a panel photo first.'); return; }
@@ -741,8 +757,10 @@ async function runAnalysis(identifyOnly){
     }
 
     sessionStorage.setItem('analysisResult', JSON.stringify(data));
-    sessionStorage.setItem('analysisImage',  imageBase64);
-    sessionStorage.setItem('imageMime',      imageFile?imageFile.type:'image/jpeg');
+    const mime = imageFile?imageFile.type:'image/jpeg';
+    const displayB64 = await compressForStorage(imageBase64, mime);
+    sessionStorage.setItem('analysisImage',  displayB64);
+    sessionStorage.setItem('imageMime',      'image/jpeg');
     sessionStorage.setItem('analysisMeta',   JSON.stringify({
       task:selectedTask||'others', isLive, identifyOnly,
       zoneRect:currentZoneRect, canvasW:canvas.width, canvasH:canvas.height,

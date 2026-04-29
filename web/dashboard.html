@@ -223,46 +223,96 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 }
 @media(max-width:500px){.task-grid{grid-template-columns:1fr}}
 
-/* ── Pre-Work Checklist Modal ── */
+/* ── Pre-Work Checklist Modal (Flowchart Wizard) ── */
 .checklist-overlay{position:fixed;inset:0;z-index:500;background:rgba(5,12,24,.92);backdrop-filter:blur(6px);
   display:none;align-items:center;justify-content:center;padding:20px}
 .checklist-overlay.active{display:flex}
 .checklist-modal{background:var(--card);border:1px solid var(--border);border-radius:20px;
-  width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+  width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 32px 80px rgba(0,0,0,.6)}
-.cm-header{padding:28px 32px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
-.cm-icon{width:48px;height:48px;border-radius:12px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
-  display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--red);flex-shrink:0}
-.cm-title{font-size:20px;font-weight:800}
-.cm-sub{font-size:13px;color:var(--muted);margin-top:3px}
-.cm-progress-row{padding:16px 32px;background:var(--card2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:16px}
-.cm-progress-label{font-size:13px;font-weight:600;white-space:nowrap;min-width:180px}
-.cm-progress-track{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+
+/* Wizard screens */
+.pw-screen{display:none;flex-direction:column;flex:1;min-height:0}
+.pw-screen.active{display:flex}
+
+/* Decision screens */
+.pw-decision-body{padding:24px 32px 20px;display:flex;flex-direction:column;align-items:center;gap:18px;flex:1}
+.pw-step-dots{display:flex;gap:8px}
+.pw-dot{width:9px;height:9px;border-radius:50%;background:var(--border);transition:all .3s}
+.pw-dot.active{background:var(--green);box-shadow:0 0 8px var(--green-glow)}
+.pw-dot.done{background:rgba(61,205,88,.45)}
+.pw-question{text-align:center;max-width:460px}
+.pw-q-icon{font-size:36px;margin-bottom:12px;display:block}
+.pw-question h3{font-size:20px;font-weight:800;margin-bottom:6px;line-height:1.3;color:var(--text)}
+.pw-q-hint{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.pw-state-tag{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600}
+.pw-state-tag.live{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25);color:var(--red)}
+.pw-state-tag.dead{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.25);color:var(--green)}
+.pw-yn-row{display:flex;gap:14px;width:100%;max-width:500px}
+.pw-yn-btn{flex:1;padding:18px 14px;border-radius:14px;border:2px solid var(--border);background:var(--card2);
+  cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;flex-direction:column;
+  align-items:center;gap:7px;text-align:center}
+.pw-yn-btn i{font-size:24px;transition:color .2s}
+.pw-yn-label{font-size:15px;font-weight:800;color:var(--text)}
+.pw-yn-hint{font-size:11px;color:var(--muted);font-weight:400;line-height:1.4}
+.pw-yn-btn.pw-no:hover,.pw-yn-btn.pw-no.pw-selected{border-color:var(--green);background:rgba(61,205,88,.06)}
+.pw-yn-btn.pw-no i{color:var(--green)}
+.pw-yn-btn.pw-yes:hover,.pw-yn-btn.pw-yes.pw-selected{border-color:var(--red);background:rgba(255,71,87,.06)}
+.pw-yn-btn.pw-yes i{color:var(--red)}
+.pw-yn-btn.pw-blue:hover,.pw-yn-btn.pw-blue.pw-selected{border-color:#4A9EFF;background:rgba(74,158,255,.06)}
+.pw-yn-btn.pw-blue i{color:#4A9EFF}
+.pw-dec-footer{padding:14px 28px;border-top:1px solid var(--border);flex-shrink:0}
+.pw-back-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  font-family:'Inter',sans-serif;transition:all .2s}
+.pw-back-btn:hover{color:var(--text);border-color:var(--text)}
+
+/* Path breadcrumb */
+.pw-path{padding:10px 24px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
+.pw-path-node{font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
+.pw-path-node.live{background:rgba(255,71,87,.12);color:var(--red)}
+.pw-path-node.dead{background:rgba(61,205,88,.1);color:var(--green)}
+.pw-path-node.neutral{background:rgba(74,158,255,.1);color:#4A9EFF}
+.pw-path-node.task{background:rgba(255,165,2,.1);color:var(--orange)}
+.pw-path-arrow{color:var(--muted);font-size:12px}
+
+/* Checklist screens */
+.cm-header{padding:20px 26px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0}
+.cm-icon{width:44px;height:44px;border-radius:11px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--red);flex-shrink:0}
+.cm-icon.green{background:rgba(61,205,88,.1);border-color:rgba(61,205,88,.25);color:var(--green)}
+.cm-icon.blue{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.25);color:#4A9EFF}
+.cm-title{font-size:18px;font-weight:800}
+.cm-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.cm-progress-row{padding:11px 26px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;flex-shrink:0}
+.cm-progress-label{font-size:12px;font-weight:600;white-space:nowrap;min-width:160px}
+.cm-progress-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden}
 .cm-progress-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
-.cm-body{flex:1;overflow-y:auto;padding:24px 32px;display:flex;flex-direction:column;gap:10px}
-.cm-item{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:12px;
+.cm-body{flex:1;overflow-y:auto;padding:18px 26px;display:flex;flex-direction:column;gap:9px;min-height:0}
+.cm-item{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border-radius:11px;
   background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s,background .2s}
 .cm-item:hover{border-color:rgba(61,205,88,.3)}
 .cm-item.checked{background:rgba(61,205,88,.06);border-color:rgba(61,205,88,.35)}
 .cm-item.critical-item{border-left:3px solid var(--red)}
 .cm-item.critical-item.checked{border-left-color:var(--green)}
-.cm-cb{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--card);
-  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cm-cb{width:21px;height:21px;border-radius:6px;border:2px solid var(--border);background:var(--card);
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .cm-item.checked .cm-cb{background:var(--green);border-color:var(--green);color:#0A1628;font-size:11px}
-.cm-item-text{font-size:14px;line-height:1.5;flex:1}
+.cm-item-text{font-size:13px;line-height:1.55;flex:1}
 .cm-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;
   background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;margin-left:8px;flex-shrink:0}
 .cm-badge.ok{background:rgba(61,205,88,.15);color:var(--green)}
-.cm-section-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--muted);padding:4px 0 6px;border-bottom:1px solid var(--border);margin-top:6px}
-.cm-footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:flex-end}
-.cm-btn-cancel{padding:12px 20px;border-radius:10px;border:1px solid var(--border);background:transparent;
-  color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.cm-section-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:4px 0 5px;border-bottom:1px solid var(--border);margin-top:4px;flex-shrink:0}
+.cm-footer{padding:16px 26px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-shrink:0}
+.cm-btn-cancel{padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'Inter',sans-serif}
 .cm-btn-cancel:hover{border-color:var(--text);color:var(--text)}
-.cm-btn-confirm{padding:12px 24px;border-radius:10px;border:none;background:var(--green);
+.cm-btn-confirm{padding:11px 22px;border-radius:9px;border:none;background:var(--green);
   color:#0A1628;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;
-  transition:opacity .2s,transform .1s}
+  transition:opacity .2s,transform .1s;font-family:'Inter',sans-serif}
 .cm-btn-confirm:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
 </style>
@@ -514,27 +564,177 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 
 </div>
 
-<!-- ── Stage 1: Pre-Work Safety Checklist Modal ── -->
+<!-- ── Stage 1: Pre-Work Safety Checklist Modal (Flowchart Wizard) ── -->
 <div class="checklist-overlay" id="preWorkOverlay">
   <div class="checklist-modal">
-    <div class="cm-header">
-      <div class="cm-icon"><i class="fas fa-shield-halved"></i></div>
-      <div>
-        <div class="cm-title">Pre-Work Safety Checklist</div>
-        <div class="cm-sub" id="pw-sub">Confirm all items before scanning the panel</div>
+
+    <!-- SCREEN 1: Is this a Live Intervention? -->
+    <div id="pws1" class="pw-screen active">
+      <div class="cm-header" style="border-bottom:none;padding-bottom:8px">
+        <div class="cm-icon green"><i class="fas fa-shield-halved"></i></div>
+        <div>
+          <div class="cm-title">Pre-Work Safety Check</div>
+          <div class="cm-sub">Follow your safety decision tree before scanning</div>
+        </div>
+      </div>
+      <div class="pw-decision-body">
+        <div class="pw-step-dots">
+          <div class="pw-dot active" id="pd1a"></div>
+          <div class="pw-dot" id="pd1b"></div>
+          <div class="pw-dot" id="pd1c"></div>
+        </div>
+        <div class="pw-question">
+          <i class="fas fa-bolt pw-q-icon" style="color:var(--orange)"></i>
+          <h3>Is this a <span style="color:var(--orange)">Live Intervention?</span></h3>
+          <p class="pw-q-hint">Are you working on or near equipment that has voltage present?</p>
+        </div>
+        <div id="pw1-state-info"></div>
+        <div class="pw-yn-row">
+          <button class="pw-yn-btn pw-no" id="pw1-no" onclick="pw1Answer(false)">
+            <i class="fas fa-plug-circle-xmark"></i>
+            <span class="pw-yn-label">NO — Dead Work</span>
+            <span class="pw-yn-hint">Panel de-energised · LOTO applies</span>
+          </button>
+          <button class="pw-yn-btn pw-yes" id="pw1-yes" onclick="pw1Answer(true)">
+            <i class="fas fa-bolt"></i>
+            <span class="pw-yn-label">YES — Live Work</span>
+            <span class="pw-yn-hint">Panel has voltage present</span>
+          </button>
+        </div>
+      </div>
+      <div class="pw-dec-footer">
+        <button class="pw-back-btn" onclick="closePreWork()"><i class="fas fa-arrow-left"></i> Cancel</button>
       </div>
     </div>
-    <div class="cm-progress-row">
-      <div class="cm-progress-label"><span id="pwDoneCount">0</span> / <span id="pwTotalCrit">0</span> critical items confirmed</div>
-      <div class="cm-progress-track"><div class="cm-progress-fill" id="pwFill"></div></div>
+
+    <!-- SCREEN 2A: LOTO Protocol (No Live Intervention) -->
+    <div id="pws2a" class="pw-screen">
+      <div class="pw-path">
+        <span class="pw-path-node dead"><i class="fas fa-plug-circle-xmark"></i> No Live Intervention</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node neutral">LOTO Protocol</span>
+      </div>
+      <div class="cm-header">
+        <div class="cm-icon green"><i class="fas fa-lock"></i></div>
+        <div>
+          <div class="cm-title">LOTO Safety Checklist</div>
+          <div class="cm-sub">De-energised work — confirm lockout/tagout steps (NFPA 70E §120.2)</div>
+        </div>
+      </div>
+      <div class="cm-progress-row">
+        <div class="cm-progress-label"><span id="pw2a-done">0</span> / <span id="pw2a-total">0</span> items confirmed</div>
+        <div class="cm-progress-track"><div class="cm-progress-fill" id="pw2a-fill"></div></div>
+      </div>
+      <div class="cm-body" id="pw2a-items"></div>
+      <div class="cm-footer">
+        <button class="cm-btn-cancel" onclick="pwGoBack('pws1')"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="cm-btn-confirm" id="pw2a-confirm" disabled onclick="confirmPreWork()">
+          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
+        </button>
+      </div>
     </div>
-    <div class="cm-body" id="pwItems"></div>
-    <div class="cm-footer">
-      <button class="cm-btn-cancel" onclick="closePreWork()"><i class="fas fa-arrow-left"></i> Go Back</button>
-      <button class="cm-btn-confirm" id="pwConfirm" disabled onclick="confirmPreWork()">
-        <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
-      </button>
+
+    <!-- SCREEN 2B: Requires opening the doors? (Live Work) -->
+    <div id="pws2b" class="pw-screen">
+      <div class="pw-path">
+        <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live Intervention</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node neutral">Assess Access</span>
+      </div>
+      <div class="cm-header" style="border-bottom:none;padding-bottom:8px">
+        <div class="cm-icon"><i class="fas fa-door-open"></i></div>
+        <div>
+          <div class="cm-title">Panel Access Assessment</div>
+          <div class="cm-sub">Determines the required PPE and safety protocol</div>
+        </div>
+      </div>
+      <div class="pw-decision-body" style="padding-top:10px">
+        <div class="pw-step-dots">
+          <div class="pw-dot done"></div>
+          <div class="pw-dot active"></div>
+          <div class="pw-dot"></div>
+        </div>
+        <div class="pw-question">
+          <i class="fas fa-door-open pw-q-icon" style="color:#4A9EFF"></i>
+          <h3>Does this task require <span style="color:#4A9EFF">opening the panel doors</span> or accessing the interior?</h3>
+          <p class="pw-q-hint">Will your hands or tools enter inside the panel enclosure?</p>
+        </div>
+        <div class="pw-yn-row">
+          <button class="pw-yn-btn pw-no" onclick="pw2Answer(false)">
+            <i class="fas fa-xmark-circle" style="color:var(--muted)!important"></i>
+            <span class="pw-yn-label">NO</span>
+            <span class="pw-yn-hint">External operation only (switching, reading meters)</span>
+          </button>
+          <button class="pw-yn-btn pw-blue" onclick="pw2Answer(true)">
+            <i class="fas fa-door-open"></i>
+            <span class="pw-yn-label">YES</span>
+            <span class="pw-yn-hint">Hands or tools enter the enclosure</span>
+          </button>
+        </div>
+      </div>
+      <div class="pw-dec-footer">
+        <button class="pw-back-btn" onclick="pwGoBack('pws1')"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
     </div>
+
+    <!-- SCREEN 3A: Live + Door Open = Full Live Work Checklist -->
+    <div id="pws3a" class="pw-screen">
+      <div class="pw-path">
+        <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node neutral">Door Open</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node task" id="pw3a-task-node">Task</span>
+      </div>
+      <div class="cm-header">
+        <div class="cm-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div>
+          <div class="cm-title">Live Work Safety Checklist</div>
+          <div class="cm-sub" id="pw3a-sub">High-hazard intervention — all critical items mandatory</div>
+        </div>
+      </div>
+      <div class="cm-progress-row">
+        <div class="cm-progress-label"><span id="pw3a-done">0</span> / <span id="pw3a-total">0</span> critical items confirmed</div>
+        <div class="cm-progress-track"><div class="cm-progress-fill" id="pw3a-fill"></div></div>
+      </div>
+      <div class="cm-body" id="pw3a-items"></div>
+      <div class="cm-footer">
+        <button class="cm-btn-cancel" onclick="pwGoBack('pws2b')"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="cm-btn-confirm" id="pw3a-confirm" disabled onclick="confirmPreWork()">
+          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3B: Live + No Door Open = Switchboard Operation Checklist -->
+    <div id="pws3b" class="pw-screen">
+      <div class="pw-path">
+        <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node neutral">No Door Opening</span>
+        <span class="pw-path-arrow">›</span>
+        <span class="pw-path-node neutral">Switchboard Operation</span>
+      </div>
+      <div class="cm-header">
+        <div class="cm-icon blue"><i class="fas fa-gears"></i></div>
+        <div>
+          <div class="cm-title">Switchboard Operation Checklist</div>
+          <div class="cm-sub">External operation only — confirm safe switching procedure</div>
+        </div>
+      </div>
+      <div class="cm-progress-row">
+        <div class="cm-progress-label"><span id="pw3b-done">0</span> / <span id="pw3b-total">0</span> items confirmed</div>
+        <div class="cm-progress-track"><div class="cm-progress-fill" id="pw3b-fill"></div></div>
+      </div>
+      <div class="cm-body" id="pw3b-items"></div>
+      <div class="cm-footer">
+        <button class="cm-btn-cancel" onclick="pwGoBack('pws2b')"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="cm-btn-confirm" id="pw3b-confirm" disabled onclick="confirmPreWork()">
+          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -778,112 +978,158 @@ function startLoading(){
 }
 function stopLoading(){ clearInterval(psTimer); }
 
-// ── Stage 1: Pre-Work Safety Checklist ──
+// ── Stage 1: Pre-Work Safety Checklist Wizard (Flowchart) ──
 let _preWorkCallback = null;
-let _preWorkItems    = [];
+let _pwLive = false;
 
-function getStage1Items(task, isLive){
-  const t = (task||'others').toLowerCase();
-  const common_dead = [
-    {id:'pw_d1', text:'You are working on the CORRECT panel — confirmed by nameplate or label.',           critical:true},
-    {id:'pw_d2', text:'LOTO completed — personal lock and tag physically applied on the isolator.',        critical:true},
-    {id:'pw_d3', text:'Absence of voltage confirmed with an approved voltage tester — panel is DEAD.',     critical:true},
-    {id:'pw_d4', text:'PPE worn — minimum PPE Cat 1 even when de-energized (arc flash risk remains).',     critical:true},
-    {id:'pw_d5', text:'Arc flash boundary marked and all nearby personnel informed.',                       critical:false},
-  ];
-  const common_live = [
-    {id:'pw_l1', text:'Live work permit obtained and signed by supervisor.',                                critical:true},
-    {id:'pw_l2', text:'ERMS (Energy Reduction Maintenance Setting) activated on the main incomer.',         critical:true},
-    {id:'pw_l3', text:'Arc flash PPE worn — face shield, arc suit, insulated gloves rated for voltage.',    critical:true},
-    {id:'pw_l4', text:'Safety observer present and knows emergency procedure and first-aid location.',      critical:true},
-    {id:'pw_l5', text:'You are working on the CORRECT panel — confirmed by nameplate or label.',            critical:true},
-    {id:'pw_l6', text:'All personnel informed — no unexpected re-energization possible during work.',       critical:true},
-  ];
-  const task_items = {
-    commissioning:[
-      {id:'pt_c1', text:'SLD available and all wiring verified against it before first energization.',       critical:true},
-      {id:'pt_c2', text:'Insulation resistance test completed — results within acceptable range.',           critical:true},
-      {id:'pt_c3', text:'All protective devices set to correct ratings per design spec.',                    critical:true},
-    ],
-    operation:[
-      {id:'pt_o1', text:'Correct feeder/incomer identified — confirmed by panel label and SLD.',             critical:true},
-      {id:'pt_o2', text:'CB type confirmed (fixed or withdrawable) — operator knows correct procedure.',     critical:false},
-    ],
-    service:[
-      {id:'pt_s1', text:'Measurement/inspection equipment calibrated and rated for this voltage level.',     critical:false},
-      {id:'pt_s2', text:'No direct contact with live parts — thermal camera or insulated probes only.',      critical:true},
-    ],
-    modification:[
-      {id:'pt_m1', text:'Insulating barriers available to cover adjacent live busbars before starting.',     critical:true},
-      {id:'pt_m2', text:'Magnetic parts tray available — screws/nuts secured to prevent busbar drops.',      critical:true},
-      {id:'pt_m3', text:'New cables pre-cut and pre-terminated BEFORE approaching the busbar area.',         critical:true},
-    ],
-    replacement:[
-      {id:'pt_r1', text:'Replacement component verified — correct type, current rating, and frame size.',    critical:true},
-      {id:'pt_r2', text:'Correct polarity and phase sequence confirmed before installation.',                 critical:true},
-    ],
-    others:[
-      {id:'pt_x1', text:'Work scope clearly defined and approved by supervisor before entering the room.',   critical:true},
-    ],
-  };
-  return [...(isLive ? common_live : common_dead), ...(task_items[t]||task_items.others)];
+// LOTO Protocol items (No Live Intervention path) — NFPA 70E §120.2
+const _LOTO_ITEMS = [
+  {id:'lt1', text:'All energy sources identified — electrical, stored mechanical, and gravity loads noted on work permit.', critical:true, section:'Lockout / Tagout Protocol'},
+  {id:'lt2', text:'All affected personnel in the area notified that equipment is being locked out.', critical:true},
+  {id:'lt3', text:'Equipment de-energised at the correct disconnecting means — verified against SLD.', critical:true},
+  {id:'lt4', text:'Personal LOTO device (lock + tag) physically applied to each isolating device.', critical:true},
+  {id:'lt5', text:'Stored energy released or restrained — capacitor banks discharged, suspended loads blocked.', critical:true},
+  {id:'lt6', text:'Absence of voltage confirmed with an approved CAT III/IV tester — tested phase-to-phase and phase-to-earth.', critical:true},
+];
+
+// Switchboard Operation items (Live, No door opening path)
+const _SWBD_OP_ITEMS = [
+  {id:'op1', text:'Correct switchboard / incomer identified by nameplate — cross-checked with SLD or layout drawing.', critical:true, section:'Switchboard Operation'},
+  {id:'op2', text:'One-line diagram (SLD) reviewed — switching sequence fully understood before touching any device.', critical:true},
+  {id:'op3', text:'Arc flash PPE worn — minimum for restricted boundary (arc-rated face shield + gloves rated for voltage).', critical:true},
+  {id:'op4', text:'Adjacent live compartments identified — no inadvertent contact possible during operation.', critical:false},
+  {id:'op5', text:'Correct switching sequence confirmed: open load side first, then source side to de-energise; reverse to re-energise.', critical:false},
+  {id:'op6', text:'No tools, loose parts or foreign objects inside the panel at time of switching.', critical:true},
+];
+
+// Live Work common items (Live + door open path)
+const _LIVE_WORK_COMMON = [
+  {id:'lw1', text:'Live work permit obtained, signed by supervisor and safety officer.', critical:true, section:'Live Work Requirements'},
+  {id:'lw2', text:'ERMS (Energy Reduction Maintenance Setting) activated on the main incomer — arc flash energy reduced.', critical:true},
+  {id:'lw3', text:'Arc flash PPE fully worn — arc-rated face shield, arc suit (correct cal/cm²), double insulated gloves, leather over-gloves.', critical:true, section:'PPE'},
+  {id:'lw4', text:'Safety observer present — knows emergency shutdown procedure, first-aid location, and emergency contacts.', critical:true},
+  {id:'lw5', text:'Correct panel confirmed — nameplate verified, adjacent panels identified and separated.', critical:true, section:'Verification'},
+  {id:'lw6', text:'All personnel not involved have cleared the arc flash boundary.', critical:true},
+];
+
+// Task-specific items for live + door open
+const _TASK_ITEMS_LIVE = {
+  commissioning:[
+    {id:'tc1', text:'SLD verified — all wiring checked against design drawings before first energisation.', critical:true, section:'Commissioning Checklist'},
+    {id:'tc2', text:'Insulation resistance test completed — results recorded and within acceptable specification.', critical:true},
+    {id:'tc3', text:'All protective device settings confirmed to design ratings before closing main incomer.', critical:true},
+  ],
+  operation:[
+    {id:'to1', text:'Correct feeder / incomer identified — confirmed by label and SLD.', critical:true, section:'Operation Checklist'},
+    {id:'to2', text:'CB type confirmed (fixed or withdrawable) — correct racking procedure will be followed.', critical:false},
+  ],
+  service:[
+    {id:'ts1', text:'Test / inspection equipment calibrated and rated for this voltage category.', critical:false, section:'Service Checklist'},
+    {id:'ts2', text:'No direct contact with live parts — insulated probes or thermal camera used only.', critical:true},
+  ],
+  modification:[
+    {id:'tm1', text:'Insulating barriers covering adjacent live busbars installed before work commences.', critical:true, section:'Modification Checklist'},
+    {id:'tm2', text:'Magnetic parts tray in use — screws and nuts captured, cannot fall onto busbars.', critical:true},
+    {id:'tm3', text:'New cables pre-cut and pre-terminated before approaching the busbar compartment.', critical:true},
+  ],
+  replacement:[
+    {id:'tr1', text:'Replacement component verified — correct type, current rating, and frame size confirmed.', critical:true, section:'Replacement Checklist'},
+    {id:'tr2', text:'Phase sequence and polarity confirmed before energising the replacement component.', critical:true},
+  ],
+  others:[
+    {id:'tx1', text:'Work scope defined and approved by supervisor before entering the panel room.', critical:true, section:'Work Scope'},
+  ],
+};
+
+function _pwTaskLabel(task){
+  const map={commissioning:'Commissioning',operation:'Operation',service:'Service & Inspection',
+    modification:'Modification',replacement:'Replacement',others:'Others'};
+  return map[(task||'others').toLowerCase()]||'Others';
+}
+
+function _pwShowScreen(id){
+  document.querySelectorAll('.pw-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function _pwBuildChecklist(bodyId, items, confirmId, doneId, totalId, fillId){
+  const body = document.getElementById(bodyId);
+  body.innerHTML = '';
+  let lastSection = null;
+  items.forEach(item => {
+    if(item.section && item.section !== lastSection){
+      const sl = document.createElement('div');
+      sl.className = 'cm-section-label';
+      sl.textContent = item.section;
+      body.appendChild(sl);
+      lastSection = item.section;
+    }
+    const div = document.createElement('div');
+    div.className = 'cm-item' + (item.critical ? ' critical-item' : '');
+    div.innerHTML = `<div class="cm-cb"></div><div class="cm-item-text">${item.text}</div>${item.critical ? '<span class="cm-badge">Critical</span>' : ''}`;
+    div.addEventListener('click', () => _pwToggleItem(div, bodyId, confirmId, doneId, totalId, fillId));
+    body.appendChild(div);
+  });
+  const critCount = items.filter(i => i.critical).length;
+  document.getElementById(totalId).textContent = critCount;
+  document.getElementById(doneId).textContent = '0';
+  document.getElementById(fillId).style.width = '0%';
+  document.getElementById(confirmId).disabled = true;
+}
+
+function _pwToggleItem(div, bodyId, confirmId, doneId, totalId, fillId){
+  div.classList.toggle('checked');
+  div.querySelector('.cm-cb').innerHTML = div.classList.contains('checked') ? '<i class="fas fa-check"></i>' : '';
+  const body = document.getElementById(bodyId);
+  const done = body.querySelectorAll('.cm-item.critical-item.checked').length;
+  const total = body.querySelectorAll('.cm-item.critical-item').length;
+  document.getElementById(doneId).textContent = done;
+  document.getElementById(fillId).style.width = total ? (done / total * 100) + '%' : '0%';
+  document.getElementById(confirmId).disabled = done < total;
 }
 
 function showPreWorkModal(identifyOnly, callback){
-  if(identifyOnly){ callback(); return; } // identify-only: no pre-work checklist needed
+  if(identifyOnly){ callback(); return; }
   _preWorkCallback = callback;
-  _preWorkItems = getStage1Items(selectedTask, isLive);
-  const t = (selectedTask||'others');
-  document.getElementById('pw-sub').textContent =
-    `Task: ${t.charAt(0).toUpperCase()+t.slice(1)}  ·  Panel: ${isLive?'⚡ LIVE':'🔒 DEAD'}  ·  Confirm before scanning`;
-
-  const critCount = _preWorkItems.filter(i=>i.critical).length;
-  document.getElementById('pwTotalCrit').textContent = critCount;
-  document.getElementById('pwDoneCount').textContent = '0';
-  document.getElementById('pwFill').style.width = '0%';
-  document.getElementById('pwConfirm').disabled = true;
-
-  const body = document.getElementById('pwItems');
-  body.innerHTML = '';
-
-  // Section label
-  const sl = document.createElement('div');
-  sl.className = 'cm-section-label';
-  sl.textContent = isLive ? 'Live Work Requirements' : 'De-energized Work Requirements';
-  body.appendChild(sl);
-
-  _preWorkItems.forEach(item=>{
-    const div = document.createElement('div');
-    div.className = 'cm-item' + (item.critical?' critical-item':'');
-    div.dataset.id = item.id;
-    div.dataset.critical = item.critical ? '1' : '0';
-    div.innerHTML = `
-      <div class="cm-cb">${''}</div>
-      <div class="cm-item-text">${item.text}</div>
-      ${item.critical ? '<span class="cm-badge">Critical</span>' : ''}
-    `;
-    div.addEventListener('click', ()=>togglePwItem(div));
-    body.appendChild(div);
-  });
-
+  _pwLive = isLive;
+  // Pre-highlight the button matching the current energy state from Step 1
+  document.getElementById('pw1-no').classList.toggle('pw-selected', !isLive);
+  document.getElementById('pw1-yes').classList.toggle('pw-selected', isLive);
+  const info = document.getElementById('pw1-state-info');
+  info.innerHTML = isLive
+    ? '<div class="pw-state-tag live"><i class="fas fa-bolt"></i> Currently set to LIVE (from Step 1)</div>'
+    : '<div class="pw-state-tag dead"><i class="fas fa-plug-circle-xmark"></i> Currently set to DEAD (from Step 1)</div>';
+  _pwShowScreen('pws1');
   document.getElementById('preWorkOverlay').classList.add('active');
 }
 
-function togglePwItem(div){
-  div.classList.toggle('checked');
-  div.querySelector('.cm-cb').innerHTML = div.classList.contains('checked')
-    ? '<i class="fas fa-check"></i>' : '';
-  updatePwProgress();
+function pw1Answer(live){
+  _pwLive = live;
+  if(!live){
+    _pwBuildChecklist('pw2a-items', _LOTO_ITEMS, 'pw2a-confirm', 'pw2a-done', 'pw2a-total', 'pw2a-fill');
+    _pwShowScreen('pws2a');
+  } else {
+    _pwShowScreen('pws2b');
+  }
 }
 
-function updatePwProgress(){
-  const critItems  = document.querySelectorAll('#pwItems .cm-item.critical-item');
-  const doneCount  = document.querySelectorAll('#pwItems .cm-item.critical-item.checked').length;
-  const total      = critItems.length;
-  document.getElementById('pwDoneCount').textContent = doneCount;
-  document.getElementById('pwFill').style.width = total ? (doneCount/total*100)+'%' : '0%';
-  document.getElementById('pwConfirm').disabled = doneCount < total;
+function pw2Answer(openDoors){
+  if(!openDoors){
+    _pwBuildChecklist('pw3b-items', _SWBD_OP_ITEMS, 'pw3b-confirm', 'pw3b-done', 'pw3b-total', 'pw3b-fill');
+    _pwShowScreen('pws3b');
+  } else {
+    const task = (selectedTask || 'others').toLowerCase();
+    const taskItems = (_TASK_ITEMS_LIVE[task] || _TASK_ITEMS_LIVE.others);
+    const allItems = [..._LIVE_WORK_COMMON, ...taskItems];
+    const label = _pwTaskLabel(task);
+    document.getElementById('pw3a-task-node').textContent = label;
+    document.getElementById('pw3a-sub').textContent = `Task: ${label} — all critical items mandatory before scanning`;
+    _pwBuildChecklist('pw3a-items', allItems, 'pw3a-confirm', 'pw3a-done', 'pw3a-total', 'pw3a-fill');
+    _pwShowScreen('pws3a');
+  }
 }
+
+function pwGoBack(screenId){ _pwShowScreen(screenId); }
 
 function closePreWork(){
   document.getElementById('preWorkOverlay').classList.remove('active');

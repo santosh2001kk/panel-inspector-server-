@@ -1115,20 +1115,26 @@ function drawCanvas(canvasId){
       ctx.lineWidth = isSelected ? 4 : 2;
       if (isSelected) ctx.setLineDash([2, 2]); else ctx.setLineDash([]);
 
-      ctx.strokeRect(bx,by,bw,bh);
-      ctx.fillStyle = isSelected ? col+'44' : col+'22'; 
-      ctx.fillRect(bx,by,bw,bh);
+      // YOLO-style box
+      ctx.strokeStyle = col; ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.setLineDash(isSelected ? [4,3] : []);
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.fillStyle = col + '22';
+      ctx.fillRect(bx, by, bw, bh);
 
-      // Label: type · rating
-      const parts=[];
-      parts.push(deviceName(b.type)||'?');
+      // Label tag pinned to top-left of box (YOLO style)
+      const parts = [];
+      parts.push(deviceName(b.type) || '?');
       if(b.rating) parts.push(b.rating);
-      const label=parts.join(' · ');
-      ctx.font='bold 11px Inter,sans-serif';
-      const tw=ctx.measureText(label).width+12;
-      const labelY = by >= 20 ? by-20 : by+bh;
-      ctx.fillStyle='rgba(10,22,40,.88)'; ctx.fillRect(bx,labelY,tw,18);
-      ctx.fillStyle=col; ctx.fillText(label,bx+6,labelY+13);
+      const label = parts.join('  ');
+      ctx.font = 'bold 11px Inter,sans-serif';
+      const tw = ctx.measureText(label).width + 12;
+      const tagH = 20;
+      const tagY = by > tagH ? by - tagH : by;   // above box if space, else inside top
+      ctx.fillStyle = col;
+      ctx.fillRect(bx, tagY, tw, tagH);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, bx + 6, tagY + 14);
     });
   };
   img.src='data:'+mime+';base64,'+imgB64;

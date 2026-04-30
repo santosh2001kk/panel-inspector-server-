@@ -1037,132 +1037,104 @@ function drawCanvas(canvasId){
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   const img = new Image();
-  img.onload = ()=>{
+
+  img.onload = () => {
+    // ── 1. Size canvas ──────────────────────────────────────────────
     const maxW = Math.min(560, window.innerWidth - 100);
-    const scale = Math.min(maxW/img.naturalWidth, 480/img.naturalHeight, 1);
+    const scale = Math.min(maxW / img.naturalWidth, 480 / img.naturalHeight, 1);
     canvas.width  = img.naturalWidth  * scale;
     canvas.height = img.naturalHeight * scale;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Add click listener once
-    if (!canvas.dataset.hasListener) {
-        canvas.onclick = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-            const hit = renderedBreakers.find(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
-            if (hit) selectBreaker(hit.index, true);
-        };
-        canvas.dataset.hasListener = "true";
-    }
+    // Helpers
+    const n2c = (v, dim) => v / 1000 * dim;          // 0-1000 → canvas px
+    const px2c_x = canvas.width  / img.naturalWidth;  // pixel → canvas (cubicles)
+    const px2c_y = canvas.height / img.naturalHeight;
 
-    // Work zone
+    // ── 2. Safety buffer (red dashed) + Work zone (green solid) ────
     const zr = meta.zoneRect, cW = meta.canvasW, cH = meta.canvasH;
     if(zr && cW && cH){
-      const sx = canvas.width/cW, sy = canvas.height/cH;
-      const x=zr.x*sx, y=zr.y*sy, w=zr.w*sx, h=zr.h*sy;
-      const buf=0.12;
-      ctx.strokeStyle='rgba(255,71,87,.65)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
-      ctx.strokeRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
-      ctx.fillStyle='rgba(255,71,87,.07)'; ctx.fillRect(x-w*buf,y-h*buf,w*(1+2*buf),h*(1+2*buf));
+      const sx = canvas.width / cW, sy = canvas.height / cH;
+      const x = zr.x*sx, y = zr.y*sy, w = zr.w*sx, h = zr.h*sy;
+      const buf = 0.12;
+      // Safety buffer
+      ctx.strokeStyle = 'rgba(255,71,87,.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+      ctx.strokeRect(x-w*buf, y-h*buf, w*(1+2*buf), h*(1+2*buf));
+      ctx.fillStyle  = 'rgba(255,71,87,.06)';
+      ctx.fillRect(x-w*buf, y-h*buf, w*(1+2*buf), h*(1+2*buf));
       ctx.setLineDash([]);
-      ctx.strokeStyle='#3DCD58'; ctx.lineWidth=2.5;
-      ctx.strokeRect(x,y,w,h);
-      ctx.fillStyle='rgba(61,205,88,.1)'; ctx.fillRect(x,y,w,h);
+      // Work zone
+      ctx.strokeStyle = '#3DCD58'; ctx.lineWidth = 2.5;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = 'rgba(61,205,88,.08)';
+      ctx.fillRect(x, y, w, h);
     }
 
-    // Pass 0: cubicles from dedicated detection (data.cubicles — pixel coords from original image)
-    const cubicles = data.cubicles || [];
-    if(cubicles.length){
-      const sx = canvas.width  / img.naturalWidth;
-      const sy = canvas.height / img.naturalHeight;
-      cubicles.forEach((c, i)=>{
-        if(!c.box||c.box.length<4) return;
-        const isVbb = c.label==='vbb';
-        const col   = isVbb ? '#FF4757' : '#4A9EFF';
-        const bx=c.box[1]*sx, by=c.box[0]*sy;
-        const bw=(c.box[3]-c.box[1])*sx, bh=(c.box[2]-c.box[0])*sy;
-        ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([8,4]);
-        ctx.strokeRect(bx,by,bw,bh);
-        ctx.fillStyle=col+'18'; ctx.fillRect(bx,by,bw,bh);
-        ctx.setLineDash([]);
-        const lbl = isVbb ? 'VBB ⚡' : `C${c.position||i+1}`;
-        ctx.font='bold 12px Inter,sans-serif';
-        const tw=ctx.measureText(lbl).width+10;
-        ctx.fillStyle=col; ctx.fillRect(bx,by,tw,20);
-        ctx.fillStyle='#fff'; ctx.fillText(lbl,bx+5,by+14);
-      });
-    }
-
-    // Draw structure items (columns/drawers) first so components render on top
-    const breakers = data.breakers || [];
-    const COMP_COLORS=['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
-    let compIdx = 0;
-
-    // Pass 1: structure (columns/drawers) — light blue dashed outline
-    breakers.forEach(b=>{
-      if(!b.box||b.box.length<4) return;
-      if(b.category !== 'structure') return;
-      const [yn,xn,yx,xx]=b.box;
-      const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
-      const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
-      ctx.strokeStyle='rgba(61,205,88,.9)'; ctx.lineWidth=2; ctx.setLineDash([]);
-      ctx.strokeRect(bx,by,bw,bh);
-      ctx.fillStyle='rgba(61,205,88,.08)'; ctx.fillRect(bx,by,bw,bh);
-      const label=b.type||'Column';
-      ctx.font='bold 11px Inter,sans-serif';
-      const tw=ctx.measureText(label).width+10;
-      ctx.fillStyle='rgba(61,205,88,.85)'; ctx.fillRect(bx,by,tw,18);
-      ctx.fillStyle='#fff'; ctx.fillText(label,bx+5,by+13);
+    // ── 3. Cubicles — C1/C2/VBB (pixel coords from server) ─────────
+    (data.cubicles || []).forEach((c, i) => {
+      if(!c.box || c.box.length < 4) return;
+      const isVbb = c.label === 'vbb';
+      const col   = isVbb ? '#FF4757' : '#4A9EFF';
+      const bx = c.box[1]*px2c_x, by = c.box[0]*px2c_y;
+      const bw = (c.box[3]-c.box[1])*px2c_x, bh = (c.box[2]-c.box[0])*px2c_y;
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([8,4]);
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.fillStyle = col+'18'; ctx.fillRect(bx, by, bw, bh);
+      ctx.setLineDash([]);
+      const lbl = isVbb ? 'VBB ⚡' : `C${c.position || i+1}`;
+      ctx.font = 'bold 12px Inter,sans-serif';
+      const tw = ctx.measureText(lbl).width + 10;
+      ctx.fillStyle = col;  ctx.fillRect(bx, by, tw, 20);
+      ctx.fillStyle = '#fff'; ctx.fillText(lbl, bx+5, by+14);
     });
 
-    // Pass 2: components (breakers, contactors, PLCs, etc.)
-    console.log('[DEBUG] all breakers from server:', JSON.stringify(breakers));
-    breakers.forEach((b, idx)=>{
-      if(!b.box||b.box.length<4){ console.log('[SKIP] no box:', b.type); return; }
-      const isStructure = b.category === 'structure';
-      if(isStructure) return;
+    // ── 4. Breakers (0-1000 normalised coords) ─────────────────────
+    const COLORS = ['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
+    let ci = 0;
+    (data.breakers || []).forEach((b, idx) => {
+      if(!b.box || b.box.length < 4) return;
+      if(b.category === 'structure') return;
+      const [yn, xn, yx, xx] = b.box;
+      const bx = n2c(xn, canvas.width),  by = n2c(yn, canvas.height);
+      const bw = n2c(xx-xn, canvas.width), bh = n2c(yx-yn, canvas.height);
+      if(bw < 4 || bh < 4) return;   // skip degenerate boxes
 
-      const [yn,xn,yx,xx]=b.box;
-      console.log('[DRAW]', b.type, 'box:', yn, xn, yx, xx, '→ canvas px:', Math.round(xn/1000*canvas.width), Math.round(yn/1000*canvas.height));
-      const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
-      const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
-      
-      // Store for hit detection
-      if (canvasId === 'resultCanvas') {
-          renderedBreakers.push({x: bx, y: by, w: bw, h: bh, index: idx});
-      }
-
-      const col=COMP_COLORS[compIdx%COMP_COLORS.length]; compIdx++;
+      const col = COLORS[ci % COLORS.length]; ci++;
       const isSelected = selectedIdx === idx;
 
-      // Draw bounding box — thick, bright border
-      ctx.strokeStyle = col;
-      ctx.lineWidth = isSelected ? 4 : 3;
-      ctx.setLineDash(isSelected ? [4,3] : []);
-      ctx.strokeRect(bx, by, bw, bh);
-      ctx.fillStyle = isSelected ? col+'55' : col+'33';
-      ctx.fillRect(bx, by, bw, bh);
+      // Box
+      ctx.strokeStyle = isSelected ? '#fff' : col;
+      ctx.lineWidth   = isSelected ? 4 : 3;
       ctx.setLineDash([]);
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.fillStyle = col + (isSelected ? '55' : '30');
+      ctx.fillRect(bx, by, bw, bh);
 
-      // Label: stacked inside box so overlapping items don't overwrite each other
-      const parts = [];
-      parts.push(deviceName(b.type) || '?');
-      if(b.rating) parts.push(b.rating);
-      const label = parts.join(' · ');
+      // Label tag above the box
+      const lbl = [deviceName(b.type), b.rating].filter(Boolean).join('  ');
       ctx.font = 'bold 12px Inter,sans-serif';
-      const tw = ctx.measureText(label).width + 10;
-      const tagH = 20;
-      // Stack labels: each item offsets down by its index within this draw pass
-      const stackOffset = (compIdx - 1) * 22;
-      const tagY = Math.min(by + stackOffset, by + bh - tagH);
-      ctx.fillStyle = col;
-      ctx.fillRect(bx, tagY, tw, tagH);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(label, bx + 5, tagY + 14);
+      const tw  = ctx.measureText(lbl).width + 12;
+      const ty  = by >= 22 ? by - 22 : by;
+      ctx.fillStyle = col;   ctx.fillRect(bx, ty, tw, 22);
+      ctx.fillStyle = '#fff'; ctx.fillText(lbl, bx+6, ty+15);
+
+      if(canvasId === 'resultCanvas')
+        renderedBreakers.push({x:bx, y:by, w:bw, h:bh, index:idx});
     });
+
+    // ── 5. Click listener ───────────────────────────────────────────
+    if(!canvas.dataset.hasListener){
+      canvas.onclick = e => {
+        const r  = canvas.getBoundingClientRect();
+        const mx = e.clientX - r.left, my = e.clientY - r.top;
+        const hit = renderedBreakers.find(b => mx>=b.x && mx<=b.x+b.w && my>=b.y && my<=b.y+b.h);
+        if(hit) selectBreaker(hit.index, true);
+      };
+      canvas.dataset.hasListener = 'true';
+    }
   };
-  img.src='data:'+mime+';base64,'+imgB64;
+
+  img.src = 'data:' + mime + ';base64,' + imgB64;
 }
 
 /* ─── Animated number counter ─── */

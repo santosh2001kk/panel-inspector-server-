@@ -1133,27 +1133,25 @@ function drawCanvas(canvasId){
 
       const col=COMP_COLORS[compIdx%COMP_COLORS.length]; compIdx++;
       const isSelected = selectedIdx === idx;
-      
+
+      // Draw bounding box
       ctx.strokeStyle = isSelected ? '#fff' : col;
       ctx.lineWidth = isSelected ? 4 : 2;
-      if (isSelected) ctx.setLineDash([2, 2]); else ctx.setLineDash([]);
-
-      // YOLO-style box
-      ctx.strokeStyle = col; ctx.lineWidth = isSelected ? 3 : 2;
       ctx.setLineDash(isSelected ? [4,3] : []);
       ctx.strokeRect(bx, by, bw, bh);
-      ctx.fillStyle = col + '22';
+      ctx.fillStyle = isSelected ? col+'44' : col+'22';
       ctx.fillRect(bx, by, bw, bh);
+      ctx.setLineDash([]);
 
-      // Label tag pinned to top-left of box (YOLO style)
+      // Label above the box (colored background, white text)
       const parts = [];
       parts.push(deviceName(b.type) || '?');
       if(b.rating) parts.push(b.rating);
-      const label = parts.join('  ');
+      const label = parts.join(' · ');
       ctx.font = 'bold 11px Inter,sans-serif';
       const tw = ctx.measureText(label).width + 12;
       const tagH = 20;
-      const tagY = by > tagH ? by - tagH : by;   // above box if space, else inside top
+      const tagY = by >= tagH ? by - tagH : by;
       ctx.fillStyle = col;
       ctx.fillRect(bx, tagY, tw, tagH);
       ctx.fillStyle = '#fff';

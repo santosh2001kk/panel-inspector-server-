@@ -791,27 +791,25 @@ function renderDetections(breakers){
     const components = breakers.filter(b=>b.category!=='structure');
     const structures = breakers.filter(b=>b.category==='structure');
     let tableHtml = `<table class="det-table">
-      <thead><tr><th>#</th><th>Type</th><th>Brand</th><th>Rating</th><th>Label / Circuit</th></tr></thead>
+      <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th></tr></thead>
       <tbody>`;
     if(structures.length){
-      tableHtml += `<tr><td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);background:rgba(74,158,255,.05)">Panel Structure (${structures.length} section${structures.length>1?'s':''})</td></tr>`;
+      tableHtml += `<tr><td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);background:rgba(74,158,255,.05)">Panel Structure (${structures.length} section${structures.length>1?'s':''})</td></tr>`;
       structures.forEach((b,i)=>{
         tableHtml += `<tr>
           <td class="row-idx" style="color:var(--blue)">S${i+1}</td>
           <td><span class="det-type" style="color:var(--blue)">${esc(deviceName(b.type)||'Column')}</span></td>
           <td style="color:var(--muted)">—</td>
-          <td style="color:var(--muted)">—</td>
           <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
         </tr>`;
       });
-      if(components.length) tableHtml += `<tr><td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);background:rgba(61,205,88,.05)">Components (${components.length})</td></tr>`;
+      if(components.length) tableHtml += `<tr><td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);background:rgba(61,205,88,.05)">Components (${components.length})</td></tr>`;
     }
     components.forEach((b,i)=>{
       const col = COLORS[i%COLORS.length]||'';
       tableHtml += `<tr>
         <td class="row-idx">${i+1}</td>
         <td><span class="det-type">${esc(deviceName(b.type)||'Unknown')}</span>${b.type_detail?` <span style="font-size:11px;color:var(--muted)">(${esc(b.type_detail)})</span>`:''}</td>
-        <td style="font-size:12px;color:var(--muted)">${b.brand?`<span style="color:var(--blue)">${esc(b.brand)}</span>`:'—'}</td>
         <td>${b.rating?`<span class="det-badge ${col}">${esc(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
         <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
       </tr>`;

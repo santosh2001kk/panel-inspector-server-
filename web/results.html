@@ -1117,12 +1117,14 @@ function drawCanvas(canvasId){
     });
 
     // Pass 2: components (breakers, contactors, PLCs, etc.)
+    console.log('[DEBUG] all breakers from server:', JSON.stringify(breakers));
     breakers.forEach((b, idx)=>{
-      if(!b.box||b.box.length<4) return;
+      if(!b.box||b.box.length<4){ console.log('[SKIP] no box:', b.type); return; }
       const isStructure = b.category === 'structure';
       if(isStructure) return;
 
       const [yn,xn,yx,xx]=b.box;
+      console.log('[DRAW]', b.type, 'box:', yn, xn, yx, xx, '→ canvas px:', Math.round(xn/1000*canvas.width), Math.round(yn/1000*canvas.height));
       const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
       const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
       

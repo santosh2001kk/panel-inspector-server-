@@ -574,7 +574,16 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
     if work_zone and safety_buffer:
         notes_instruction = (
             "" if _has_task
-            else f"5. In notes, write one sentence summarising the breakers found in the work zone.\n"
+            else (
+                f"5. Write the 'notes' as a practical field briefing for the engineer about to work in this zone. Cover ALL of the following — do NOT just list what was detected:\n"
+                f"   a) WHAT IS IN THE WORK ZONE: Name the breaker(s) found and their exact role — is it the main incomer ACB, an outgoing feeder MCCB, or a distribution MCB? If a MasterPact is present, is it in connected/test/disconnected position?\n"
+                f"   b) BUSBAR LOCATION: Based on the panel type, tell the engineer exactly where the live busbar is — e.g. 'The VBB (Vertical Busbar Box) runs along the LEFT side of this panel and remains LIVE at all times even with the main breaker OFF. Do not penetrate or drill near that side.' Or for Okken: 'The HBB (Horizontal Busbar) runs across the TOP of the panel behind the top cover — it is always live.'\n"
+                f"   c) UPSTREAM: What feeds this work zone? (e.g. 'This breaker is fed directly from the main busbar — the busbar itself cannot be isolated from this panel.')\n"
+                f"   d) DOWNSTREAM: What does this zone feed or protect? Use circuit labels if visible. If not visible, infer from breaker type and position.\n"
+                f"   e) HOW TO APPROACH: Give 2-3 concrete steps — e.g. 'Open the main ACB to OPEN position before working, rack it to disconnected position, verify dead with voltage tester on the downstream terminals before touching any cables.'\n"
+                f"   f) BLANK PANEL INFERENCE: If the work zone is on a blank/closed section with nothing visible — infer what is likely behind it based on panel type and position, and say so explicitly (e.g. 'This blank panel is likely a spare breaker slot — bus stubs may still be energised inside.').\n"
+                f"   Write in plain English, direct and confident. No bullet points — flowing sentences. A field engineer should read this and know exactly what they are dealing with and what to do.\n"
+            )
         )
         return (
             f"You are an electrical panel safety inspector analyzing a Schneider Electric panel.\n\n"
@@ -1265,11 +1274,14 @@ def identify_cubicles_generic(image_b64: str, mime_type: str) -> dict:
         "     STOP all boxes at the actual metal panel frame edge, NOT at the image edge (0 or 1000).\n"
         "  4. Adjacent cubicles share a boundary — xmax of cubicle N = xmin of cubicle N+1.\n"
         "  5. Do NOT extend any box to x=0 or x=1000 unless the panel truly starts/ends at the image edge.\n\n"
-        "COUNTING RULES:\n"
-        "  - Do NOT invent cubicles that do not exist\n"
-        "  - Do NOT split one cubicle into two\n"
-        "  - Do NOT merge two cubicles into one\n"
-        "  - Count only what you actually see\n\n"
+        "COUNTING METHOD — follow these steps in order:\n"
+        "  1. Look at the TOP edge of the panel — count the number of distinct HINGES or LOCKING HANDLES. Each hinge/handle belongs to one door = one cubicle.\n"
+        "  2. Look for vertical SEAM LINES or FRAME DIVIDERS running top-to-bottom. Each seam = boundary between two cubicles.\n"
+        "  3. Count every distinct DOOR FRAME — each door that can open independently is one cubicle.\n"
+        "  4. If you count N vertical seams, you have N+1 cubicles.\n"
+        "  5. Do NOT merge two doors into one just because they look similar or have similar contents.\n"
+        "  6. Do NOT invent cubicles — only count what the physical frame shows.\n"
+        "  IMPORTANT: When in doubt between 2 and 3 cubicles, look for the middle vertical frame seam — if it exists, there are 3.\n\n"
         "Draw tight bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
         "Return ONLY valid JSON in this exact format:\n"
         '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "breaker", "box": [0, 50, 1000, 350]}, '

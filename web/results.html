@@ -115,9 +115,10 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 
 /* ── Canvas ── */
 .canvas-wrap{background:#000918;border-radius:12px;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;min-height:200px;
+  display:flex;align-items:center;justify-content:center;min-height:200px;position:relative;
 }
 .canvas-wrap canvas{max-width:100%;display:block}
+.canvas-wrap canvas:hover{cursor:pointer}
 .canvas-legend{display:flex;gap:16px;padding:14px 20px;flex-wrap:wrap;border-top:1px solid var(--border)}
 .legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
 .legend-dot{width:12px;height:12px;border-radius:2px}
@@ -170,7 +171,8 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 }
 .det-table td{padding:13px 16px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
 .det-table tr:last-child td{border-bottom:none}
-.det-table tr:hover td{background:rgba(61,205,88,.04)}
+.det-table tr:hover td,.det-table tr.selected-row td{background:rgba(61,205,88,.08)}
+.det-table tr.selected-row td{border-left:3px solid var(--green)}
 .det-type{font-weight:600}
 .det-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;
   background:rgba(61,205,88,.12);color:var(--green);border:1px solid rgba(61,205,88,.2);
@@ -338,6 +340,13 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
         <div class="stat-label">Documents Used</div>
       </div>
     </div>
+    <div class="stat-item">
+      <div class="stat-icon" style="background:rgba(139,92,246,.15)"><i class="fas fa-clock" style="color:#8b5cf6"></i></div>
+      <div>
+        <div class="stat-val" id="statTime" style="color:#8b5cf6">—</div>
+        <div class="stat-label">Analysis Time</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -371,7 +380,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
             <div class="canvas-wrap"><canvas id="resultCanvas"></canvas></div>
             <div class="canvas-legend">
               <div class="legend-item"><div class="legend-dot" style="background:#3DCD58"></div> Component</div>
-              <div class="legend-item"><div class="legend-dot" style="background:rgba(74,158,255,.15);border:2px dashed #4A9EFF;box-sizing:border-box"></div> Column/Structure</div>
+              <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.15);border:2px solid #3DCD58;box-sizing:border-box"></div> Column/Structure</div>
               <div class="legend-item"><div class="legend-dot" style="background:rgba(61,205,88,.25);border:2px solid #3DCD58;box-sizing:border-box"></div> Work zone</div>
               <div class="legend-item"><div class="legend-dot" style="background:rgba(255,71,87,.2);border:2px dashed #FF4757;box-sizing:border-box"></div> Safety buffer</div>
             </div>
@@ -602,6 +611,11 @@ function switchTab(id, btn){
   btn.classList.add('active');
 }
 
+/* ─── Remove "Schneider" / "Schneider Electric" prefix, keep technical name ─── */
+function deviceName(type){
+  return (type||'Unknown').replace(/schneider electric\s*/i,'').replace(/schneider\s*/i,'').trim();
+}
+
 /* ─── Master render ─── */
 function renderAll(){
   const breakers = data.breakers || [];
@@ -615,6 +629,8 @@ function renderAll(){
   animateNum('statBreakers', breakers.length, 600);
   animateNum('statWarnings', warnings.length, 700);
   animateNum('statDocs',     docsCount, 800);
+  const elapsed = parseInt(sessionStorage.getItem('analysisElapsed')||'0');
+  document.getElementById('statTime').textContent = elapsed ? (elapsed >= 60000 ? (elapsed/60000).toFixed(1)+'m' : (elapsed/1000).toFixed(1)+'s') : '—';
   document.getElementById('tbBreakers').textContent = breakers.length;
   document.getElementById('tbWarnings').textContent = warnings.length;
 
@@ -782,7 +798,7 @@ function renderDetections(breakers){
       structures.forEach((b,i)=>{
         tableHtml += `<tr>
           <td class="row-idx" style="color:var(--blue)">S${i+1}</td>
-          <td><span class="det-type" style="color:var(--blue)">${esc(b.type||'Column')}</span></td>
+          <td><span class="det-type" style="color:var(--blue)">${esc(deviceName(b.type)||'Column')}</span></td>
           <td style="color:var(--muted)">—</td>
           <td style="color:var(--muted)">—</td>
           <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
@@ -794,7 +810,7 @@ function renderDetections(breakers){
       const col = COLORS[i%COLORS.length]||'';
       tableHtml += `<tr>
         <td class="row-idx">${i+1}</td>
-        <td><span class="det-type">${esc(b.type||'Unknown')}</span>${b.type_detail?` <span style="font-size:11px;color:var(--muted)">(${esc(b.type_detail)})</span>`:''}</td>
+        <td><span class="det-type">${esc(deviceName(b.type)||'Unknown')}</span>${b.type_detail?` <span style="font-size:11px;color:var(--muted)">(${esc(b.type_detail)})</span>`:''}</td>
         <td style="font-size:12px;color:var(--muted)">${b.brand?`<span style="color:var(--blue)">${esc(b.brand)}</span>`:'—'}</td>
         <td>${b.rating?`<span class="det-badge ${col}">${esc(b.rating)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
         <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
@@ -807,7 +823,7 @@ function renderDetections(breakers){
 
   // breakdown bars
   const counts = {};
-  breakers.forEach(b=>{ const t=b.type||'Unknown'; counts[t]=(counts[t]||0)+1; });
+  breakers.forEach(b=>{ const t=deviceName(b.type)||'Unknown'; counts[t]=(counts[t]||0)+1; });
   const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const maxC = Math.max(...entries.map(e=>e[1]),1);
   document.getElementById('breakdownBody').innerHTML = entries.length ?
@@ -1030,6 +1046,18 @@ function drawCanvas(canvasId){
     canvas.height = img.naturalHeight * scale;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+    // Add click listener once
+    if (!canvas.dataset.hasListener) {
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            const hit = renderedBreakers.find(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
+            if (hit) selectBreaker(hit.index, true);
+        };
+        canvas.dataset.hasListener = "true";
+    }
+
     // Work zone
     const zr = meta.zoneRect, cW = meta.canvasW, cH = meta.canvasH;
     if(zr && cW && cH){
@@ -1057,32 +1085,45 @@ function drawCanvas(canvasId){
       const [yn,xn,yx,xx]=b.box;
       const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
       const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
-      ctx.strokeStyle='rgba(74,158,255,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.strokeStyle='rgba(61,205,88,.9)'; ctx.lineWidth=2; ctx.setLineDash([]);
       ctx.strokeRect(bx,by,bw,bh);
-      ctx.fillStyle='rgba(74,158,255,.05)'; ctx.fillRect(bx,by,bw,bh);
-      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(61,205,88,.08)'; ctx.fillRect(bx,by,bw,bh);
       const label=b.type||'Column';
-      ctx.font='bold 10px Inter,sans-serif';
+      ctx.font='bold 11px Inter,sans-serif';
       const tw=ctx.measureText(label).width+10;
-      ctx.fillStyle='rgba(74,158,255,.75)'; ctx.fillRect(bx,by,tw,16);
-      ctx.fillStyle='#fff'; ctx.fillText(label,bx+5,by+11);
+      ctx.fillStyle='rgba(61,205,88,.85)'; ctx.fillRect(bx,by,tw,18);
+      ctx.fillStyle='#fff'; ctx.fillText(label,bx+5,by+13);
     });
 
     // Pass 2: components (breakers, contactors, PLCs, etc.)
-    breakers.forEach(b=>{
+    breakers.forEach((b, idx)=>{
       if(!b.box||b.box.length<4) return;
-      if(b.category === 'structure') return;
+      const isStructure = b.category === 'structure';
+      if(isStructure) return;
+
       const [yn,xn,yx,xx]=b.box;
       const bx=xn/1000*canvas.width, by=yn/1000*canvas.height;
       const bw=(xx-xn)/1000*canvas.width, bh=(yx-yn)/1000*canvas.height;
+      
+      // Store for hit detection
+      if (canvasId === 'resultCanvas') {
+          renderedBreakers.push({x: bx, y: by, w: bw, h: bh, index: idx});
+      }
+
       const col=COMP_COLORS[compIdx%COMP_COLORS.length]; compIdx++;
-      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([]);
+      const isSelected = selectedIdx === idx;
+      
+      ctx.strokeStyle = isSelected ? '#fff' : col;
+      ctx.lineWidth = isSelected ? 4 : 2;
+      if (isSelected) ctx.setLineDash([2, 2]); else ctx.setLineDash([]);
+
       ctx.strokeRect(bx,by,bw,bh);
-      ctx.fillStyle=col+'22'; ctx.fillRect(bx,by,bw,bh);
-      // Label: brand (if any) · type · rating
+      ctx.fillStyle = isSelected ? col+'44' : col+'22'; 
+      ctx.fillRect(bx,by,bw,bh);
+
+      // Label: type · rating
       const parts=[];
-      if(b.brand) parts.push(b.brand);
-      parts.push(b.type||'?');
+      parts.push(deviceName(b.type)||'?');
       if(b.rating) parts.push(b.rating);
       const label=parts.join(' · ');
       ctx.font='bold 11px Inter,sans-serif';
@@ -1314,7 +1355,7 @@ function buildPrintArea(){
   // Detections table
   const detHtml = breakers.length
     ? `<table class="pr-rec-table"><thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th></tr></thead><tbody>`+
-      breakers.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(b.type||'—')}</td><td>${esc(b.rating||'—')}</td><td>${esc(b.circuit_label||'—')}</td></tr>`).join('')+
+      breakers.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(deviceName(b.type)||'—')}</td><td>${esc(b.rating||'—')}</td><td>${esc(b.circuit_label||'—')}</td></tr>`).join('')+
       '</tbody></table>'
     : '<p style="color:#666">No breakers detected.</p>';
 

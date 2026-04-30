@@ -597,6 +597,18 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       <div class="drop-title">Drop photo here or click to browse</div>
       <div class="drop-sub">Supports JPG, PNG — <span>take a photo or pick from gallery</span></div>
     </div>
+    <button class="btn-secondary" onclick="openCamera()" style="margin-top:12px;width:100%;justify-content:center;gap:10px">
+      <i class="fas fa-video"></i> Use Camera (Live Demo)
+    </button>
+
+    <div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px">
+      <video id="cameraVideo" autoplay playsinline muted style="max-width:100%;max-height:70vh;border-radius:12px;border:2px solid rgba(61,205,88,.5)"></video>
+      <div style="display:flex;gap:16px">
+        <button onclick="capturePhoto()" style="padding:14px 36px;background:#3DCD58;color:#000;font-weight:700;border:none;border-radius:10px;font-size:16px;cursor:pointer"><i class="fas fa-circle"></i> &nbsp;Capture</button>
+        <button onclick="closeCamera()" style="padding:14px 24px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer">Cancel</button>
+      </div>
+      <canvas id="cameraCanvas" style="display:none"></canvas>
+    </div>
 
     <div class="preview-wrap" id="previewWrap">
       <div class="zone-hint">
@@ -1010,6 +1022,40 @@ function handleFile(file){
   reader.readAsDataURL(file);
 }
 
+let _camStream=null;
+async function openCamera(){
+  const modal=document.getElementById('cameraModal');
+  const video=document.getElementById('cameraVideo');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    alert('Camera not available.\n\nOn Mac: open http://localhost:8000 instead of the IP address.\nOn iPad: make sure you are on the same WiFi network.');
+    return;
+  }
+  modal.style.display='flex';
+  try{
+    _camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    video.srcObject=_camStream;
+  }catch(e){
+    modal.style.display='none';
+    alert('Camera blocked.\n\nOn Mac: open http://localhost:8000 (not the IP) — browsers require localhost for camera access.\nError: '+e.message);
+  }
+}
+function closeCamera(){
+  if(_camStream){_camStream.getTracks().forEach(t=>t.stop());_camStream=null;}
+  document.getElementById('cameraModal').style.display='none';
+}
+function capturePhoto(){
+  const video=document.getElementById('cameraVideo');
+  const canvas=document.getElementById('cameraCanvas');
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  const dataUrl=canvas.toDataURL('image/jpeg',0.92);
+  imageBase64=dataUrl.split(',')[1];
+  imageFile={type:'image/jpeg'};
+  closeCamera();
+  loadCanvas(dataUrl);
+}
+
+
 // ── Canvas ──
 const canvas=document.getElementById('imgCanvas');
 const ctx=canvas.getContext('2d');
@@ -1297,8 +1343,10 @@ async function _doAnalysis(identifyOnly){
     ...(layoutBase64 ?{layoutBase64, layoutMimeType:layoutMime}:{}),
   };
   try {
+    const _t0 = Date.now();
     const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
+    sessionStorage.setItem('analysisElapsed', Date.now() - _t0);
     stopLoading(); document.getElementById('loadingOverlay').classList.remove('active');
 
     // Non-panel image rejection

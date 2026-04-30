@@ -14,24 +14,23 @@ import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
-_env_path = Path(__file__).parent / ".env"
-if _env_path.exists():
-    for _line in _env_path.read_text().splitlines():
-        _line = _line.strip()
-        if _line and not _line.startswith("#") and "=" in _line:
-            _k, _, _v = _line.partition("=")
-            os.environ.setdefault(_k.strip(), _v.strip())
 import numpy as np
 import cv2
-# pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
 from PIL import Image
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional
+
+# Load environment variables
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    from dotenv import load_dotenv
+    load_dotenv(_env_path)
+
 def classify_panel(acb: int, mccb: int, mcb: int, drawers: int = 0) -> str:
     if acb >= 1 and drawers > 4:
         return "Okken"
@@ -41,30 +40,23 @@ def classify_panel(acb: int, mccb: int, mcb: int, drawers: int = 0) -> str:
 
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_KEY", "")
 GEMINI_KEY    = os.environ.get("GEMINI_KEY", "")
-
-# Switch: "claude", "gemini", or "vertexai"
-PROVIDER = "gemini"
-
+PROVIDER      = os.environ.get("PROVIDER", "gemini")
 VERTEX_PROJECT  = "project-dca768bf-132b-488c-8f2"
 VERTEX_LOCATION = "us-central1"
 
-if PROVIDER == "claude":
-    import anthropic as _anthropic
-    MODEL      = "claude-opus-4-7"
-    FAST_MODEL = "claude-opus-4-7"
-    client = _anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-elif PROVIDER == "vertexai":
+def get_llm_client():
+    if PROVIDER == "claude":
+        import anthropic as _anthropic
+        return _anthropic.Anthropic(api_key=ANTHROPIC_KEY), "claude-opus-4-7"
+    
     from google import genai as _genai
-    from google.genai import types as _types
-    MODEL      = "gemini-3.1-pro-preview"
-    FAST_MODEL = "gemini-2.0-flash"
-    client = _genai.Client(vertexai=True, project=VERTEX_PROJECT, location=VERTEX_LOCATION)
-else:
-    from google import genai as _genai
-    from google.genai import types as _types
-    MODEL      = "gemini-3.1-pro-preview"
-    FAST_MODEL = "gemini-2.0-flash"
-    client = _genai.Client(api_key=GEMINI_KEY)
+    if PROVIDER == "vertexai":
+        return _genai.Client(vertexai=True, project=VERTEX_PROJECT, location=VERTEX_LOCATION), "gemini-3.1-pro-preview"
+    
+    return _genai.Client(api_key=GEMINI_KEY), "gemini-3.1-pro-preview"
+
+client, MODEL = get_llm_client()
+FAST_MODEL = "gemini-2.0-flash"
 
 app = FastAPI(title="Breaker Detection API", version="1.0.0")
 

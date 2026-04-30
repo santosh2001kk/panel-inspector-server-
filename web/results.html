@@ -1071,6 +1071,29 @@ function drawCanvas(canvasId){
       ctx.fillStyle='rgba(61,205,88,.1)'; ctx.fillRect(x,y,w,h);
     }
 
+    // Pass 0: cubicles from dedicated detection (data.cubicles — pixel coords from original image)
+    const cubicles = data.cubicles || [];
+    if(cubicles.length){
+      const sx = canvas.width  / img.naturalWidth;
+      const sy = canvas.height / img.naturalHeight;
+      cubicles.forEach((c, i)=>{
+        if(!c.box||c.box.length<4) return;
+        const isVbb = c.label==='vbb';
+        const col   = isVbb ? '#FF4757' : '#4A9EFF';
+        const bx=c.box[1]*sx, by=c.box[0]*sy;
+        const bw=(c.box[3]-c.box[1])*sx, bh=(c.box[2]-c.box[0])*sy;
+        ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([8,4]);
+        ctx.strokeRect(bx,by,bw,bh);
+        ctx.fillStyle=col+'18'; ctx.fillRect(bx,by,bw,bh);
+        ctx.setLineDash([]);
+        const lbl = isVbb ? 'VBB ⚡' : `C${c.position||i+1}`;
+        ctx.font='bold 12px Inter,sans-serif';
+        const tw=ctx.measureText(lbl).width+10;
+        ctx.fillStyle=col; ctx.fillRect(bx,by,tw,20);
+        ctx.fillStyle='#fff'; ctx.fillText(lbl,bx+5,by+14);
+      });
+    }
+
     // Draw structure items (columns/drawers) first so components render on top
     const breakers = data.breakers || [];
     const COMP_COLORS=['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];

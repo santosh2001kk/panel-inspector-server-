@@ -1136,28 +1136,30 @@ function drawCanvas(canvasId){
       const col=COMP_COLORS[compIdx%COMP_COLORS.length]; compIdx++;
       const isSelected = selectedIdx === idx;
 
-      // Draw bounding box
-      ctx.strokeStyle = isSelected ? '#fff' : col;
-      ctx.lineWidth = isSelected ? 4 : 2;
+      // Draw bounding box — thick, bright border
+      ctx.strokeStyle = col;
+      ctx.lineWidth = isSelected ? 4 : 3;
       ctx.setLineDash(isSelected ? [4,3] : []);
       ctx.strokeRect(bx, by, bw, bh);
-      ctx.fillStyle = isSelected ? col+'44' : col+'22';
+      ctx.fillStyle = isSelected ? col+'55' : col+'33';
       ctx.fillRect(bx, by, bw, bh);
       ctx.setLineDash([]);
 
-      // Label above the box (colored background, white text)
+      // Label: stacked inside box so overlapping items don't overwrite each other
       const parts = [];
       parts.push(deviceName(b.type) || '?');
       if(b.rating) parts.push(b.rating);
       const label = parts.join(' · ');
-      ctx.font = 'bold 11px Inter,sans-serif';
-      const tw = ctx.measureText(label).width + 12;
+      ctx.font = 'bold 12px Inter,sans-serif';
+      const tw = ctx.measureText(label).width + 10;
       const tagH = 20;
-      const tagY = by >= tagH ? by - tagH : by;
+      // Stack labels: each item offsets down by its index within this draw pass
+      const stackOffset = (compIdx - 1) * 22;
+      const tagY = Math.min(by + stackOffset, by + bh - tagH);
       ctx.fillStyle = col;
       ctx.fillRect(bx, tagY, tw, tagH);
       ctx.fillStyle = '#fff';
-      ctx.fillText(label, bx + 6, tagY + 14);
+      ctx.fillText(label, bx + 5, tagY + 14);
     });
   };
   img.src='data:'+mime+';base64,'+imgB64;

@@ -592,7 +592,7 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
             f"  Work Zone     (green box): ymin={work_zone.ymin}, xmin={work_zone.xmin}, ymax={work_zone.ymax}, xmax={work_zone.xmax}\n"
             f"  Safety Buffer (red  box):  ymin={safety_buffer.ymin}, xmin={safety_buffer.xmin}, ymax={safety_buffer.ymax}, xmax={safety_buffer.xmax}\n\n"
             f"STRICT INSTRUCTIONS:\n"
-            f"1. ONLY detect circuit breakers INSIDE the Safety Buffer zone. Ignore everything outside.\n"
+            f"1. Detect ALL components that are partially or fully inside the Safety Buffer. Do not ignore items near the edges.\n"
             f"2. Classify each breaker strictly as ACB, MCCB, or MCB using the rules above.\n"
             f"3. Return bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
             f"4. Check the Safety Buffer for hazards: Main Disconnects, HV switches, exposed busbars. Add to safety_warnings.\n"
@@ -1559,16 +1559,17 @@ def analyze(body: AnalyzeRequest):
             safety_warnings: list[str]
             summary: str = _F(default="", description="One-sentence technical summary of the panel and its main components.")
 
-        # Unified high-detail detection instructions with improved precision
+        # Unified high-detail detection instructions with improved spatial precision
         _detection_instructions = (
-            "\nPERFORM HIGH-PRECISION COMPONENT INVENTORY:\n"
+            "\nPERFORM PIXEL-PERFECT SPATIAL INVENTORY:\n"
             "1. Detect EVERY visible component, especially those INSIDE the marked Work Zone.\n"
-            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
-            "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
+            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, circuit_label, and rating.\n"
+            "3. DETECT PANEL STRUCTURE: identify each vertical column/section as category='structure' and type='Column'.\n"
+            "   Columns MUST precisely match the physical metal frame edges and span full panel height.\n"
             "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
             "4. Return ONE entry per individual component — do NOT group.\n"
-            "5. Read circuit_label and rating from breaker faces and label strips.\n"
-            "6. BOUNDING BOXES: Ensure boxes are extremely tight to the component body. Do not include wires or gaps.\n"
+            "5. BOUNDING BOXES: Ensure boxes are extremely tight to the component body. For breakers, box ONLY the front face plastic. For columns, box the vertical frame dividers.\n"
+            "6. Reading labels: Prioritize reading the circuit label strip directly above or below each breaker.\n"
         )
 
         gemini_prompt = prompt + _detection_instructions

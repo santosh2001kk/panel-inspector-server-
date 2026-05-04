@@ -1658,9 +1658,30 @@ def analyze(body: AnalyzeRequest):
             # Helper functions — defined here so all panel branches can use them
             def _label_desc(c):
                 lbl = c.get("label", "breaker")
-                if lbl == "vbb":   return "VBB compartment ⚡"
-                if lbl == "cable": return "cable compartment 🔌"
+                if lbl == "vbb":   return "VBB busbar compartment ⚡"
+                if lbl == "cable": return "cable compartment"
                 return "breaker section"
+
+            def _full_label_desc(c):
+                lbl = c.get("label", "breaker")
+                box = c.get("box", [0, 0, 0, 1000])
+                w   = (box[3] - box[1]) if len(box) >= 4 else 500
+                if lbl == "vbb":
+                    return "VBB busbar compartment ⚡ — narrow, plain door, ALWAYS live even when isolated. Do NOT open or penetrate."
+                if lbl == "cable":
+                    return "cable compartment (closed/narrow section) — terminal connections and incoming cables."
+                return "breaker cubicle (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
+
+            def _build_layout_overview(raw):
+                """Full panel layout description listing every cubicle left to right."""
+                directions = {1: "LEFT", len(raw): "RIGHT"}
+                lines = ["Panel layout (left → right):"]
+                for c in raw:
+                    pos = c.get("position", "?")
+                    lbl_detail = _full_label_desc(c)
+                    side = f" [{directions[pos]}]" if pos in directions else ""
+                    lines.append(f"  C{pos}{side}: {lbl_detail}")
+                return "\n".join(lines)
 
             def _build_cubicles_px(raw):
                 # All cubicles share the same panel top/bottom — use median ymin/ymax
@@ -1694,26 +1715,34 @@ def analyze(body: AnalyzeRequest):
                     })
                 return result
 
-            def _build_cubicle_line(raw, include_vbb=True):
+            def _build_cubicle_line(raw, include_vbb=True, detailed=False):
                 wz_cx     = (body.workZone.xmin + body.workZone.xmax) / 2
                 working_c = next((c for c in raw if len(c.get("box",[])) >= 4 and c["box"][1] <= wz_cx <= c["box"][3]), None)
                 vbb_c     = next((c for c in raw if c.get("is_vbb") or c.get("label") == "vbb"), None) if include_vbb else None
                 parts     = []
+                if detailed:
+                    parts += [_build_layout_overview(raw), ""]
                 if working_c:
                     wz_pos = working_c.get("position", "?")
-                    parts.append(f"Working in Cubicle {wz_pos} ({_label_desc(working_c)}).")
+                    parts.append(f"You are working in C{wz_pos} ({_label_desc(working_c)}).")
                     left_c  = next((c for c in raw if c.get("position") == wz_pos - 1), None)
                     right_c = next((c for c in raw if c.get("position") == wz_pos + 1), None)
-                    if left_c:
-                        parts.append(f"Cubicle {left_c.get('position')} immediately to your LEFT is a {_label_desc(left_c)}.")
-                    if right_c:
-                        parts.append(f"Cubicle {right_c.get('position')} immediately to your RIGHT is a {_label_desc(right_c)}.")
+                    if detailed:
+                        if left_c:
+                            parts.append(f"C{left_c.get('position')} immediately to your LEFT: {_full_label_desc(left_c)}")
+                        if right_c:
+                            parts.append(f"C{right_c.get('position')} immediately to your RIGHT: {_full_label_desc(right_c)}")
+                    else:
+                        if left_c:
+                            parts.append(f"Cubicle {left_c.get('position')} immediately to your LEFT is a {_label_desc(left_c)}.")
+                        if right_c:
+                            parts.append(f"Cubicle {right_c.get('position')} immediately to your RIGHT is a {_label_desc(right_c)}.")
                     if vbb_c:
                         vbb_pos   = vbb_c.get("position", 0)
                         proximity = "immediately " if abs(vbb_pos - wz_pos) == 1 else ""
                         direction = "to your LEFT" if vbb_pos < wz_pos else "to your RIGHT"
-                        parts.append(f"⚠ VBB (Cubicle {vbb_pos}) is {proximity}{direction} — live busbars present, do NOT drill or penetrate.")
-                return " ".join(parts)
+                        parts.append(f"⚠ VBB (C{vbb_pos}) is {proximity}{direction} — live busbars, do NOT drill or penetrate.")
+                return "\n".join(parts)
 
             # Okken — detect cubicles, no VBB, add HBB message
             if "okken" in detected_panel.lower():
@@ -1787,7 +1816,7 @@ def analyze(body: AnalyzeRequest):
                 cubicles_px           = _build_cubicles_px(raw_cubicles)
                 data["cubicle_count"] = len(raw_cubicles)
                 data["cubicles"]      = cubicles_px
-                data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False)
+                data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
                 data["task_recommendations"] = erms_recs

@@ -387,14 +387,14 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           </div>
         </div>
 
-        <!-- Busbar location warning -->
-        <div class="card" id="busbarWarnCard" style="display:none;border:1px solid #FF4757">
+        <!-- Panel layout / busbar warning -->
+        <div class="card" id="busbarWarnCard" style="display:none;border:1px solid #4A9EFF">
           <div class="card-header">
-            <div class="card-icon ci-red"><i class="fas fa-bolt"></i></div>
-            <div class="card-title" style="color:#FF4757">⚠ Busbar Location Warning</div>
+            <div class="card-icon ci-blue"><i class="fas fa-table-columns"></i></div>
+            <div id="busbarWarnTitle" class="card-title" style="color:#4A9EFF">Panel Layout</div>
           </div>
           <div class="card-body">
-            <div class="warning-item" id="busbarWarnText" style="background:rgba(255,71,87,.08);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:#E0EAF4"></div>
+            <pre id="busbarWarnText" style="background:rgba(74,158,255,.08);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;color:#E0EAF4;white-space:pre-wrap;font-family:'Inter',sans-serif;margin:0"></pre>
           </div>
         </div>
 
@@ -716,7 +716,13 @@ function renderPanelCard(panelType, breakers, warnings){
 
   const cubicle_line = data.cubicle_line || '';
   if(cubicle_line){
-    document.getElementById('busbarWarnCard').style.display='';
+    const hasVbb = cubicle_line.includes('VBB');
+    const card  = document.getElementById('busbarWarnCard');
+    const title = document.getElementById('busbarWarnTitle');
+    card.style.display='';
+    card.style.borderColor = hasVbb ? '#FF4757' : '#4A9EFF';
+    title.style.color      = hasVbb ? '#FF4757' : '#4A9EFF';
+    title.textContent      = hasVbb ? '⚠ Busbar Location Warning' : 'Panel Layout';
     document.getElementById('busbarWarnText').textContent=cubicle_line;
   }
 }

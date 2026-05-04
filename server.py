@@ -1778,46 +1778,33 @@ def analyze(body: AnalyzeRequest):
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
-            # PrismaSeT G — build cubicle columns from breaker positions + cable compartment on left
+            # PrismaSeT G — use AI cubicle detection (parallel call) + draw boxes on canvas
             if "prismaset g" in detected_panel.lower() or "prisma g" in detected_panel.lower():
-                all_boxes = [b.get("box", []) for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
+                cubicle_result = _cubicle_future.result(timeout=120) if _cubicle_future else {}
+                raw_cubicles   = cubicle_result.get("cubicles", [])
 
-                p_top_g    = max((panel_ymin_raw or 50) - 50, 0)
-                p_bottom_g = min((panel_ymax_raw or 950) + 50, 1000)
+                # Fallback: if AI detection returned nothing, build 2-cubicle layout from zone
+                if not raw_cubicles:
+                    all_boxes  = [b.get("box", []) for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
+                    p_top_g    = max((panel_ymin_raw or 50) - 50, 0)
+                    p_bottom_g = min((panel_ymax_raw or 950) + 50, 1000)
+                    if all_boxes:
+                        xmin_all = min(b[1] for b in all_boxes)
+                        xmax_all = max(b[3] for b in all_boxes)
+                        ref_zone = body.safetyBuffer or body.workZone
+                        brk_xmin = ref_zone.xmin if ref_zone else xmin_all
+                        raw_cubicles = [
+                            {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top_g, max(brk_xmin - (xmax_all - xmin_all), 0), p_bottom_g, brk_xmin]},
+                            {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top_g, brk_xmin, p_bottom_g, xmax_all]},
+                        ]
+                    else:
+                        raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False, "box": [50, 50, 950, 950]}]
 
-                if all_boxes:
-                    xmin_all = min(b[1] for b in all_boxes)
-                    xmax_all = max(b[3] for b in all_boxes)
-                    panel_w  = xmax_all - xmin_all
-
-                    # Use safetyBuffer or workZone left edge as the breaker section start
-                    # (user drew the zone in the open breaker section, left of it = cable compartment)
-                    ref_zone = body.safetyBuffer or body.workZone
-                    brk_section_xmin = ref_zone.xmin if ref_zone else xmin_all
-
-                    # Cable compartment: everything to the LEFT of the breaker section
-                    # PrismaSeT G cable compartment ≈ same width as breaker cubicle (~600mm each)
-                    cable_xmin = max(brk_section_xmin - panel_w, 0)
-
-                    # PrismaSeT G: always 2 cubicles — C1 cable (left), C2 breaker (right)
-                    raw_cubicles = [
-                        {"position": 1, "label": "cable",   "is_vbb": False,
-                         "box": [p_top_g, cable_xmin, p_bottom_g, brk_section_xmin]},
-                        {"position": 2, "label": "breaker", "is_vbb": False,
-                         "box": [p_top_g, brk_section_xmin, p_bottom_g, xmax_all]},
-                    ]
-                else:
-                    raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False,
-                                     "box": [p_top_g, 50, p_bottom_g, 950]}]
-
-                print(f"[CUBICLE] PrismaSeT G — 2 cubicles: cable (left) + breaker (right)")
-                data["cubicle_count"] = 2
-                data["cubicles"]      = []   # no column boxes on canvas for PrismaSeT G
-                data["cubicle_line"]  = (
-                    "This panel has 2 cubicles:\n"
-                    "  C1 [LEFT]: cable compartment (closed section) — terminal connections and incoming cables.\n"
-                    "  C2 [RIGHT]: breaker section (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
-                )
+                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s) detected by AI")
+                cubicles_px           = _build_cubicles_px(raw_cubicles)
+                data["cubicle_count"] = len(raw_cubicles)
+                data["cubicles"]      = cubicles_px   # draw boxes on canvas
+                data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
                 data["task_recommendations"] = erms_recs

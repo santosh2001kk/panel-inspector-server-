@@ -1070,13 +1070,13 @@ function drawCanvas(canvasId){
       ctx.fillRect(x, y, w, h);
     }
 
-    // ── 3. Cubicles — C1/C2/VBB (pixel coords from server) ─────────
+    // ── 3. Cubicles — C1/C2/VBB (server returns pixel coords, not 0-1000) ──
     (data.cubicles || []).forEach((c, i) => {
       if(!c.box || c.box.length < 4) return;
       const isVbb = c.label === 'vbb';
       const col   = isVbb ? '#FF4757' : '#4A9EFF';
-      const bx = c.box[1]*px2c_x, by = c.box[0]*px2c_y;
-      const bw = (c.box[3]-c.box[1])*px2c_x, bh = (c.box[2]-c.box[0])*px2c_y;
+      const bx = c.box[1] * px2c_x,  by = c.box[0] * px2c_y;
+      const bw = (c.box[3]-c.box[1]) * px2c_x, bh = (c.box[2]-c.box[0]) * px2c_y;
       ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([8,4]);
       ctx.strokeRect(bx, by, bw, bh);
       ctx.fillStyle = col+'18'; ctx.fillRect(bx, by, bw, bh);

@@ -1750,49 +1750,58 @@ def analyze(body: AnalyzeRequest):
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
-            # PrismaSeT P — re-run with VBB-specific prompt for accurate VBB detection
-            cubicle_result = identify_busbar_only(body.imageBase64, body.mimeType)
-            raw_cubicles   = cubicle_result.get("cubicles", [])
+            # PrismaSeT P — build cubicles deterministically from busbar_side + zone positions
+            # No second LLM call — avoids unreliable secondary Gemini request
+            bs = data.get("busbar_side", "right")
 
-            # If no VBB detected, split the edge cubicle on the busbar_side
-            # PrismaSeT P: VBB = 150mm, main section = 650mm → VBB ≈ 19% of total panel width
-            has_vbb = any(c.get("label") == "vbb" or c.get("is_vbb") for c in raw_cubicles)
-            if not has_vbb and raw_cubicles:
-                bs = data.get("busbar_side", "unknown")
-                edge_c = raw_cubicles[-1] if bs == "right" else raw_cubicles[0] if bs == "left" else None
-                if edge_c is None:
-                    # fallback: pick narrowest edge cubicle
-                    widths = [(c, c.get("box",[0,0,0,1000])[3] - c.get("box",[0,0,0,1000])[1]) for c in [raw_cubicles[0], raw_cubicles[-1]] if len(c.get("box",[])) >= 4]
-                    edge_c = min(widths, key=lambda x: x[1])[0] if widths else None
-                if edge_c and len(edge_c.get("box", [])) >= 4:
-                    box     = edge_c["box"]
-                    vbb_w   = int((box[3] - box[1]) * 150 / 650)
-                    new_box = box.copy()
-                    if bs == "right" or edge_c is raw_cubicles[-1]:
-                        vbb_box      = [box[0], box[3] - vbb_w, box[2], box[3]]
-                        edge_c["box"][3] = box[3] - vbb_w
-                        raw_cubicles.append({"position": len(raw_cubicles) + 1, "label": "vbb", "is_vbb": True, "box": vbb_box})
-                    else:
-                        vbb_box      = [box[0], box[1], box[2], box[1] + vbb_w]
-                        edge_c["box"][1] = box[1] + vbb_w
-                        raw_cubicles.insert(0, {"position": 0, "label": "vbb", "is_vbb": True, "box": vbb_box})
-                        for i, c in enumerate(raw_cubicles):
-                            c["position"] = i + 1
+            # Panel top/bottom from detected breaker Y range (or full extent as fallback)
+            p_top    = max((panel_ymin_raw or 50) - 30, 0)
+            p_bottom = min((panel_ymax_raw or 950) + 30, 1000)
 
-            # Flag narrowest edge cubicle as VBB if still not flagged
-            if raw_cubicles:
-                widths   = [(c, c.get("box",[0,0,0,0])[3] - c.get("box",[0,0,0,0])[1]) for c in raw_cubicles if len(c.get("box",[])) >= 4]
-                median_w = sorted([w for _, w in widths])[len(widths) // 2] if widths else 0
-                for edge_c in [raw_cubicles[0], raw_cubicles[-1]]:
-                    box = edge_c.get("box", [])
-                    if len(box) >= 4 and (box[3] - box[1]) < 0.45 * median_w:
-                        edge_c["is_vbb"] = True
-                        edge_c["label"]  = "vbb"
+            # Estimate breaker section X extent from safetyBuffer or workZone, else use proportional defaults
+            ref_zone = body.safetyBuffer or body.workZone
+            if ref_zone:
+                brk_xmin = ref_zone.xmin
+                brk_xmax = ref_zone.xmax
+                brk_w    = brk_xmax - brk_xmin
+                # VBB is 150mm, breaker section ~650mm → VBB ≈ 23% of breaker width
+                vbb_w    = max(int(brk_w * 150 / 650), 60)
+                if bs == "left":
+                    vbb_xmin = max(brk_xmin - vbb_w, 0)
+                    cbl_xmax = min(brk_xmax + int(brk_w * 0.7), 1000)
+                    raw_cubicles = [
+                        {"position": 1, "label": "vbb",     "is_vbb": True,  "box": [p_top, vbb_xmin, p_bottom, brk_xmin]},
+                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, brk_xmin, p_bottom, brk_xmax]},
+                        {"position": 3, "label": "cable",   "is_vbb": False, "box": [p_top, brk_xmax, p_bottom, cbl_xmax]},
+                    ]
+                else:  # right or unknown
+                    vbb_xmax = min(brk_xmax + vbb_w, 1000)
+                    cbl_xmin = max(brk_xmin - int(brk_w * 0.7), 0)
+                    raw_cubicles = [
+                        {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top, cbl_xmin, p_bottom, brk_xmin]},
+                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, brk_xmin, p_bottom, brk_xmax]},
+                        {"position": 3, "label": "vbb",     "is_vbb": True,  "box": [p_top, brk_xmax, p_bottom, vbb_xmax]},
+                    ]
+            else:
+                # No zone info — use fixed proportional layout across full image width
+                if bs == "left":
+                    raw_cubicles = [
+                        {"position": 1, "label": "vbb",     "is_vbb": True,  "box": [p_top, 20,  p_bottom, 190]},
+                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, 190, p_bottom, 650]},
+                        {"position": 3, "label": "cable",   "is_vbb": False, "box": [p_top, 650, p_bottom, 970]},
+                    ]
+                else:
+                    raw_cubicles = [
+                        {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top, 30,  p_bottom, 350]},
+                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, 350, p_bottom, 820]},
+                        {"position": 3, "label": "vbb",     "is_vbb": True,  "box": [p_top, 820, p_bottom, 970]},
+                    ]
 
+            print(f"[CUBICLE] PrismaSeT P — busbar_side={bs}, cubicles built deterministically")
             cubicles_px  = _build_cubicles_px(raw_cubicles)
             cubicle_line = _build_cubicle_line(raw_cubicles, include_vbb=True)
 
-            data["cubicle_count"] = cubicle_result.get("cubicle_count", 0)
+            data["cubicle_count"] = len(raw_cubicles)
             data["cubicles"]      = cubicles_px
             data["cubicle_line"]  = cubicle_line
             print(f"[CUBICLE_LINE] {cubicle_line}")

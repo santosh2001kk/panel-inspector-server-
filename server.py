@@ -1396,7 +1396,9 @@ def _call_llm(prompt: str, images: list, max_tokens: int = 4096) -> dict:
                 temperature=0.0,
             ),
         ))
-        raw = response.text.strip()
+        raw = (getattr(response, 'text', None) or "").strip()
+        if not raw:
+            raise ValueError(f"Empty response from Gemini (finish_reason={getattr(response, 'candidates', [{}])[0].get('finish_reason','?') if getattr(response,'candidates',None) else '?'})")
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
         return json.loads(raw)
@@ -1811,7 +1813,8 @@ def analyze(body: AnalyzeRequest):
             data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
 
         except Exception as _e:
-            print(f"[CUBICLE] Auto-detect failed (non-fatal): {_e}")
+            import traceback
+            print(f"[CUBICLE] Auto-detect failed: {_e}\n{traceback.format_exc()}")
             data["cubicle_count"] = 0
             data["cubicles"]      = []
             data["cubicle_line"]  = ""

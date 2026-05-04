@@ -583,10 +583,11 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
             f"  Work Zone     (green box): ymin={work_zone.ymin}, xmin={work_zone.xmin}, ymax={work_zone.ymax}, xmax={work_zone.xmax}\n"
             f"  Safety Buffer (red  box):  ymin={safety_buffer.ymin}, xmin={safety_buffer.xmin}, ymax={safety_buffer.ymax}, xmax={safety_buffer.xmax}\n\n"
             f"STRICT INSTRUCTIONS:\n"
-            f"1. ONLY detect circuit breakers INSIDE the Safety Buffer zone. Ignore everything outside.\n"
-            f"2. Classify each breaker strictly as ACB, MCCB, or MCB using the rules above.\n"
-            f"3. Return bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
-            f"4. Check the Safety Buffer for hazards: Main Disconnects, HV switches, exposed busbars. Add to safety_warnings.\n"
+            f"1. Detect ALL circuit breakers and components visible in the ENTIRE panel image — do NOT limit to the Safety Buffer.\n"
+            f"2. Also detect each vertical COLUMN/CUBICLE as a separate entry with category='structure' and type='Column'.\n"
+            f"3. Classify each breaker strictly as ACB, MCCB, or MCB using the rules above.\n"
+            f"4. Return bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
+            f"5. Check the Safety Buffer for hazards: Main Disconnects, HV switches, exposed busbars. Add to safety_warnings.\n"
             f"{notes_instruction}"
         )
     else:
@@ -1597,23 +1598,8 @@ def analyze(body: AnalyzeRequest):
     panel_ymin_raw = min((b[0] for b in raw_breaker_boxes), default=None)
     panel_ymax_raw = max((b[2] for b in raw_breaker_boxes), default=None)
 
-    # Filter breakers by zone + convert 0-1000 → pixel coords
-    filtered_breakers = []
-    for b in data.get("breakers", []):
-        box = b.get("box", [])
-        if len(box) < 4:
-            continue
-        ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
-
-        # Filter components by safety buffer; structure items (columns) always pass
-        is_structure = b.get("category", "component") == "structure"
-        if not is_structure and body.safetyBuffer and not inside_zone([ymin, xmin, ymax, xmax], body.safetyBuffer):
-            continue
-
-        # Keep coordinates as 0-1000 normalized — canvas scales them to display size
-        filtered_breakers.append(b)
-
-    data["breakers"] = filtered_breakers
+    # Keep all detected components — columns and breakers across the entire panel
+    data["breakers"] = [b for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
 
     # Use panel type returned by the single Gemini call
     panel_type    = data.get("panel_type", "Unknown")

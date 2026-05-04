@@ -1586,6 +1586,7 @@ def analyze(body: AnalyzeRequest):
             config=_types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=_DetectionResult,
+                temperature=0.0,
             ),
         ))
         data = json.loads(response.text)

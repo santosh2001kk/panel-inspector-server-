@@ -1880,7 +1880,7 @@ def analyze(body: AnalyzeRequest):
             cubicle_line = _build_cubicle_line(raw_cubicles, include_vbb=True)
 
             data["cubicle_count"] = len(raw_cubicles)
-            data["cubicles"]      = cubicles_px
+            data["cubicles"]      = []   # no column boxes on canvas — warning shown in text card
             data["cubicle_line"]  = cubicle_line
             print(f"[CUBICLE_LINE] {cubicle_line}")
 

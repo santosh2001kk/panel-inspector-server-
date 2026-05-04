@@ -1607,7 +1607,7 @@ def analyze(body: AnalyzeRequest):
     panel_ymin_raw = min((b[0] for b in raw_breaker_boxes), default=None)
     panel_ymax_raw = max((b[2] for b in raw_breaker_boxes), default=None)
 
-    # Keep all detected components — deduplicate overlapping boxes (IoU > 0.4)
+    # Post-process detections: deduplicate + group nearby same-type MCBs into one box
     def _iou(a, b):
         iy1,ix1,iy2,ix2 = max(a[0],b[0]),max(a[1],b[1]),min(a[2],b[2]),min(a[3],b[3])
         inter = max(0,iy2-iy1)*max(0,ix2-ix1)
@@ -1616,13 +1616,44 @@ def analyze(body: AnalyzeRequest):
         return inter / (aA + bA - inter)
 
     raw = [b for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
-    # Sort largest box first so smaller duplicates get dropped
+    # Deduplicate: sort largest first, drop boxes with IoU > 0.3 vs already-kept box
     raw.sort(key=lambda b: (b["box"][2]-b["box"][0])*(b["box"][3]-b["box"][1]), reverse=True)
     kept = []
     for b in raw:
-        if not any(_iou(b["box"], k["box"]) > 0.4 for k in kept):
+        if not any(_iou(b["box"], k["box"]) > 0.3 for k in kept):
             kept.append(b)
-    data["breakers"] = kept
+
+    # Group nearby same-type MCBs into one merged bounding box
+    # MCBs in a row (same vertical level, same type) should show as one box
+    _MCB_TYPES = {"acti9", "ic60", "multi9", "acti 9"}
+    def _is_mcb(b):
+        return any(t in b.get("type","").lower() for t in _MCB_TYPES)
+
+    mcbs   = [b for b in kept if _is_mcb(b)]
+    others = [b for b in kept if not _is_mcb(b)]
+
+    # Group MCBs that overlap vertically (within 60 units) into single merged box
+    merged_mcbs = []
+    used = [False] * len(mcbs)
+    for i, b in enumerate(mcbs):
+        if used[i]: continue
+        group = [b]; used[i] = True
+        for j, b2 in enumerate(mcbs):
+            if used[j]: continue
+            # Same vertical band: ymin/ymax overlap within 60 units
+            if abs(b["box"][0] - b2["box"][0]) < 60 and abs(b["box"][2] - b2["box"][2]) < 60:
+                group.append(b2); used[j] = True
+        # Merge group into one box
+        merged_box = [
+            min(g["box"][0] for g in group), min(g["box"][1] for g in group),
+            max(g["box"][2] for g in group), max(g["box"][3] for g in group),
+        ]
+        merged = dict(group[0]); merged["box"] = merged_box
+        if len(group) > 1:
+            merged["circuit_label"] = f"{len(group)}x {group[0].get('type','MCB')}"
+        merged_mcbs.append(merged)
+
+    data["breakers"] = others + merged_mcbs
 
     # Use panel type returned by the single Gemini call
     panel_type    = data.get("panel_type", "Unknown")

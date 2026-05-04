@@ -1735,44 +1735,55 @@ def analyze(body: AnalyzeRequest):
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
-            # PrismaSeT G — build cubicle columns from detected breaker X positions
+            # PrismaSeT G — build cubicle columns from breaker positions + cable compartment on left
             if "prismaset g" in detected_panel.lower() or "prisma g" in detected_panel.lower():
                 all_boxes = [b.get("box", []) for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
 
-                # Panel Y and X extent from ALL detected breakers (safety buffer may limit X)
-                # Use workZone for broader Y extent; raw breaker boxes for X
                 p_top_g    = max((panel_ymin_raw or 50) - 50, 0)
                 p_bottom_g = min((panel_ymax_raw or 950) + 50, 1000)
 
                 if all_boxes:
-                    # X extent from detected breakers
                     xmin_all = min(b[1] for b in all_boxes)
                     xmax_all = max(b[3] for b in all_boxes)
                     panel_w  = xmax_all - xmin_all
 
-                    # Find column boundaries: sort breaker X-centers, look for gaps > 15% panel width
-                    centers = sorted(set((b[1] + b[3]) // 2 for b in all_boxes))
-                    gap_threshold = max(panel_w * 0.15, 50)
-                    boundaries = [xmin_all]
-                    for i in range(1, len(centers)):
-                        if centers[i] - centers[i-1] > gap_threshold:
-                            boundaries.append((centers[i-1] + centers[i]) // 2)
-                    boundaries.append(xmax_all)
+                    # Use safetyBuffer or workZone left edge as the breaker section start
+                    # (user drew the zone in the open breaker section, left of it = cable compartment)
+                    ref_zone = body.safetyBuffer or body.workZone
+                    brk_section_xmin = ref_zone.xmin if ref_zone else xmin_all
+
+                    # Cable compartment: everything to the LEFT of the breaker section
+                    # PrismaSeT G cable compartment ≈ same width as breaker cubicle (~600mm each)
+                    cable_xmin = max(brk_section_xmin - panel_w, 0)
 
                     raw_cubicles = []
-                    for i in range(len(boundaries) - 1):
+                    # C1: cable compartment (left closed section) — only add if there's visible space
+                    if brk_section_xmin > 80:
                         raw_cubicles.append({
-                            "position": i + 1,
-                            "label": "breaker",
-                            "is_vbb": False,
-                            "box": [p_top_g, boundaries[i], p_bottom_g, boundaries[i+1]],
+                            "position": 1, "label": "cable", "is_vbb": False,
+                            "box": [p_top_g, cable_xmin, p_bottom_g, brk_section_xmin],
+                        })
+
+                    # Find breaker column boundaries within the open section
+                    centers = sorted(set((b[1] + b[3]) // 2 for b in all_boxes))
+                    gap_threshold = max(panel_w * 0.15, 50)
+                    brk_boundaries = [xmin_all]
+                    for i in range(1, len(centers)):
+                        if centers[i] - centers[i-1] > gap_threshold:
+                            brk_boundaries.append((centers[i-1] + centers[i]) // 2)
+                    brk_boundaries.append(xmax_all)
+
+                    pos_offset = len(raw_cubicles) + 1
+                    for i in range(len(brk_boundaries) - 1):
+                        raw_cubicles.append({
+                            "position": pos_offset + i, "label": "breaker", "is_vbb": False,
+                            "box": [p_top_g, brk_boundaries[i], p_bottom_g, brk_boundaries[i+1]],
                         })
                 else:
-                    # No breaker boxes — single full-panel cubicle fallback
                     raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False,
                                      "box": [p_top_g, 50, p_bottom_g, 950]}]
 
-                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} column(s) from breaker X distribution")
+                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s): cable+breaker layout")
                 cubicles_px           = _build_cubicles_px(raw_cubicles)
                 data["cubicle_count"] = len(raw_cubicles)
                 data["cubicles"]      = cubicles_px

@@ -387,6 +387,17 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           </div>
         </div>
 
+        <!-- Busbar location warning -->
+        <div class="card" id="busbarWarnCard" style="display:none;border:1px solid #FF4757">
+          <div class="card-header">
+            <div class="card-icon ci-red"><i class="fas fa-bolt"></i></div>
+            <div class="card-title" style="color:#FF4757">⚠ Busbar Location Warning</div>
+          </div>
+          <div class="card-body">
+            <div class="warning-item" id="busbarWarnText" style="background:rgba(255,71,87,.08);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:#E0EAF4"></div>
+          </div>
+        </div>
+
         <!-- Notes -->
         <div class="card" id="notesCard" style="display:none">
           <div class="card-header">
@@ -701,6 +712,12 @@ function renderPanelCard(panelType, breakers, warnings){
   if(notes){
     document.getElementById('notesCard').style.display='';
     document.getElementById('notesText').textContent=notes;
+  }
+
+  const cubicle_line = data.cubicle_line || '';
+  if(cubicle_line){
+    document.getElementById('busbarWarnCard').style.display='';
+    document.getElementById('busbarWarnText').textContent=cubicle_line;
   }
 }
 

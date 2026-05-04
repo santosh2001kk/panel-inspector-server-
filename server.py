@@ -583,11 +583,15 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
             f"  Work Zone     (green box): ymin={work_zone.ymin}, xmin={work_zone.xmin}, ymax={work_zone.ymax}, xmax={work_zone.xmax}\n"
             f"  Safety Buffer (red  box):  ymin={safety_buffer.ymin}, xmin={safety_buffer.xmin}, ymax={safety_buffer.ymax}, xmax={safety_buffer.xmax}\n\n"
             f"STRICT INSTRUCTIONS:\n"
-            f"1. Detect ALL circuit breakers and components visible in the ENTIRE panel image — do NOT limit to the Safety Buffer.\n"
-            f"2. Also detect each vertical COLUMN/CUBICLE as a separate entry with category='structure' and type='Column'.\n"
-            f"3. Classify each breaker strictly as ACB, MCCB, or MCB using the rules above.\n"
-            f"4. Return bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
-            f"5. Check the Safety Buffer for hazards: Main Disconnects, HV switches, exposed busbars. Add to safety_warnings.\n"
+            f"1. Detect ALL circuit breakers and components visible in the ENTIRE panel image.\n"
+            f"2. Classify each breaker strictly as ACB, MCCB, or MCB using the rules above.\n"
+            f"3. BOUNDING BOX ACCURACY — this is critical:\n"
+            f"   - ymin=0 is the TOP of the image, ymax=1000 is the BOTTOM.\n"
+            f"   - xmin=0 is the LEFT of the image, xmax=1000 is the RIGHT.\n"
+            f"   - Draw the box TIGHTLY around the component's front face plastic only.\n"
+            f"   - Do NOT include the metal frame, air gap, wires, or label strips in the box.\n"
+            f"   - Double-check: the box centre should be exactly on the component, not above or below it.\n"
+            f"4. Check the Safety Buffer for hazards: Main Disconnects, HV switches, exposed busbars. Add to safety_warnings.\n"
             f"{notes_instruction}"
         )
     else:
@@ -1553,10 +1557,15 @@ def analyze(body: AnalyzeRequest):
         _detection_instructions = (
             "\nPERFORM HIGH-PRECISION COMPONENT INVENTORY:\n"
             "1. Detect EVERY visible breaker and component across the ENTIRE panel image.\n"
-            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, circuit_label, and rating.\n"
+            "2. For each component identify: brand, type_detail, circuit_label, and rating.\n"
             "3. Return ONE entry per individual component — do NOT group multiple breakers into one box.\n"
-            "4. BOUNDING BOXES: Tight to the component body only. Do not include wires, labels, or gaps.\n"
-            "5. Do NOT add Column or structure entries — only detect actual electrical components.\n"
+            "4. Do NOT add Column or structure entries — only detect actual electrical components.\n"
+            "5. BOUNDING BOX RULES — follow exactly:\n"
+            "   - Coordinates are [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
+            "   - ymin=0 = TOP of image. ymax=1000 = BOTTOM. xmin=0 = LEFT. xmax=1000 = RIGHT.\n"
+            "   - Box must be TIGHTLY around the component front face plastic — not the surrounding frame.\n"
+            "   - The vertical centre of the box must sit exactly on the component, not above or below it.\n"
+            "   - If you are unsure of the exact position, measure from the image top/left in your mind.\n"
         )
 
         gemini_prompt = prompt + _detection_instructions

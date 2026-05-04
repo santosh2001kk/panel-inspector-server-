@@ -1093,22 +1093,25 @@ function drawCanvas(canvasId){
       ctx.fillRect(x, y, w, h);
     }
 
-    // ── 3. Cubicles — C1/C2/VBB (server returns pixel coords, not 0-1000) ──
+    // ── 3. Cubicles — C1/C2/VBB (0-1000 normalised coords, same as breakers) ──
     (data.cubicles || []).forEach((c, i) => {
       if(!c.box || c.box.length < 4) return;
+      const [yn, xn, yx, xx] = c.box;
       const isVbb = c.label === 'vbb';
-      const col   = isVbb ? '#FF4757' : '#4A9EFF';
-      const bx = c.box[1] * px2c_x,  by = c.box[0] * px2c_y;
-      const bw = (c.box[3]-c.box[1]) * px2c_x, bh = (c.box[2]-c.box[0]) * px2c_y;
-      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([8,4]);
+      const isCable = c.label === 'cable';
+      const col = isVbb ? '#FF4757' : isCable ? '#FFA502' : '#4A9EFF';
+      const bx = n2c(xn, canvas.width),  by = n2c(yn, canvas.height);
+      const bw = n2c(xx-xn, canvas.width), bh = n2c(yx-yn, canvas.height);
+      if(bw < 4 || bh < 4) return;
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.setLineDash([8,4]);
       ctx.strokeRect(bx, by, bw, bh);
       ctx.fillStyle = col+'18'; ctx.fillRect(bx, by, bw, bh);
       ctx.setLineDash([]);
       const lbl = isVbb ? 'VBB ⚡' : `C${c.position || i+1}`;
-      ctx.font = 'bold 12px Inter,sans-serif';
+      ctx.font = 'bold 13px Inter,sans-serif';
       const tw = ctx.measureText(lbl).width + 10;
-      ctx.fillStyle = col;  ctx.fillRect(bx, by, tw, 20);
-      ctx.fillStyle = '#fff'; ctx.fillText(lbl, bx+5, by+14);
+      ctx.fillStyle = col;  ctx.fillRect(bx, by, tw, 22);
+      ctx.fillStyle = '#fff'; ctx.fillText(lbl, bx+5, by+15);
     });
 
     // ── 4. Breakers (0-1000 normalised coords) ─────────────────────

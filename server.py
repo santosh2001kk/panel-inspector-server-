@@ -1762,10 +1762,9 @@ def analyze(body: AnalyzeRequest):
             if "okken" in detected_panel.lower():
                 cubicle_result        = _cubicle_future.result(timeout=120)
                 raw_cubicles          = cubicle_result.get("cubicles", [])
-                cubicles_px           = _build_cubicles_px(raw_cubicles)
                 base_line             = _build_cubicle_line(raw_cubicles, include_vbb=False)
                 data["cubicle_count"] = cubicle_result.get("cubicle_count", 0)
-                data["cubicles"]      = cubicles_px
+                data["cubicles"]      = raw_cubicles  # 0-1000 normalised
                 data["cubicle_line"]  = (
                     f"{base_line} "
                     f"⚠ Okken panel — Horizontal Busbar (HBB) runs at the TOP "
@@ -1801,9 +1800,8 @@ def analyze(body: AnalyzeRequest):
                         raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False, "box": [50, 50, 950, 950]}]
 
                 print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s) detected by AI")
-                cubicles_px           = _build_cubicles_px(raw_cubicles)
                 data["cubicle_count"] = len(raw_cubicles)
-                data["cubicles"]      = cubicles_px   # draw boxes on canvas
+                data["cubicles"]      = raw_cubicles  # 0-1000 normalised — web uses n2c, Android converts /1000*orig
                 data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))

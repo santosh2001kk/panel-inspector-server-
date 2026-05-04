@@ -1548,16 +1548,14 @@ def analyze(body: AnalyzeRequest):
             safety_warnings: list[str]
             summary: str = _F(default="", description="One-sentence technical summary of the panel and its main components.")
 
-        # Unified high-detail detection instructions with improved precision
+        # Component detection only — columns handled separately by identify_cubicles_generic
         _detection_instructions = (
             "\nPERFORM HIGH-PRECISION COMPONENT INVENTORY:\n"
-            "1. Detect EVERY visible component, especially those INSIDE the marked Work Zone.\n"
-            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
-            "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
-            "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
-            "4. Return ONE entry per individual component — do NOT group.\n"
-            "5. Read circuit_label and rating from breaker faces and label strips.\n"
-            "6. BOUNDING BOXES: Ensure boxes are extremely tight to the component body. Do not include wires or gaps.\n"
+            "1. Detect EVERY visible breaker and component across the ENTIRE panel image.\n"
+            "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, circuit_label, and rating.\n"
+            "3. Return ONE entry per individual component — do NOT group multiple breakers into one box.\n"
+            "4. BOUNDING BOXES: Tight to the component body only. Do not include wires, labels, or gaps.\n"
+            "5. Do NOT add Column or structure entries — only detect actual electrical components.\n"
         )
 
         gemini_prompt = prompt + _detection_instructions

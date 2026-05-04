@@ -1017,6 +1017,11 @@ fileInput.addEventListener('change',()=>{if(fileInput.files[0])handleFile(fileIn
 function handleFile(file){
   if(!file.type.startsWith('image/')){ alert('Please upload an image file.'); return; }
   imageFile=file;
+  
+  // Visual feedback: update drop zone text
+  const dropTitle = document.querySelector('.drop-title');
+  if(dropTitle) dropTitle.innerHTML = `<i class="fas fa-check-circle" style="color:var(--green)"></i> ${file.name} ready`;
+
   const reader=new FileReader();
   reader.onload=e=>{ imageBase64=e.target.result.split(',')[1]; loadCanvas(e.target.result); };
   reader.readAsDataURL(file);

@@ -1677,10 +1677,11 @@ def analyze(body: AnalyzeRequest):
                     return "cable compartment (closed/narrow section) — terminal connections and incoming cables."
                 return "breaker cubicle (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
 
-            def _build_layout_overview(raw):
-                """Full panel layout description listing every cubicle left to right."""
-                directions = {1: "LEFT", len(raw): "RIGHT"}
-                lines = ["Panel layout (left → right):"]
+            def _build_layout_overview(raw, total_count=None):
+                """Layout description listing cubicles — filtered to zone when active."""
+                n = total_count or len(raw)
+                directions = {1: "LEFT", n: "RIGHT"}
+                lines = ["Components in your work zone:"]
                 for c in raw:
                     pos = c.get("position", "?")
                     lbl_detail = _full_label_desc(c)
@@ -1726,7 +1727,15 @@ def analyze(body: AnalyzeRequest):
                 vbb_c     = next((c for c in raw if c.get("is_vbb") or c.get("label") == "vbb"), None) if include_vbb else None
                 parts     = []
                 if detailed:
-                    parts += [_build_layout_overview(raw), ""]
+                    filter_zone = body.safetyBuffer or body.workZone
+                    if filter_zone:
+                        zone_cs = [c for c in raw if len(c.get("box", [])) >= 4
+                                   and c["box"][1] < filter_zone.xmax
+                                   and c["box"][3] > filter_zone.xmin]
+                        display_cs = zone_cs if zone_cs else raw
+                    else:
+                        display_cs = raw
+                    parts += [_build_layout_overview(display_cs, total_count=len(raw)), ""]
                 if working_c:
                     wz_pos = working_c.get("position", "?")
                     parts.append(f"You are working in C{wz_pos} ({_label_desc(working_c)}).")
@@ -1790,37 +1799,25 @@ def analyze(body: AnalyzeRequest):
                     # PrismaSeT G cable compartment ≈ same width as breaker cubicle (~600mm each)
                     cable_xmin = max(brk_section_xmin - panel_w, 0)
 
-                    raw_cubicles = []
-                    # C1: cable compartment (left closed section) — only add if there's visible space
-                    if brk_section_xmin > 80:
-                        raw_cubicles.append({
-                            "position": 1, "label": "cable", "is_vbb": False,
-                            "box": [p_top_g, cable_xmin, p_bottom_g, brk_section_xmin],
-                        })
-
-                    # Find breaker column boundaries within the open section
-                    centers = sorted(set((b[1] + b[3]) // 2 for b in all_boxes))
-                    gap_threshold = max(panel_w * 0.15, 50)
-                    brk_boundaries = [xmin_all]
-                    for i in range(1, len(centers)):
-                        if centers[i] - centers[i-1] > gap_threshold:
-                            brk_boundaries.append((centers[i-1] + centers[i]) // 2)
-                    brk_boundaries.append(xmax_all)
-
-                    pos_offset = len(raw_cubicles) + 1
-                    for i in range(len(brk_boundaries) - 1):
-                        raw_cubicles.append({
-                            "position": pos_offset + i, "label": "breaker", "is_vbb": False,
-                            "box": [p_top_g, brk_boundaries[i], p_bottom_g, brk_boundaries[i+1]],
-                        })
+                    # PrismaSeT G: always 2 cubicles — C1 cable (left), C2 breaker (right)
+                    raw_cubicles = [
+                        {"position": 1, "label": "cable",   "is_vbb": False,
+                         "box": [p_top_g, cable_xmin, p_bottom_g, brk_section_xmin]},
+                        {"position": 2, "label": "breaker", "is_vbb": False,
+                         "box": [p_top_g, brk_section_xmin, p_bottom_g, xmax_all]},
+                    ]
                 else:
                     raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False,
                                      "box": [p_top_g, 50, p_bottom_g, 950]}]
 
-                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s): cable+breaker layout")
-                data["cubicle_count"] = len(raw_cubicles)
+                print(f"[CUBICLE] PrismaSeT G — 2 cubicles: cable (left) + breaker (right)")
+                data["cubicle_count"] = 2
                 data["cubicles"]      = []   # no column boxes on canvas for PrismaSeT G
-                data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
+                data["cubicle_line"]  = (
+                    "This panel has 2 cubicles:\n"
+                    "  C1 [LEFT]: cable compartment (closed section) — terminal connections and incoming cables.\n"
+                    "  C2 [RIGHT]: breaker section (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
+                )
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
                 data["task_recommendations"] = erms_recs

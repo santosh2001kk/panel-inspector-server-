@@ -1813,9 +1813,8 @@ def analyze(body: AnalyzeRequest):
                                      "box": [p_top_g, 50, p_bottom_g, 950]}]
 
                 print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s): cable+breaker layout")
-                cubicles_px           = _build_cubicles_px(raw_cubicles)
                 data["cubicle_count"] = len(raw_cubicles)
-                data["cubicles"]      = cubicles_px
+                data["cubicles"]      = []   # no column boxes on canvas for PrismaSeT G
                 data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))

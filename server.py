@@ -1115,9 +1115,11 @@ def generate_safety_assessment(panel_type: str, work_zone: Optional[Zone], break
 
 
 def inside_zone(box: list[int], zone: Zone) -> bool:
-    """Returns True if the breaker box overlaps with the zone (not just center)."""
+    """Returns True if the breaker box CENTER is inside the zone."""
     ymin, xmin, ymax, xmax = box
-    return not (xmax < zone.xmin or xmin > zone.xmax or ymax < zone.ymin or ymin > zone.ymax)
+    cy = (ymin + ymax) / 2
+    cx = (xmin + xmax) / 2
+    return zone.xmin <= cx <= zone.xmax and zone.ymin <= cy <= zone.ymax
 
 
 class LabelRequest(BaseModel):
@@ -1618,10 +1620,13 @@ def analyze(body: AnalyzeRequest):
             continue
         ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
 
-        # Filter components by safety buffer; structure items (columns) always pass
+        # Filter components to safety buffer zone (or work zone as fallback)
+        # Structure items always pass; components must have center inside the zone
         is_structure = b.get("category", "component") == "structure"
-        if not is_structure and body.safetyBuffer and not inside_zone([ymin, xmin, ymax, xmax], body.safetyBuffer):
-            continue
+        if not is_structure:
+            filter_zone = body.safetyBuffer or body.workZone
+            if filter_zone and not inside_zone([ymin, xmin, ymax, xmax], filter_zone):
+                continue
 
         # Keep coordinates as 0-1000 normalized — canvas scales them to display size
         filtered_breakers.append(b)

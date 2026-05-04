@@ -1271,10 +1271,11 @@ def identify_cubicles_generic(image_b64: str, mime_type: str) -> dict:
         "  - Do NOT merge two cubicles into one\n"
         "  - Count only what you actually see\n\n"
         "Draw tight bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
+        "EXPECT AT LEAST 3 SECTIONS for a typical PrismaSeT P (cable + breaker + VBB).\n"
         "Return ONLY valid JSON in this exact format:\n"
-        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "breaker", "box": [0, 50, 1000, 350]}, '
-        '{"position": 2, "label": "cable", "box": [0, 350, 1000, 650]}, '
-        '{"position": 3, "label": "breaker", "box": [0, 650, 1000, 950]}], "cubicle_summary": "one sentence"}'
+        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "cable", "box": [30, 50, 970, 350]}, '
+        '{"position": 2, "label": "breaker", "box": [30, 350, 970, 820]}, '
+        '{"position": 3, "label": "vbb", "box": [30, 820, 970, 970]}], "cubicle_summary": "one sentence"}'
     )
     return _call_llm(prompt, [(image_b64, mime_type)])
 
@@ -1286,49 +1287,59 @@ def identify_busbar_only(image_b64: str, mime_type: str) -> dict:
 
     prompt = (
         "You are a Schneider Electric PrismaSeT P panel expert.\n\n"
-        "CRITICAL RULE — PrismaSeT P ALWAYS has a VBB (Vertical Busbar Box) compartment:\n"
+        "PRISMASET P PHYSICAL DIMENSIONS — MEMORIZE THESE:\n"
+        "  - VBB (Vertical Busbar Box): exactly 150mm wide — the NARROWEST section\n"
+        "  - Main breaker cubicle (MasterPact / MCCB): 650mm wide — much WIDER than VBB\n"
+        "  - Cable/incoming cubicle: may be present on the opposite side from VBB\n"
+        "  - VBB width is approximately 19% of the breaker cubicle width (150 / 800 total)\n\n"
+        "CRITICAL RULE — PrismaSeT P ALWAYS has a VBB compartment:\n"
         "  - ALWAYS a SEPARATE cubicle on the FAR LEFT or FAR RIGHT of the panel\n"
-        "  - ALWAYS significantly NARROWER than other cubicles (about 150mm–300mm)\n"
+        "  - ALWAYS significantly NARROWER than other cubicles — about 150mm vs 650mm\n"
+        "  - In normalized 0-1000 coords: VBB spans roughly 150-200 units wide; breaker section spans 600-700 units wide\n"
         "  - Door is ALWAYS plain/blank — NO handles, NO vents, NO devices visible\n"
         "  - NEVER merge VBB with adjacent section — they are TWO separate cubicles\n\n"
-        "CUBICLE TYPES — you MUST set the correct label for each:\n"
-        "  - 'vbb':    NARROW blank plain door, no devices, always on far left or far right\n"
-        "  - 'breaker': door with visible ACB / MCCBs / MCBs / breaker handles inside\n"
-        "  - 'cable':  large closed door, cable entry glands at bottom, may have emergency stop button or display panel\n\n"
+        "CUBICLE TYPES — set the correct label for each:\n"
+        "  - 'vbb':     NARROW blank plain door (≈150mm), no devices, always on far left or far right\n"
+        "  - 'breaker': door with visible ACB / MCCBs / MCBs / breaker handles inside (≈650mm)\n"
+        "  - 'cable':   large closed door, cable entry glands at bottom, may have emergency stop or display\n\n"
+        "TYPICAL 3-CUBICLE LAYOUT (most common PrismaSeT P with single MasterPact):\n"
+        "  LEFT → RIGHT: [cable compartment] | [breaker compartment with MasterPact] | [VBB 150mm]\n"
+        "  OR:           [VBB 150mm] | [breaker compartment with MasterPact] | [cable compartment]\n"
+        "  ALWAYS detect exactly 3 cubicles minimum — do NOT merge them into 1 or 2.\n\n"
         "PANEL BOUNDARY RULE:\n"
-        "  - The panel may NOT fill the full image width\n"
-        "  - Stop ALL cubicle boxes at the actual metal panel frame edge\n"
-        "  - Do NOT extend boxes to the image edge if the panel ends before it\n\n"
-        "CRITICAL — ONE DOOR = ONE CUBICLE:\n"
+        "  - The panel may NOT fill the full image width — stop all boxes at the actual metal panel frame edge\n"
+        "  - Do NOT extend boxes to the image edge (0 or 1000) unless the panel truly starts/ends there\n\n"
+        "ONE DOOR = ONE CUBICLE:\n"
         "  - Each cubicle is a FULL-HEIGHT vertical section with its own door\n"
-        "  - ONE door = ONE cubicle, regardless of how many devices are inside it\n"
         "  - Horizontal rows of breakers INSIDE one door are NOT separate cubicles\n"
         "  - DO NOT split a single door into multiple cubicles\n"
-        "  - DO NOT merge the VBB door with the adjacent breaker door — they are always separate\n\n"
-        "VBB DETECTION — CHECK THE FAR EDGES CAREFULLY:\n"
-        "  - Look at the FAR LEFT edge of the panel — is there a narrow blank door? → VBB\n"
-        "  - Look at the FAR RIGHT edge of the panel — is there a narrow blank door? → VBB\n"
-        "  - The VBB door has NO handles, NO breakers, NO vents — completely plain grey metal\n"
-        "  - It is NARROWER than all other doors — do NOT let the adjacent breaker box swallow it\n"
-        "  - V-SHAPED HINGES: PrismaSeT P VBB doors have distinctive V-shaped or triangular hinges\n"
-        "    visible at the TOP and BOTTOM of the door edge. If you see V-shaped hinge brackets at the\n"
-        "    far left or far right edge of the panel — that is the VBB door boundary, even if the door\n"
-        "    itself is mostly out of frame. Draw the VBB cubicle box from that hinge position to the panel edge.\n"
-        "  - If the last breaker box extends to the panel edge, STOP and check if there is a narrow VBB door at that edge\n"
+        "  - DO NOT merge the VBB door with the adjacent breaker door\n\n"
+        "VBB DETECTION — CHECK BOTH FAR EDGES:\n"
+        "  - FAR LEFT edge: is there a narrow (≈150mm) blank door? → VBB\n"
+        "  - FAR RIGHT edge: is there a narrow (≈150mm) blank door? → VBB\n"
+        "  - The VBB door has NO handles, NO breakers, NO vents — completely plain grey/white metal\n"
+        "  - V-SHAPED HINGES: PrismaSeT P VBB doors have distinctive V-shaped triangular hinges at top and bottom edge\n"
         "  - If VBB is partially out of frame, still create a cubicle box for it at the visible edge\n\n"
         "YOUR TASK — scan LEFT to RIGHT:\n"
         "  1. Find the actual LEFT and RIGHT edges of the panel metal frame\n"
-        "  2. Check BOTH far edges for a narrow blank VBB door\n"
-        "  3. Count full-height DOORS — each door is one cubicle\n"
-        "  4. Label: VBB = 'vbb', doors with breakers = 'breaker', cable/display doors = 'cable'\n"
-        "  5. Bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000, no overlaps\n\n"
-        "EXAMPLE — 4-cubicle PrismaSeT P where position 1 is VBB on left:\n"
+        "  2. Identify each distinct FULL-HEIGHT section separated by vertical frame dividers\n"
+        "  3. Check BOTH far edges for the narrow blank VBB door (150mm)\n"
+        "  4. EXPECT 3 sections minimum for a standard PrismaSeT P with 1 MasterPact\n"
+        "  5. Label: vbb / breaker / cable\n"
+        "  6. Bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000, no overlaps\n\n"
+        "EXAMPLE A — 3-cubicle PrismaSeT P, VBB on RIGHT (most common with single MasterPact):\n"
+        '{"cubicle_count": 3, "cubicles": ['
+        '{"position": 1, "label": "cable",   "box": [50, 30,  950, 380]}, '
+        '{"position": 2, "label": "breaker", "box": [50, 380, 950, 820]}, '
+        '{"position": 3, "label": "vbb",     "box": [50, 820, 950, 970]}'
+        '], "cubicle_summary": "Cable compartment left, MasterPact breaker middle, VBB 150mm right"}\n\n'
+        "EXAMPLE B — 4-cubicle PrismaSeT P, VBB on LEFT:\n"
         '{"cubicle_count": 4, "cubicles": ['
-        '{"position": 1, "label": "vbb",     "box": [0, 20,  1000, 170]}, '
-        '{"position": 2, "label": "cable",   "box": [0, 170, 1000, 450]}, '
-        '{"position": 3, "label": "breaker", "box": [0, 450, 1000, 750]}, '
-        '{"position": 4, "label": "breaker", "box": [0, 750, 1000, 950]}'
-        '], "cubicle_summary": "one sentence"}\n\n'
+        '{"position": 1, "label": "vbb",     "box": [30, 20,  970, 190]}, '
+        '{"position": 2, "label": "cable",   "box": [30, 190, 970, 470]}, '
+        '{"position": 3, "label": "breaker", "box": [30, 470, 970, 770]}, '
+        '{"position": 4, "label": "breaker", "box": [30, 770, 970, 960]}'
+        '], "cubicle_summary": "VBB left, cable compartment, two breaker sections right"}\n\n'
         "Return ONLY valid JSON."
     )
     return _call_llm(prompt, [(image_b64, mime_type)])

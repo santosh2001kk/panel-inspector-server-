@@ -1735,12 +1735,46 @@ def analyze(body: AnalyzeRequest):
                 _executor.shutdown(wait=False)
                 return JSONResponse(content=data)
 
-            # PrismaSeT G — detect cubicles
+            # PrismaSeT G — build cubicle columns from detected breaker X positions
             if "prismaset g" in detected_panel.lower() or "prisma g" in detected_panel.lower():
-                cubicle_result        = _cubicle_future.result(timeout=120)
-                raw_cubicles          = cubicle_result.get("cubicles", [])
+                all_boxes = [b.get("box", []) for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
+
+                # Panel Y and X extent from ALL detected breakers (safety buffer may limit X)
+                # Use workZone for broader Y extent; raw breaker boxes for X
+                p_top_g    = max((panel_ymin_raw or 50) - 50, 0)
+                p_bottom_g = min((panel_ymax_raw or 950) + 50, 1000)
+
+                if all_boxes:
+                    # X extent from detected breakers
+                    xmin_all = min(b[1] for b in all_boxes)
+                    xmax_all = max(b[3] for b in all_boxes)
+                    panel_w  = xmax_all - xmin_all
+
+                    # Find column boundaries: sort breaker X-centers, look for gaps > 15% panel width
+                    centers = sorted(set((b[1] + b[3]) // 2 for b in all_boxes))
+                    gap_threshold = max(panel_w * 0.15, 50)
+                    boundaries = [xmin_all]
+                    for i in range(1, len(centers)):
+                        if centers[i] - centers[i-1] > gap_threshold:
+                            boundaries.append((centers[i-1] + centers[i]) // 2)
+                    boundaries.append(xmax_all)
+
+                    raw_cubicles = []
+                    for i in range(len(boundaries) - 1):
+                        raw_cubicles.append({
+                            "position": i + 1,
+                            "label": "breaker",
+                            "is_vbb": False,
+                            "box": [p_top_g, boundaries[i], p_bottom_g, boundaries[i+1]],
+                        })
+                else:
+                    # No breaker boxes — single full-panel cubicle fallback
+                    raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False,
+                                     "box": [p_top_g, 50, p_bottom_g, 950]}]
+
+                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} column(s) from breaker X distribution")
                 cubicles_px           = _build_cubicles_px(raw_cubicles)
-                data["cubicle_count"] = cubicle_result.get("cubicle_count", 0)
+                data["cubicle_count"] = len(raw_cubicles)
                 data["cubicles"]      = cubicles_px
                 data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False)
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)

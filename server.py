@@ -1266,16 +1266,17 @@ def identify_cubicles_generic(image_b64: str, mime_type: str) -> dict:
         "     STOP all boxes at the actual metal panel frame edge, NOT at the image edge (0 or 1000).\n"
         "  4. Adjacent cubicles share a boundary — xmax of cubicle N = xmin of cubicle N+1.\n"
         "  5. Do NOT extend any box to x=0 or x=1000 unless the panel truly starts/ends at the image edge.\n\n"
-        "COUNTING RULES:\n"
-        "  - Do NOT invent cubicles that do not exist\n"
-        "  - Do NOT split one cubicle into two\n"
-        "  - Do NOT merge two cubicles into one\n"
-        "  - Count only what you actually see\n\n"
+        "COUNTING METHOD — follow in order:\n"
+        "  1. Look at the TOP of the panel — count distinct hinges or handle sets. Each = one door = one cubicle.\n"
+        "  2. Look for vertical SEAM LINES running top-to-bottom — each seam = boundary between cubicles.\n"
+        "  3. A section with BREAKERS/MCBs visible = 'breaker'. A section with METERS/DISPLAYS = 'cable'. A NARROW BLANK section = 'vbb'.\n"
+        "  4. The section containing the most breakers MUST get its own cubicle box — do NOT merge it with adjacent sections.\n"
+        "  CRITICAL: Every section with visible breakers (ACB, MCCB, MCB) MUST have its own cubicle box.\n\n"
         "Draw tight bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
         "Return ONLY valid JSON in this exact format:\n"
-        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "breaker", "box": [0, 50, 1000, 350]}, '
-        '{"position": 2, "label": "cable", "box": [0, 350, 1000, 650]}, '
-        '{"position": 3, "label": "breaker", "box": [0, 650, 1000, 950]}], "cubicle_summary": "one sentence"}'
+        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "vbb", "box": [0, 50, 1000, 200]}, '
+        '{"position": 2, "label": "cable", "box": [0, 200, 1000, 500]}, '
+        '{"position": 3, "label": "breaker", "box": [0, 500, 1000, 950]}], "cubicle_summary": "one sentence"}'
     )
     return _call_llm(prompt, [(image_b64, mime_type)])
 
@@ -1596,8 +1597,22 @@ def analyze(body: AnalyzeRequest):
     panel_ymin_raw = min((b[0] for b in raw_breaker_boxes), default=None)
     panel_ymax_raw = max((b[2] for b in raw_breaker_boxes), default=None)
 
-    # Keep all detected components — columns and breakers across the entire panel
-    data["breakers"] = [b for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
+    # Keep all detected components — deduplicate overlapping boxes (IoU > 0.4)
+    def _iou(a, b):
+        iy1,ix1,iy2,ix2 = max(a[0],b[0]),max(a[1],b[1]),min(a[2],b[2]),min(a[3],b[3])
+        inter = max(0,iy2-iy1)*max(0,ix2-ix1)
+        if inter == 0: return 0.0
+        aA = (a[2]-a[0])*(a[3]-a[1]); bA = (b[2]-b[0])*(b[3]-b[1])
+        return inter / (aA + bA - inter)
+
+    raw = [b for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
+    # Sort largest box first so smaller duplicates get dropped
+    raw.sort(key=lambda b: (b["box"][2]-b["box"][0])*(b["box"][3]-b["box"][1]), reverse=True)
+    kept = []
+    for b in raw:
+        if not any(_iou(b["box"], k["box"]) > 0.4 for k in kept):
+            kept.append(b)
+    data["breakers"] = kept
 
     # Use panel type returned by the single Gemini call
     panel_type    = data.get("panel_type", "Unknown")

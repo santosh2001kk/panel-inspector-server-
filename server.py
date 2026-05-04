@@ -1519,9 +1519,9 @@ def analyze(body: AnalyzeRequest):
     else:
         from pydantic import BaseModel as _BM, Field as _F
         class _Breaker(_BM):
-            type: str = _F(description="Component name. For breakers use Schneider product name (MasterPact MTZ, MasterPact NT, Compact NSX, Compact NS, Acti9, iC60, Multi9). For other components use: Contactor, Relay, PLC, Meter, Terminal Block, Cable Duct, or Column.")
+            type: str = _F(description="Component name. For breakers use Schneider product name (MasterPact MTZ, MasterPact NT, Compact NSX, Compact NS, Acti9, iC60, Multi9). For other components use: Contactor, Relay, PLC, Meter, Terminal Block, Cable Duct.")
             box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000.")
-            category: str = _F(default="component", description="'component' for breakers, contactors, PLCs, meters, relays. 'structure' for panel columns, drawers, and cubicle sections.")
+            category: str = _F(default="component", description="Always 'component' — do not use 'structure'.")
             brand: str = _F(default="", description="Manufacturer brand if identifiable — e.g. 'Schneider', 'ABB', 'Siemens', 'Legrand'. Empty string if unknown.")
             type_detail: str = _F(default="", description="Specific sub-type — e.g. 'ACB', 'MCCB', 'MCB', 'Contactor', 'PLC', 'Power Meter'. Empty string if already in type field.")
             circuit_label: str = _F(default="", description="Circuit name/description on label strip — e.g. 'LV MAIN', 'LIGHTING DB'. Empty if not visible.")

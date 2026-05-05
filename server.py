@@ -50,13 +50,13 @@ if PROVIDER == "claude":
 elif PROVIDER == "vertexai":
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL      = "gemini-2.5-pro-preview-05-06"
+    MODEL      = "gemini-3.1-pro-preview"
     FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(vertexai=True, project=VERTEX_PROJECT, location=VERTEX_LOCATION)
 else:
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL      = "gemini-2.5-pro-preview-05-06"
+    MODEL      = "gemini-3.1-pro-preview"
     FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(api_key=GEMINI_KEY)
 
@@ -1200,6 +1200,7 @@ def _call_llm(prompt: str, images: list, max_tokens: int = 4096) -> dict:
 
 @app.post("/api/analyze")
 def analyze(body: AnalyzeRequest):
+  try:
     # Decode image
     img_bytes = base64.b64decode(body.imageBase64)
     img       = Image.open(io.BytesIO(img_bytes)).convert("RGB")
@@ -1418,6 +1419,15 @@ def analyze(body: AnalyzeRequest):
 
     _executor.shutdown(wait=False)
     return JSONResponse(content=data)
+
+  except Exception as _e:
+    import traceback as _tb
+    _trace = _tb.format_exc()
+    print(f"[ERROR] /api/analyze: {_e}\n{_trace}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(_e), "detail": _trace[-1000:]}
+    )
 
 
 # ── Panel Library ─────────────────────────────────────────────────────────────

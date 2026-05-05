@@ -634,18 +634,36 @@ function redrawOverlay() {
     const [ymin, xmin, ymax, xmax] = box;
     const bx = n2px(xmin, w), by = n2px(ymin, h);
     const bw = n2px(xmax - xmin, w), bh = n2px(ymax - ymin, h);
-    const col = labelColor(det);
     const active = (i === state.hoveredIdx);
+
+    // Determine if this detection overlaps the work zone
+    const inZone = state.zone && !(xmax < state.zone.xmin || xmin > state.zone.xmax || ymax < state.zone.ymin || ymin > state.zone.ymax);
+    const t = (det.label || det.type || '').toLowerCase();
+    const isACB  = t.includes('acb') || t.includes('masterpact');
+    const isMCCB = t.includes('mccb') || t.includes('nsx') || t.includes('compact ns');
+
+    // Box color: ACB in zone = red danger, MCCB in zone = amber, others = normal
+    let col;
+    if (inZone && isACB)       col = '#ef4444';   // RED — live ACB, highest danger
+    else if (inZone && isMCCB) col = '#f59e0b';   // AMBER — MCCB in work zone
+    else if (inZone)           col = '#f59e0b';   // AMBER — anything in work zone
+    else                       col = labelColor(det);
+
+    const lineW = (inZone && isACB) ? 3 : active ? 2.5 : 1.5;
 
     // Box
     octx.strokeStyle = col;
-    octx.lineWidth = active ? 2.5 : 1.5;
-    octx.globalAlpha = active ? 1 : 0.75;
+    octx.lineWidth = lineW;
+    octx.globalAlpha = active ? 1 : (inZone ? 0.95 : 0.75);
     octx.strokeRect(bx, by, bw, bh);
 
-    // Fill on hover
-    if (active) {
-      octx.fillStyle = col.replace(')', ', .08)').replace('rgb', 'rgba');
+    // Danger fill for ACB in zone
+    if (inZone && isACB) {
+      octx.fillStyle = 'rgba(239,68,68,.12)';
+      octx.globalAlpha = 1;
+      octx.fillRect(bx, by, bw, bh);
+    } else if (active) {
+      octx.fillStyle = 'rgba(255,255,255,.05)';
       octx.globalAlpha = 0.12;
       octx.fillRect(bx, by, bw, bh);
     }
@@ -654,7 +672,8 @@ function redrawOverlay() {
     // Label chip
     const label = det.label || det.type || 'Component';
     const rating = det.rating ? ` · ${det.rating}` : '';
-    const chipText = label + rating;
+    const dangerTag = (inZone && isACB) ? ' ⚠ DANGER' : '';
+    const chipText = label + rating + dangerTag;
     octx.font = 'bold 10px Inter,sans-serif';
     const tw = octx.measureText(chipText).width;
     const chipX = bx, chipY = by - 1;
@@ -749,10 +768,10 @@ function renderResults(data) {
   const breakers = data.breakers || [];
   state.detections = breakers;
   state.panelType  = data.panel_type || 'Unknown';
-  redrawOverlay();
-
   resultsPanel.classList.add('visible');
-  renderImage(); // re-layout canvas after results panel expands
+  // Wait one frame for the browser to reflow (results panel height change),
+  // then resize canvas and draw all boxes at the correct new size.
+  requestAnimationFrame(() => { renderImage(); redrawOverlay(); });
 
   let html = '';
 

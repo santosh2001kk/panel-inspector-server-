@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Results — Panel Inspector Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -10,36 +10,96 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
-  --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
+  --bg:#07101F;--surf:#0B1828;--card:#0F2035;--card2:#132850;--border:#1A3050;
   --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;--yellow:#FFD32A;
   --blue:#4A9EFF;
+  --nav-h:58px;
 }
+
+/* ── Reset / Base ── */
 html,body{min-height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
+a{color:var(--green);text-decoration:none}
+
+/* ── Background glow ── */
 .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 70% 50% at 80% 10%,rgba(61,205,88,.06) 0%,transparent 60%),
-             radial-gradient(ellipse 50% 40% at 10% 80%,rgba(74,158,255,.04) 0%,transparent 60%);
+  background:
+    radial-gradient(ellipse 70% 50% at 80% 10%,rgba(61,205,88,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 80%,rgba(74,158,255,.04) 0%,transparent 60%);
 }
 
 /* ── Navbar ── */
-nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;
-  padding:0 32px;height:64px;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
+nav{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;height:var(--nav-h);
+  background:rgba(7,16,31,.97);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);
 }
-.nav-logo{display:flex;align-items:center;gap:12px}
-.nav-sq{width:36px;height:36px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0A1628}
-.nav-title{font-size:16px;font-weight:700}
-.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px;text-transform:uppercase}
-.nav-right{display:flex;align-items:center;gap:10px}
-.btn-nav{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.nav-logo{display:flex;align-items:center;gap:10px;min-width:0}
+.nav-sq{width:34px;height:34px;background:var(--green);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#07101F;flex-shrink:0}
+.nav-title{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;
+  letter-spacing:.5px;text-transform:uppercase}
+.nav-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.btn-nav{
+  padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn-nav i{font-size:12px}
 .btn-back{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn-back:hover{border-color:var(--green);color:var(--green)}
-.btn-new{background:var(--green);border:none;color:#0A1628}
+.btn-new{background:var(--green);border:none;color:#07101F}
 .btn-new:hover{background:var(--green-dark);transform:translateY(-1px)}
 .btn-print{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn-print:hover{border-color:var(--blue);color:var(--blue)}
 
-/* ── Hero Stats Bar ── */
-.stats-bar{position:relative;z-index:1;background:var(--card);border-bottom:1px solid var(--border);padding:0 32px}
+/* Hide text on very small screens, keep icons */
+@media(max-width:420px){
+  .btn-nav .btn-txt{display:none}
+  .btn-nav{padding:7px 10px}
+}
+@media(min-width:768px){
+  nav{padding:0 32px}
+  .nav-sq{width:36px;height:36px;font-size:14px}
+  .nav-title{font-size:16px}
+  .btn-nav{padding:8px 16px;font-size:13px}
+}
+
+/* ── Mobile Stats Strip ── */
+.stats-mobile{
+  position:relative;z-index:1;
+  display:flex;gap:0;overflow-x:auto;
+  background:var(--card);border-bottom:1px solid var(--border);
+  scrollbar-width:none;
+}
+.stats-mobile::-webkit-scrollbar{display:none}
+.stat-chip{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-right:1px solid var(--border);
+}
+.stat-chip:last-child{border-right:none}
+.sc-icon{width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.sc-green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.sc-red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
+.sc-blue{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
+.sc-orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
+.sc-purple{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.2);color:#8b5cf6}
+.stat-chip-val{font-size:18px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.stat-chip-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+@media(min-width:768px){
+  .stats-mobile{display:none}
+}
+
+/* ── Desktop Stats Bar ── */
+.stats-bar{
+  display:none;
+  position:relative;z-index:1;
+  background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;
+}
 .stats-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;gap:0}
 .stat-item{flex:1;padding:20px 24px;display:flex;align-items:center;gap:14px;border-right:1px solid var(--border)}
 .stat-item:last-child{border-right:none}
@@ -50,63 +110,106 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 .si-orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
 .stat-val{font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
 .stat-label{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.7px;font-weight:500}
-@media(max-width:700px){.stats-bar{display:none}}
+@media(min-width:768px){
+  .stats-bar{display:block}
+  .stats-mobile{display:none}
+}
 
 /* ── Tab Bar ── */
-.tab-bar{position:sticky;top:64px;z-index:150;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);padding:0 32px;
+.tab-bar{
+  position:sticky;top:var(--nav-h);z-index:150;
+  background:rgba(7,16,31,.97);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;
 }
-.tab-bar-inner{max-width:1280px;margin:0 auto;display:flex;gap:0}
-.tab-btn{padding:16px 22px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;
-  border:none;background:transparent;font-family:'Inter',sans-serif;
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-bar-inner{
+  display:flex;gap:0;
+  min-width:max-content;
+  padding:0 8px;
+}
+.tab-btn{
+  padding:13px 14px;font-size:12px;font-weight:600;color:var(--muted);
+  cursor:pointer;border:none;background:transparent;font-family:'Inter',sans-serif;
   border-bottom:3px solid transparent;margin-bottom:-1px;
-  display:flex;align-items:center;gap:8px;transition:all .2s;
+  display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;
 }
 .tab-btn:hover{color:var(--text)}
 .tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
-.tab-badge{background:var(--card2);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.tab-badge{
+  background:var(--card2);border-radius:10px;padding:1px 6px;
+  font-size:10px;font-weight:700;
+}
 .tab-btn.active .tab-badge{background:rgba(61,205,88,.15);color:var(--green)}
+@media(min-width:768px){
+  .tab-bar-inner{padding:0 32px}
+  .tab-btn{padding:16px 20px;font-size:13px;gap:8px}
+  .tab-badge{padding:1px 7px;font-size:11px}
+}
 
-/* ── Main Layout ── */
-.main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:28px 32px 80px}
+/* ── Main ── */
+.main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:16px 12px 80px}
+@media(min-width:768px){.main{padding:24px 24px 80px}}
+@media(min-width:1024px){.main{padding:28px 32px 80px}}
 
 /* ── Tab Panels ── */
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
 /* ── Cards ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s}
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;transition:border-color .2s;
+}
 .card:hover{border-color:rgba(61,205,88,.15)}
-.card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.card-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .ci-green{background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);color:var(--green)}
 .ci-red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.2);color:var(--red)}
 .ci-orange{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.2);color:var(--orange)}
 .ci-blue{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
-.card-title{font-size:15px;font-weight:700}
-.card-sub{font-size:12px;color:var(--muted);margin-top:1px}
-.card-body{padding:20px 24px}
+.card-title{font-size:14px;font-weight:700}
+.card-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.card-body{padding:16px 18px}
+@media(min-width:768px){
+  .card{border-radius:16px}
+  .card-header{padding:18px 24px;gap:12px}
+  .card-icon{width:36px;height:36px;font-size:15px}
+  .card-title{font-size:15px}
+  .card-body{padding:20px 24px}
+}
 
-/* ── Two-col grid ── */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
-.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
-@media(max-width:960px){.two-col,.three-col{grid-template-columns:1fr}}
-.col-stack{display:flex;flex-direction:column;gap:24px}
+/* ── Grid layouts ── */
+.two-col{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+.three-col{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+@media(min-width:768px){
+  .two-col{grid-template-columns:1fr 1fr;gap:24px}
+  .three-col{grid-template-columns:repeat(3,1fr);gap:20px}
+}
+.col-stack{display:flex;flex-direction:column;gap:16px}
+@media(min-width:768px){.col-stack{gap:24px}}
 
 /* ── Panel Badge ── */
-.panel-badge{display:flex;align-items:center;gap:14px;padding:16px 20px;
-  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);border-radius:12px;margin-bottom:18px;
+.panel-badge{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);
+  border-radius:12px;margin-bottom:14px;
 }
-.badge-icon{width:48px;height:48px;background:var(--green);border-radius:10px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:20px;
+.badge-icon{
+  width:44px;height:44px;background:var(--green);border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:#07101F;font-size:18px;
 }
-.panel-name{font-size:22px;font-weight:800;color:var(--green)}
+.panel-name{font-size:18px;font-weight:800;color:var(--green)}
 .panel-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
 .panel-summary-text{font-size:14px;color:var(--muted);line-height:1.75}
-.meta-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;
+.meta-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.chip{
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;
   background:var(--card2);border:1px solid var(--border);color:var(--muted);
-  display:flex;align-items:center;gap:6px;
+  display:flex;align-items:center;gap:5px;
 }
 .chip.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.25);color:var(--green)}
 .chip.red{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.25);color:var(--red)}
@@ -114,102 +217,118 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 .chip.blue{background:rgba(74,158,255,.08);border-color:rgba(74,158,255,.25);color:var(--blue)}
 
 /* ── Canvas ── */
-.canvas-wrap{background:#000918;border-radius:12px;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;min-height:200px;position:relative;
+.canvas-wrap{
+  background:#000918;border-radius:10px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;min-height:160px;position:relative;
 }
 .canvas-wrap canvas{max-width:100%;display:block}
 .canvas-wrap canvas:hover{cursor:pointer}
-.canvas-legend{display:flex;gap:16px;padding:14px 20px;flex-wrap:wrap;border-top:1px solid var(--border)}
-.legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
-.legend-dot{width:12px;height:12px;border-radius:2px}
+.canvas-legend{display:flex;gap:12px;padding:12px 16px;flex-wrap:wrap;border-top:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.legend-dot{width:11px;height:11px;border-radius:2px}
 
-/* ── Documents Used section ── */
-.docs-used-grid{display:flex;gap:14px;flex-wrap:wrap}
-.doc-card{flex:1;min-width:160px;padding:16px;background:var(--card2);border-radius:12px;border:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;transition:border-color .2s;
+/* ── Documents used section ── */
+.docs-used-grid{display:flex;gap:10px;flex-wrap:wrap}
+.doc-card{
+  flex:1;min-width:140px;padding:14px;background:var(--card2);
+  border-radius:10px;border:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;transition:border-color .2s;
 }
 .doc-card.active{border-color:rgba(61,205,88,.3);background:rgba(61,205,88,.05)}
 .doc-card.inactive{opacity:.45}
-.doc-card-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 .dci-green{background:rgba(61,205,88,.15);color:var(--green)}
 .dci-blue{background:rgba(74,158,255,.15);color:var(--blue)}
 .dci-grey{background:rgba(107,142,174,.12);color:var(--muted)}
 .doc-name{font-size:13px;font-weight:600}
 .doc-sub{font-size:11px;color:var(--muted);margin-top:2px}
 
-/* ── SLD Preview inside results ── */
-.sld-preview-box{margin-top:14px;border:1px dashed rgba(61,205,88,.25);border-radius:10px;overflow:hidden;
+/* ── SLD Preview ── */
+.sld-preview-box{
+  margin-top:12px;border:1px dashed rgba(61,205,88,.25);
+  border-radius:10px;overflow:hidden;
   display:flex;align-items:center;justify-content:center;background:rgba(0,9,24,.5);
 }
 .sld-preview-box img{max-width:100%;max-height:260px;display:block}
-.sld-pdf-preview{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:32px;gap:12px;
-}
+.sld-pdf-preview{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:12px}
 .sld-pdf-preview .pdf-icon{font-size:48px;color:#FF5A5A}
 .sld-pdf-preview .pdf-name{font-size:13px;color:var(--muted);font-weight:600}
 .sld-pdf-preview .pdf-used{font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px}
 .sld-none{padding:24px;text-align:center;color:var(--muted);font-size:13px}
 
 /* ── Safety Warnings ── */
-.warning-list{display:flex;flex-direction:column;gap:10px}
-.warning-item{display:flex;gap:12px;padding:14px 16px;border-radius:10px;
+.warning-list{display:flex;flex-direction:column;gap:9px}
+.warning-item{
+  display:flex;gap:10px;padding:12px 14px;border-radius:10px;
   background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);
   animation:slideIn .35s ease both;
 }
 .warning-item.orange{background:rgba(255,165,2,.07);border-color:rgba(255,165,2,.2)}
 .warning-item.green{background:rgba(61,205,88,.07);border-color:rgba(61,205,88,.2)}
-.w-icon{font-size:16px;color:var(--red);flex-shrink:0;margin-top:2px}
+.w-icon{font-size:15px;color:var(--red);flex-shrink:0;margin-top:2px}
 .w-icon.orange{color:var(--orange)}
 .w-icon.green{color:var(--green)}
 .w-text{font-size:13px;line-height:1.65;color:var(--text)}
 @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
 /* ── Detections Table ── */
-.det-table{width:100%;border-collapse:collapse}
-.det-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-  color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.det-table{width:100%;border-collapse:collapse;min-width:400px}
+.det-table th{
+  text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--muted);padding:11px 14px;
+  border-bottom:1px solid var(--border);
 }
-.det-table td{padding:13px 16px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
+.det-table td{padding:12px 14px;border-bottom:1px solid rgba(30,58,95,.5);font-size:13px;vertical-align:middle}
 .det-table tr:last-child td{border-bottom:none}
 .det-table tr:hover td,.det-table tr.selected-row td{background:rgba(61,205,88,.08)}
 .det-table tr.selected-row td{border-left:3px solid var(--green)}
 .det-type{font-weight:600}
-.det-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;
+.det-badge{
+  display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;
+  font-size:11px;font-weight:700;
   background:rgba(61,205,88,.12);color:var(--green);border:1px solid rgba(61,205,88,.2);
 }
 .det-badge.orange{background:rgba(255,165,2,.12);color:var(--orange);border-color:rgba(255,165,2,.2)}
 .det-badge.blue{background:rgba(74,158,255,.12);color:var(--blue);border-color:rgba(74,158,255,.2)}
-.no-det{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.no-det{text-align:center;padding:36px;color:var(--muted);font-size:14px}
 .row-idx{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 
 /* ── Notes ── */
 .notes-text{font-size:14px;line-height:1.85;color:var(--muted);white-space:pre-wrap}
 
 /* ── Catalogue ── */
-.catalogue-box{background:var(--card2);border-radius:10px;padding:20px;
-  font-size:13px;line-height:1.9;color:var(--muted);white-space:pre-wrap;max-height:480px;overflow-y:auto;
+.catalogue-box{
+  background:var(--card2);border-radius:10px;padding:16px;
+  font-size:13px;line-height:1.9;color:var(--muted);
+  white-space:pre-wrap;max-height:480px;overflow-y:auto;
 }
 .catalogue-box::-webkit-scrollbar{width:5px}
 .catalogue-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
 /* ── Section heading ── */
-.section-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+.section-head{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
   color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;
 }
 .section-head::after{content:'';flex:1;height:1px;background:var(--border)}
 
-/* ── Timeline / Checklist in Catalogue ── */
+/* ── Checklist (catalogue) ── */
 .checklist{display:flex;flex-direction:column;gap:10px}
-.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;
+.checklist-item{
+  display:flex;gap:12px;align-items:flex-start;padding:11px 13px;
   background:var(--card2);border-radius:8px;border:1px solid var(--border);font-size:13px;
 }
-.check-num{width:24px;height:24px;border-radius:50%;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);
-  color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+.check-num{
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.2);
+  color:var(--green);font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
 
 /* ── Empty / No data ── */
-.empty-state{text-align:center;padding:64px 24px}
-.empty-icon{font-size:52px;color:var(--muted);margin-bottom:20px}
+.empty-state{text-align:center;padding:60px 24px}
+.empty-icon{font-size:48px;color:var(--muted);margin-bottom:18px}
 .empty-title{font-size:20px;font-weight:600;margin-bottom:10px}
 .empty-sub{font-size:14px;color:var(--muted)}
 
@@ -224,10 +343,14 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
+/* ── Recommendations table — scrollable on mobile ── */
+.recs-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.recs-table-wrap table{min-width:560px}
+
 /* ── Print ── */
 #printArea{display:none}
 @media print{
-  nav,.tab-bar,.stats-bar,.btn-nav,.checklist-overlay,#main{display:none!important}
+  nav,.tab-bar,.stats-bar,.stats-mobile,.btn-nav,.checklist-overlay,#main{display:none!important}
   .bg-glow{display:none!important}
   body{background:#fff!important;color:#000!important}
   #printArea{display:block!important;padding:20px;font-family:'Inter',Arial,sans-serif;font-size:12px;color:#111}
@@ -250,47 +373,85 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
   .pr-footer{border-top:1px solid #ddd;padding-top:8px;font-size:10px;color:#888;text-align:center;margin-top:20px}
 }
 
-/* ── Stage 2: Post-Analysis Checklist Modal ── */
-.checklist-overlay{position:fixed;inset:0;z-index:500;background:rgba(5,12,24,.96);backdrop-filter:blur(8px);
-  display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+/* ── Stage 2: Checklist Modal ── */
+.checklist-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(5,12,24,.96);backdrop-filter:blur(8px);
+  display:none;align-items:flex-start;justify-content:center;
+  padding:12px;overflow-y:auto;
+}
 .checklist-overlay.active{display:flex}
-.checklist-modal{background:var(--card);border:1px solid var(--border);border-radius:20px;
-  width:100%;max-width:760px;margin:auto;display:flex;flex-direction:column;
-  box-shadow:0 32px 80px rgba(0,0,0,.7)}
-.cm-header{padding:28px 32px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
-.cm-icon-wrap{width:52px;height:52px;border-radius:14px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
-  display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--red);flex-shrink:0}
-.cm-title{font-size:20px;font-weight:800;color:var(--text)}
-.cm-sub{font-size:13px;color:var(--muted);margin-top:4px}
-.cm-progress-row{padding:14px 32px;background:var(--card2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:16px}
-.cm-prog-label{font-size:13px;font-weight:600;white-space:nowrap;min-width:180px}
-.cm-prog-track{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+.checklist-modal{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;width:100%;max-width:760px;
+  margin:auto;display:flex;flex-direction:column;
+  box-shadow:0 32px 80px rgba(0,0,0,.7);
+}
+.cm-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.cm-icon-wrap{
+  width:46px;height:46px;border-radius:12px;
+  background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--red);flex-shrink:0;
+}
+.cm-title{font-size:17px;font-weight:800;color:var(--text)}
+.cm-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.cm-progress-row{
+  padding:12px 20px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.cm-prog-label{font-size:13px;font-weight:600;white-space:nowrap}
+.cm-prog-track{flex:1;min-width:80px;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
 .cm-prog-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
-.cm-body{padding:24px 32px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto}
-.cm-section{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--muted);padding:12px 0 6px;border-bottom:1px solid var(--border);margin-top:4px}
-.cm-row{display:flex;align-items:flex-start;gap:14px;padding:13px 15px;border-radius:12px;
-  background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s}
+.cm-body{padding:16px 20px;display:flex;flex-direction:column;gap:7px;max-height:52vh;overflow-y:auto}
+.cm-section{
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:10px 0 5px;border-bottom:1px solid var(--border);margin-top:4px;
+}
+.cm-row{
+  display:flex;align-items:flex-start;gap:12px;padding:11px 13px;border-radius:10px;
+  background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s;
+}
 .cm-row:hover{border-color:rgba(61,205,88,.3)}
 .cm-row.checked{background:rgba(61,205,88,.06);border-color:rgba(61,205,88,.35)}
 .cm-row.crit{border-left:3px solid var(--red)}
 .cm-row.crit.checked{border-left-color:var(--green)}
-.cm-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--card);
-  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:#0A1628;transition:all .2s}
+.cm-check{
+  width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
+  background:var(--card);flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#07101F;transition:all .2s;
+}
 .cm-row.checked .cm-check{background:var(--green);border-color:var(--green)}
 .cm-row-text{font-size:13px;line-height:1.5;flex:1;color:var(--text)}
-.cm-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;
-  background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;flex-shrink:0}
+.cm-badge{
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;
+  background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;flex-shrink:0;
+}
 .cm-badge.ok{background:rgba(61,205,88,.15);color:var(--green)}
-.cm-footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.cm-footer-note{flex:1;font-size:12px;color:var(--muted)}
-.cm-btn-confirm{padding:14px 28px;border-radius:12px;border:none;background:var(--green);
-  color:#0A1628;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:10px;
-  transition:opacity .2s,transform .1s;white-space:nowrap}
+.cm-footer{
+  padding:16px 20px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:max(16px, env(safe-area-inset-bottom));
+}
+.cm-footer-note{flex:1;font-size:11px;color:var(--muted);min-width:140px}
+.cm-btn-confirm{
+  padding:12px 22px;border-radius:12px;border:none;background:var(--green);
+  color:#07101F;font-size:14px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  transition:opacity .2s,transform .1s;white-space:nowrap;
+}
 .cm-btn-confirm:disabled{opacity:.3;cursor:not-allowed}
 .cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
+@media(min-width:768px){
+  .cm-header{padding:28px 32px 20px;gap:16px}
+  .cm-icon-wrap{width:52px;height:52px;border-radius:14px;font-size:22px}
+  .cm-title{font-size:20px}
+  .cm-sub{font-size:13px}
+  .cm-progress-row{padding:14px 32px}
+  .cm-body{padding:24px 32px;gap:8px}
+  .cm-footer{padding:20px 32px}
+  .cm-btn-confirm{padding:14px 28px;font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -303,13 +464,37 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
     <div class="nav-title">Panel Inspector Pro<small>Analysis Results</small></div>
   </div>
   <div class="nav-right">
-    <button class="btn-nav btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-    <button class="btn-nav btn-back" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
-    <button class="btn-nav btn-new" onclick="location.href='dashboard.html'"><i class="fas fa-plus"></i> New Scan</button>
+    <button class="btn-nav btn-print" onclick="window.print()"><i class="fas fa-print"></i><span class="btn-txt"> Print</span></button>
+    <button class="btn-nav btn-back" onclick="history.back()"><i class="fas fa-arrow-left"></i><span class="btn-txt"> Back</span></button>
+    <button class="btn-nav btn-new" onclick="location.href='dashboard.html'"><i class="fas fa-plus"></i><span class="btn-txt"> New Scan</span></button>
   </div>
 </nav>
 
-<!-- Stats Bar -->
+<!-- Mobile Stats Strip (shown <768px) -->
+<div class="stats-mobile" id="statsMobile" style="display:none">
+  <div class="stat-chip">
+    <div class="sc-icon sc-green"><i class="fas fa-solar-panel"></i></div>
+    <div><div class="stat-chip-val" id="statPanelM" style="color:var(--green)">—</div><div class="stat-chip-label">Panel</div></div>
+  </div>
+  <div class="stat-chip">
+    <div class="sc-icon sc-blue"><i class="fas fa-microchip"></i></div>
+    <div><div class="stat-chip-val" id="statBreakersM" style="color:var(--blue)">0</div><div class="stat-chip-label">Breakers</div></div>
+  </div>
+  <div class="stat-chip">
+    <div class="sc-icon sc-red"><i class="fas fa-triangle-exclamation"></i></div>
+    <div><div class="stat-chip-val" id="statWarningsM" style="color:var(--red)">0</div><div class="stat-chip-label">Warnings</div></div>
+  </div>
+  <div class="stat-chip">
+    <div class="sc-icon sc-orange"><i class="fas fa-file-lines"></i></div>
+    <div><div class="stat-chip-val" id="statDocsM" style="color:var(--orange)">0</div><div class="stat-chip-label">Docs</div></div>
+  </div>
+  <div class="stat-chip">
+    <div class="sc-icon sc-purple"><i class="fas fa-clock"></i></div>
+    <div><div class="stat-chip-val" id="statTimeM" style="color:#8b5cf6">—</div><div class="stat-chip-label">Time</div></div>
+  </div>
+</div>
+
+<!-- Desktop Stats Bar (shown ≥768px) -->
 <div class="stats-bar" id="statsBar" style="display:none">
   <div class="stats-inner">
     <div class="stat-item">
@@ -370,7 +555,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
     <div class="two-col">
       <!-- Left -->
       <div class="col-stack">
-        <!-- Panel image -->
+        <!-- Detection overlay canvas -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-green"><i class="fas fa-image"></i></div>
@@ -394,7 +579,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
             <div id="busbarWarnTitle" class="card-title" style="color:#4A9EFF">Panel Layout</div>
           </div>
           <div class="card-body">
-            <pre id="busbarWarnText" style="background:rgba(74,158,255,.08);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;color:#E0EAF4;white-space:pre-wrap;font-family:'Inter',sans-serif;margin:0"></pre>
+            <pre id="busbarWarnText" style="background:rgba(74,158,255,.08);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;color:#E0EAF4;white-space:pre-wrap;font-family:'Inter',sans-serif;margin:0;overflow-x:auto"></pre>
           </div>
         </div>
 
@@ -410,7 +595,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 
       <!-- Right -->
       <div class="col-stack">
-        <!-- Project Details (shown only when filled) -->
+        <!-- Project Details -->
         <div class="card" id="projCard" style="display:none">
           <div class="card-header">
             <div class="card-icon ci-blue"><i class="fas fa-folder-open"></i></div>
@@ -427,7 +612,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           <div class="card-body" id="panelBody"></div>
         </div>
 
-        <!-- Top 3 warnings preview -->
+        <!-- Top warnings snapshot -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-red"><i class="fas fa-triangle-exclamation"></i></div>
@@ -436,7 +621,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           <div class="card-body"><div class="warning-list" id="warnSnap"></div></div>
         </div>
 
-        <!-- Documents used inline -->
+        <!-- Documents used -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-blue"><i class="fas fa-file-lines"></i></div>
@@ -457,7 +642,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
             <div class="card-icon ci-blue"><i class="fas fa-microchip"></i></div>
             <div><div class="card-title" id="detTitle">Detected Equipment</div><div class="card-sub">All breakers and components identified in work zone</div></div>
           </div>
-          <div id="detTableWrap"></div>
+          <div class="table-scroll" id="detTableWrap"></div>
         </div>
       </div>
       <div class="col-stack">
@@ -470,7 +655,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
             <div class="canvas-wrap"><canvas id="resultCanvas2"></canvas></div>
           </div>
         </div>
-        <!-- Breakdown chart (simple bars) -->
         <div class="card" id="breakdownCard">
           <div class="card-header">
             <div class="card-icon ci-orange"><i class="fas fa-chart-bar"></i></div>
@@ -495,7 +679,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
         </div>
       </div>
       <div class="col-stack">
-        <!-- Live/Dead status card -->
         <div class="card" id="liveCard">
           <div class="card-header">
             <div class="card-icon ci-red" id="liveIcon"><i class="fas fa-bolt"></i></div>
@@ -503,7 +686,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           </div>
           <div class="card-body" id="liveBody"></div>
         </div>
-        <!-- Standard PPE reminders -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-orange"><i class="fas fa-hard-hat"></i></div>
@@ -531,7 +713,7 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           <div class="card-sub" id="recsSub">Operations and safety requirements for your selected task and work zone</div>
         </div>
       </div>
-      <div class="card-body" id="recsBody"></div>
+      <div class="card-body recs-table-wrap" id="recsBody"></div>
     </div>
   </div>
 
@@ -550,7 +732,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
   <div class="tab-panel" id="tab-documents">
     <div class="two-col">
       <div class="col-stack">
-        <!-- SLD card -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-green"><i class="fas fa-diagram-project"></i></div>
@@ -560,7 +741,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
         </div>
       </div>
       <div class="col-stack">
-        <!-- Mechanical layout card -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-blue"><i class="fas fa-map-location-dot"></i></div>
@@ -568,7 +748,6 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
           </div>
           <div class="card-body" id="layoutDocBody"></div>
         </div>
-        <!-- Analysis meta card -->
         <div class="card">
           <div class="card-header">
             <div class="card-icon ci-orange"><i class="fas fa-circle-info"></i></div>
@@ -590,10 +769,9 @@ const mime   = sessionStorage.getItem('imageMime') || 'image/jpeg';
 const meta   = JSON.parse(sessionStorage.getItem('analysisMeta') || '{}');
 const proj   = JSON.parse(sessionStorage.getItem('projectDetails') || '{}');
 
-// SLD / Layout data stored by dashboard
-const sldB64  = sessionStorage.getItem('sldBase64');
-const sldMime = sessionStorage.getItem('sldMime') || 'image/jpeg';
-const sldName = sessionStorage.getItem('sldName') || 'sld.jpg';
+const sldB64     = sessionStorage.getItem('sldBase64');
+const sldMime    = sessionStorage.getItem('sldMime') || 'image/jpeg';
+const sldName    = sessionStorage.getItem('sldName') || 'sld.jpg';
 const layoutB64  = sessionStorage.getItem('layoutBase64');
 const layoutMime = sessionStorage.getItem('layoutMime') || 'image/jpeg';
 const hasSld     = sessionStorage.getItem('hasSld') === 'true';
@@ -608,7 +786,6 @@ if(!imgB64){
     '<br><button class="btn-nav btn-new" style="margin:0 auto" onclick="location.href=\'dashboard.html\'"><i class="fas fa-plus"></i> New Scan</button></div>';
 } else {
   renderAll();
-  // Show Stage 2 checklist modal — worker must confirm before viewing results
   if(!meta.identifyOnly){
     showChecklistModal();
   }
@@ -622,26 +799,35 @@ function switchTab(id, btn){
   btn.classList.add('active');
 }
 
-/* ─── Remove "Schneider" / "Schneider Electric" prefix, keep technical name ─── */
+/* ─── Remove Schneider prefix ─── */
 function deviceName(type){
   return (type||'Unknown').replace(/schneider electric\s*/i,'').replace(/schneider\s*/i,'').trim();
 }
 
 /* ─── Master render ─── */
 function renderAll(){
-  const breakers = data.breakers || [];
-  const warnings = data.safety_warnings || [];
+  const breakers  = data.breakers || [];
+  const warnings  = data.safety_warnings || [];
   const panelType = data.panel_type || 'Unknown';
   const docsCount = (hasSld?1:0) + (hasLayout?1:0);
+  const elapsed   = parseInt(sessionStorage.getItem('analysisElapsed')||'0');
+  const timeStr   = elapsed ? (elapsed >= 60000 ? (elapsed/60000).toFixed(1)+'m' : (elapsed/1000).toFixed(1)+'s') : '—';
 
-  // Stats bar
+  // Mobile stats strip
+  document.getElementById('statsMobile').style.display='flex';
+  document.getElementById('statPanelM').textContent = panelType;
+  document.getElementById('statBreakersM').textContent = breakers.length;
+  document.getElementById('statWarningsM').textContent = warnings.length;
+  document.getElementById('statDocsM').textContent = docsCount;
+  document.getElementById('statTimeM').textContent = timeStr;
+
+  // Desktop stats bar
   document.getElementById('statsBar').style.display='';
   document.getElementById('statPanel').textContent = panelType;
   animateNum('statBreakers', breakers.length, 600);
   animateNum('statWarnings', warnings.length, 700);
   animateNum('statDocs',     docsCount, 800);
-  const elapsed = parseInt(sessionStorage.getItem('analysisElapsed')||'0');
-  document.getElementById('statTime').textContent = elapsed ? (elapsed >= 60000 ? (elapsed/60000).toFixed(1)+'m' : (elapsed/1000).toFixed(1)+'s') : '—';
+  document.getElementById('statTime').textContent = timeStr;
   document.getElementById('tbBreakers').textContent = breakers.length;
   document.getElementById('tbWarnings').textContent = warnings.length;
 
@@ -676,20 +862,20 @@ function renderProjectCard(){
   document.getElementById('projCardBody').innerHTML=`
     <table style="width:100%;border-collapse:collapse">
       ${rows.map(([k,v])=>`<tr>
-        <td style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:38%">${k}</td>
-        <td style="padding:8px 12px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${esc(v)}</td>
+        <td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:38%">${k}</td>
+        <td style="padding:8px 10px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${esc(v)}</td>
       </tr>`).join('')}
     </table>`;
 }
 
 /* ─── Panel identification card ─── */
 function renderPanelCard(panelType, breakers, warnings){
-  const isLive    = meta.isLive || false;
-  const task      = meta.task   || '';
-  const busbar    = data.busbar_side   || '';
-  const cubicles  = data.cubicle_count || 0;
-  const summary   = data.panel_summary || '';
-  const notes     = data.notes || '';
+  const isLive   = meta.isLive || false;
+  const task     = meta.task   || '';
+  const busbar   = data.busbar_side   || '';
+  const cubicles = data.cubicle_count || 0;
+  const summary  = data.panel_summary || '';
+  const notes    = data.notes || '';
 
   document.getElementById('panelBody').innerHTML=`
     <div class="panel-badge">
@@ -727,7 +913,7 @@ function renderPanelCard(panelType, breakers, warnings){
   }
 }
 
-/* ─── Warnings snapshot (overview tab — top 3) ─── */
+/* ─── Warnings snapshot ─── */
 function renderWarnSnap(warnings){
   const snap = warnings.slice(0,3);
   const el = document.getElementById('warnSnap');
@@ -756,23 +942,19 @@ function switchToSafety(e){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* ─── Documents overview (inside Overview tab) ─── */
+/* ─── Documents overview ─── */
 function renderDocsOverview(){
   document.getElementById('docsOverview').innerHTML=`
     <div class="docs-used-grid">
       <div class="doc-card ${hasSld?'active':'inactive'}">
-        <div class="doc-card-icon ${hasSld?'dci-green':'dci-grey'}">
-          <i class="fas fa-diagram-project"></i>
-        </div>
+        <div class="doc-card-icon ${hasSld?'dci-green':'dci-grey'}"><i class="fas fa-diagram-project"></i></div>
         <div>
           <div class="doc-name">Single Line Diagram</div>
           <div class="doc-sub">${hasSld?'<span style="color:var(--green)"><i class="fas fa-check-circle"></i> Included</span>':'Not provided'}</div>
         </div>
       </div>
       <div class="doc-card ${hasLayout?'active':'inactive'}">
-        <div class="doc-card-icon ${hasLayout?'dci-blue':'dci-grey'}">
-          <i class="fas fa-map-location-dot"></i>
-        </div>
+        <div class="doc-card-icon ${hasLayout?'dci-blue':'dci-grey'}"><i class="fas fa-map-location-dot"></i></div>
         <div>
           <div class="doc-name">Site Layout</div>
           <div class="doc-sub">${hasLayout?'<span style="color:var(--green)"><i class="fas fa-check-circle"></i> Included</span>':'Not provided'}</div>
@@ -798,7 +980,7 @@ function renderDocsOverview(){
 
 function switchToDocTab(e){
   e.preventDefault();
-  const btn = document.querySelector('.tab-btn:nth-child(5)');
+  const btn = document.querySelector('.tab-btn:nth-child(6)');
   switchTab('documents', btn);
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -817,7 +999,7 @@ function renderDetections(breakers){
       <thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th></tr></thead>
       <tbody>`;
     if(structures.length){
-      tableHtml += `<tr><td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);background:rgba(74,158,255,.05)">Panel Structure (${structures.length} section${structures.length>1?'s':''})</td></tr>`;
+      tableHtml += `<tr><td colspan="4" style="padding:8px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);background:rgba(74,158,255,.05)">Panel Structure (${structures.length} section${structures.length>1?'s':''})</td></tr>`;
       structures.forEach((b,i)=>{
         tableHtml += `<tr>
           <td class="row-idx" style="color:var(--blue)">S${i+1}</td>
@@ -826,7 +1008,7 @@ function renderDetections(breakers){
           <td style="color:var(--muted)">${esc(b.circuit_label||'—')}</td>
         </tr>`;
       });
-      if(components.length) tableHtml += `<tr><td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);background:rgba(61,205,88,.05)">Components (${components.length})</td></tr>`;
+      if(components.length) tableHtml += `<tr><td colspan="4" style="padding:8px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);background:rgba(61,205,88,.05)">Components (${components.length})</td></tr>`;
     }
     components.forEach((b,i)=>{
       const col = COLORS[i%COLORS.length]||'';
@@ -842,7 +1024,6 @@ function renderDetections(breakers){
     setTimeout(animateConfBars, 300);
   }
 
-  // breakdown bars
   const counts = {};
   breakers.forEach(b=>{ const t=deviceName(b.type)||'Unknown'; counts[t]=(counts[t]||0)+1; });
   const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -890,9 +1071,9 @@ function renderSafetyTab(warnings){
     }).join('');
   }
 
-  const liveIcon = document.getElementById('liveIcon');
+  const liveIcon  = document.getElementById('liveIcon');
   const liveTitle = document.getElementById('liveTitle');
-  const liveBody = document.getElementById('liveBody');
+  const liveBody  = document.getElementById('liveBody');
   if(isLive){
     liveIcon.className='card-icon ci-red';
     liveIcon.innerHTML='<i class="fas fa-bolt"></i>';
@@ -935,7 +1116,7 @@ function renderRecommendations(){
   const _ERMS_LABEL = {ON:'ERMS ON required', recommended:'ERMS recommended', OFF:'ERMS OFF', none:'—'};
   const _POS_LABEL  = {inside:'Inside switchboard (doors open)', outside:'Electrical room <0.3m (doors closed)', near:'Electrical room 0.3–1m', room:'Electrical room >1m'};
 
-  let html = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:500px">
     <thead>
       <tr style="border-bottom:2px solid var(--border)">
         <th style="padding:10px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Operation</th>
@@ -980,7 +1161,6 @@ function renderCatalogue(){
 
 /* ─── Documents tab ─── */
 function renderDocumentsTab(){
-  // SLD
   const sldBody = document.getElementById('sldDocBody');
   if(hasSld && sldB64){
     const isPdf = sldMime === 'application/pdf';
@@ -1007,7 +1187,6 @@ function renderDocumentsTab(){
     sldBody.innerHTML=`<div class="sld-none"><i class="fas fa-diagram-project" style="font-size:32px;margin-bottom:10px;color:var(--muted);display:block"></i>No SLD was uploaded for this scan.<br><br><a href="dashboard.html" style="color:var(--green);font-size:13px">Upload an SLD on next scan →</a></div>`;
   }
 
-  // Layout
   const layoutBody = document.getElementById('layoutDocBody');
   if(hasLayout && layoutB64){
     const isPdf = layoutMime === 'application/pdf';
@@ -1034,27 +1213,30 @@ function renderDocumentsTab(){
 
 /* ─── Metadata card ─── */
 function renderMetaCard(){
-  const task = meta.task || '—';
+  const task  = meta.task || '—';
   const isLive = meta.isLive;
   const ts = meta.timestamp ? new Date(meta.timestamp).toLocaleString() : 'Not recorded';
   const rows = [
-    ['Task',          cap(esc(task))],
-    ['Energy State',  isLive!=null ? (isLive?'<span style="color:var(--red)">LIVE</span>':'<span style="color:var(--green)">DEAD</span>') : '—'],
-    ['SLD Provided',  hasSld  ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--muted)">No</span>'],
-    ['Layout Provided',hasLayout?'<span style="color:var(--green)">Yes</span>':'<span style="color:var(--muted)">No</span>'],
-    ['Scan Time',     ts],
-    ['Model',         'Google Gemini (via Panel Inspector)'],
+    ['Task',           cap(esc(task))],
+    ['Energy State',   isLive!=null ? (isLive?'<span style="color:var(--red)">LIVE</span>':'<span style="color:var(--green)">DEAD</span>') : '—'],
+    ['SLD Provided',   hasSld   ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--muted)">No</span>'],
+    ['Layout Provided',hasLayout? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--muted)">No</span>'],
+    ['Scan Time',      ts],
+    ['Model',          'Google Gemini (via Panel Inspector)'],
   ];
   document.getElementById('metaBody').innerHTML=`
     <table style="width:100%;border-collapse:collapse">
       ${rows.map(([k,v])=>`<tr>
-        <td style="padding:9px 12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:40%">${k}</td>
-        <td style="padding:9px 12px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${v}</td>
+        <td style="padding:9px 10px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(30,58,95,.4);white-space:nowrap;width:40%">${k}</td>
+        <td style="padding:9px 10px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.4)">${v}</td>
       </tr>`).join('')}
     </table>`;
 }
 
-/* ─── Canvas drawing (shared logic) ─── */
+/* ─── Canvas drawing ─── */
+const renderedBreakers = [];
+let selectedIdx = -1;
+
 function drawCanvas(canvasId){
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
@@ -1062,38 +1244,34 @@ function drawCanvas(canvasId){
   const img = new Image();
 
   img.onload = () => {
-    // ── 1. Size canvas ──────────────────────────────────────────────
-    const maxW = Math.min(560, window.innerWidth - 100);
+    const maxW  = Math.min(560, window.innerWidth - 40);
     const scale = Math.min(maxW / img.naturalWidth, 480 / img.naturalHeight, 1);
     canvas.width  = img.naturalWidth  * scale;
     canvas.height = img.naturalHeight * scale;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Helpers
-    const n2c = (v, dim) => v / 1000 * dim;          // 0-1000 → canvas px
-    const px2c_x = canvas.width  / img.naturalWidth;  // pixel → canvas (cubicles)
+    const n2c    = (v, dim) => v / 1000 * dim;
+    const px2c_x = canvas.width  / img.naturalWidth;
     const px2c_y = canvas.height / img.naturalHeight;
 
-    // ── 2. Safety buffer (red dashed) + Work zone (green solid) ────
+    // Work zone + safety buffer
     const zr = meta.zoneRect, cW = meta.canvasW, cH = meta.canvasH;
     if(zr && cW && cH){
       const sx = canvas.width / cW, sy = canvas.height / cH;
       const x = zr.x*sx, y = zr.y*sy, w = zr.w*sx, h = zr.h*sy;
       const buf = 0.12;
-      // Safety buffer
       ctx.strokeStyle = 'rgba(255,71,87,.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
       ctx.strokeRect(x-w*buf, y-h*buf, w*(1+2*buf), h*(1+2*buf));
       ctx.fillStyle  = 'rgba(255,71,87,.06)';
       ctx.fillRect(x-w*buf, y-h*buf, w*(1+2*buf), h*(1+2*buf));
       ctx.setLineDash([]);
-      // Work zone
       ctx.strokeStyle = '#3DCD58'; ctx.lineWidth = 2.5;
       ctx.strokeRect(x, y, w, h);
       ctx.fillStyle = 'rgba(61,205,88,.08)';
       ctx.fillRect(x, y, w, h);
     }
 
-    // ── 3. Cubicles — C1/C2/VBB (0-1000 normalised coords, same as breakers) ──
+    // Cubicles
     (data.cubicles || []).forEach((c, i) => {
       if(!c.box || c.box.length < 4) return;
       const [yn, xn, yx, xx] = c.box;
@@ -1114,7 +1292,7 @@ function drawCanvas(canvasId){
       ctx.fillStyle = '#fff'; ctx.fillText(lbl, bx+5, by+15);
     });
 
-    // ── 4. Breakers (0-1000 normalised coords) ─────────────────────
+    // Breakers
     const COLORS = ['#3DCD58','#4A9EFF','#FFA502','#FF4757','#B967FF','#00D2FF'];
     let ci = 0;
     (data.breakers || []).forEach((b, idx) => {
@@ -1123,12 +1301,11 @@ function drawCanvas(canvasId){
       const [yn, xn, yx, xx] = b.box;
       const bx = n2c(xn, canvas.width),  by = n2c(yn, canvas.height);
       const bw = n2c(xx-xn, canvas.width), bh = n2c(yx-yn, canvas.height);
-      if(bw < 4 || bh < 4) return;   // skip degenerate boxes
+      if(bw < 4 || bh < 4) return;
 
       const col = COLORS[ci % COLORS.length]; ci++;
       const isSelected = selectedIdx === idx;
 
-      // Box
       ctx.strokeStyle = isSelected ? '#fff' : col;
       ctx.lineWidth   = isSelected ? 4 : 3;
       ctx.setLineDash([]);
@@ -1136,7 +1313,6 @@ function drawCanvas(canvasId){
       ctx.fillStyle = col + (isSelected ? '55' : '30');
       ctx.fillRect(bx, by, bw, bh);
 
-      // Label tag above the box
       const lbl = [deviceName(b.type), b.rating].filter(Boolean).join('  ');
       ctx.font = 'bold 12px Inter,sans-serif';
       const tw  = ctx.measureText(lbl).width + 12;
@@ -1148,7 +1324,7 @@ function drawCanvas(canvasId){
         renderedBreakers.push({x:bx, y:by, w:bw, h:bh, index:idx});
     });
 
-    // ── 5. Click listener ───────────────────────────────────────────
+    // Click listener
     if(!canvas.dataset.hasListener){
       canvas.onclick = e => {
         const r  = canvas.getBoundingClientRect();
@@ -1161,6 +1337,17 @@ function drawCanvas(canvasId){
   };
 
   img.src = 'data:' + mime + ';base64,' + imgB64;
+}
+
+function selectBreaker(idx, scroll){
+  selectedIdx = idx;
+  renderedBreakers.length = 0;
+  drawCanvas('resultCanvas');
+  drawCanvas('resultCanvas2');
+  document.querySelectorAll('.det-table tr').forEach(r=>r.classList.remove('selected-row'));
+  const rows = document.querySelectorAll('.det-table tbody tr');
+  if(rows[idx]) rows[idx].classList.add('selected-row');
+  if(scroll && rows[idx]) rows[idx].scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 /* ─── Animated number counter ─── */
@@ -1189,15 +1376,14 @@ async function showChecklistModal(){
   const overlay = document.getElementById('s2Overlay');
   if(!overlay) return;
 
-  const panelType   = data.panel_type    || 'Unknown';
-  const task        = meta.task          || 'others';
-  const isLive      = meta.isLive        || false;
-  const hasSld_     = !!meta.hasSld;
-  const vbbSide     = data.busbar_side   || 'unknown';
-  const cubicleCount= data.cubicle_count || 0;
-  const zoneRect    = meta.zoneRect;
+  const panelType    = data.panel_type    || 'Unknown';
+  const task         = meta.task          || 'others';
+  const isLive       = meta.isLive        || false;
+  const hasSld_      = !!meta.hasSld;
+  const vbbSide      = data.busbar_side   || 'unknown';
+  const cubicleCount = data.cubicle_count || 0;
+  const zoneRect     = meta.zoneRect;
 
-  // Determine work zone position label
   let zonePosLabel = 'Not specified';
   if(zoneRect && meta.canvasH){
     const cy = (zoneRect.y + zoneRect.h/2) / meta.canvasH;
@@ -1211,7 +1397,6 @@ async function showChecklistModal(){
     `Panel: <strong>${isLive?'⚡ LIVE':'🔒 DEAD'}</strong> &nbsp;·&nbsp; `+
     `Work zone: <strong>${zonePosLabel}</strong>`;
 
-  // Fetch checklist from server
   let items = [];
   let taskRecs = [];
   try {
@@ -1231,7 +1416,6 @@ async function showChecklistModal(){
   const body = document.getElementById('s2Items');
   body.innerHTML = '';
 
-  // ── Add zone-position-specific items at the top ──
   const zoneItems = _getZoneItems(panelType, task, zoneRect, meta.canvasH);
   if(zoneItems.length){
     const sl = document.createElement('div'); sl.className='cm-section';
@@ -1240,12 +1424,11 @@ async function showChecklistModal(){
     zoneItems.forEach(item=>body.appendChild(_makeCheckRow(item)));
   }
 
-  // ── Common + task-specific + panel-specific items from API ──
   const sections = {
-    common:   items.filter(i=>i.id.startsWith('dead_')||i.id.startsWith('live_')),
-    task:     items.filter(i=>!i.id.startsWith('dead_')&&!i.id.startsWith('live_')&&!i.id.startsWith('psp_')&&!i.id.startsWith('okk_')&&i.id!=='sld_1'),
-    panel:    items.filter(i=>i.id.startsWith('psp_')||i.id.startsWith('okk_')),
-    sld:      items.filter(i=>i.id==='sld_1'),
+    common: items.filter(i=>i.id.startsWith('dead_')||i.id.startsWith('live_')),
+    task:   items.filter(i=>!i.id.startsWith('dead_')&&!i.id.startsWith('live_')&&!i.id.startsWith('psp_')&&!i.id.startsWith('okk_')&&i.id!=='sld_1'),
+    panel:  items.filter(i=>i.id.startsWith('psp_')||i.id.startsWith('okk_')),
+    sld:    items.filter(i=>i.id==='sld_1'),
   };
   const sectionLabels = {
     common: isLive?'Live Work — Common Requirements':'De-energized Work — Common Requirements',
@@ -1261,7 +1444,6 @@ async function showChecklistModal(){
     grp.forEach(item=>body.appendChild(_makeCheckRow(item)));
   });
 
-  // ── Excel recommendations summary ──
   if(taskRecs.length){
     const sl = document.createElement('div'); sl.className='cm-section';
     sl.textContent = 'Operations — Hazards & ERMS Status';
@@ -1282,7 +1464,6 @@ async function showChecklistModal(){
     });
   }
 
-  // Count critical items and update progress
   _s2Total = body.querySelectorAll('.cm-row.crit').length;
   _s2Done  = 0;
   document.getElementById('s2TotalCrit').textContent = _s2Total;
@@ -1330,10 +1511,9 @@ function _makeCheckRow(item){
     div.classList.toggle('checked');
     div.querySelector('.cm-check').innerHTML = div.classList.contains('checked')
       ? '<i class="fas fa-check"></i>' : '';
-    // Recount
-    const all = document.querySelectorAll('#s2Items .cm-row.crit');
-    const done= document.querySelectorAll('#s2Items .cm-row.crit.checked').length;
-    _s2Done   = done;
+    const all  = document.querySelectorAll('#s2Items .cm-row.crit');
+    const done = document.querySelectorAll('#s2Items .cm-row.crit.checked').length;
+    _s2Done = done;
     document.getElementById('s2DoneCount').textContent = done;
     document.getElementById('s2Fill').style.width = all.length?(done/all.length*100)+'%':'100%';
     document.getElementById('s2Confirm').disabled = done < all.length;
@@ -1356,11 +1536,9 @@ function buildPrintArea(){
   const isLive_   = meta.isLive;
   const notes     = data.notes || '';
 
-  // Canvas image
   const canvas1 = document.getElementById('resultCanvas');
   const imgSrc  = canvas1 ? canvas1.toDataURL('image/jpeg', 0.9) : null;
 
-  // Project detail rows
   const projRows = [
     proj.name   ? `<tr><td>Project / Work Order</td><td>${esc(proj.name)}</td></tr>` : '',
     proj.site   ? `<tr><td>Site / Location</td><td>${esc(proj.site)}</td></tr>` : '',
@@ -1374,19 +1552,16 @@ function buildPrintArea(){
     `<tr><td>Safety Warnings</td><td>${warnings.length}</td></tr>`,
   ].filter(Boolean).join('');
 
-  // Safety warnings
   const warnHtml = warnings.length
     ? warnings.map(w=>`<div class="pr-warn">${esc(w)}</div>`).join('')
     : '<div class="pr-warn ok">No critical safety warnings detected.</div>';
 
-  // Detections table
   const detHtml = breakers.length
     ? `<table class="pr-rec-table"><thead><tr><th>#</th><th>Type</th><th>Rating</th><th>Label / Circuit</th></tr></thead><tbody>`+
       breakers.map((b,i)=>`<tr><td>${i+1}</td><td>${esc(deviceName(b.type)||'—')}</td><td>${esc(b.rating||'—')}</td><td>${esc(b.circuit_label||'—')}</td></tr>`).join('')+
       '</tbody></table>'
     : '<p style="color:#666">No breakers detected.</p>';
 
-  // Recommendations table
   const _POS = {inside:'Inside (doors open)',outside:'Outside (doors closed)',near:'Near (<1m)',room:'Room (>1m)'};
   const recsHtml = recs.length
     ? `<table class="pr-rec-table"><thead><tr><th>Operation</th><th>Position</th><th>Hazards</th><th>ERMS</th></tr></thead><tbody>`+
@@ -1408,47 +1583,40 @@ function buildPrintArea(){
       </div>
     </div>
     <hr class="pr-divider">
-
     <div class="pr-section">
       <div class="pr-section-title">Inspection Report</div>
       <table class="pr-table"><tbody>${projRows}</tbody></table>
     </div>
-
     ${imgSrc ? `<div class="pr-section">
       <div class="pr-section-title">Detection Overlay</div>
       <img class="pr-img" src="${imgSrc}" alt="Panel detection overlay">
     </div>` : ''}
-
     <div class="pr-section">
       <div class="pr-section-title">Safety Warnings (${warnings.length})</div>
       ${warnHtml}
     </div>
-
     <div class="pr-section">
       <div class="pr-section-title">Detections (${breakers.length} breakers)</div>
       ${detHtml}
     </div>
-
     <div class="pr-section">
       <div class="pr-section-title">Task Recommendations</div>
       ${recsHtml}
     </div>
-
     ${notes ? `<div class="pr-section">
       <div class="pr-section-title">AI Assessment Notes</div>
       <p style="font-size:12px;line-height:1.7;white-space:pre-wrap">${esc(notes)}</p>
     </div>` : ''}
-
     <div class="pr-footer">
       Generated by Panel Inspector Pro · EcoStruxure™ AI · Schneider Electric &nbsp;|&nbsp; ${new Date().toLocaleString()}
     </div>`;
 }
 </script>
 
-<!-- Print Area (hidden on screen, visible only when printing) -->
+<!-- Print area -->
 <div id="printArea"></div>
 
-<!-- Stage 2 Modal HTML -->
+<!-- Stage 2 Checklist Modal -->
 <div class="checklist-overlay" id="s2Overlay">
   <div class="checklist-modal">
     <div class="cm-header">

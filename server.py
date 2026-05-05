@@ -37,7 +37,7 @@ ANTHROPIC_KEY = os.environ.get("ANTHROPIC_KEY", "")
 GEMINI_KEY    = os.environ.get("GEMINI_KEY", "")
 
 # Switch: "claude", "gemini", or "vertexai"
-PROVIDER = "gemini"
+PROVIDER = "claude"
 
 VERTEX_PROJECT  = "project-dca768bf-132b-488c-8f2"
 VERTEX_LOCATION = "us-central1"
@@ -50,13 +50,13 @@ if PROVIDER == "claude":
 elif PROVIDER == "vertexai":
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL      = "gemini-3.1-pro-preview"
+    MODEL      = "gemini-2.5-pro-preview-05-06"
     FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(vertexai=True, project=VERTEX_PROJECT, location=VERTEX_LOCATION)
 else:
     from google import genai as _genai
     from google.genai import types as _types
-    MODEL      = "gemini-3.1-pro-preview"
+    MODEL      = "gemini-2.5-pro-preview-05-06"
     FAST_MODEL = "gemini-2.0-flash"
     client = _genai.Client(api_key=GEMINI_KEY)
 

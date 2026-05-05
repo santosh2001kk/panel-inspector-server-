@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scan — Panel Inspector Pro</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module" id="pdfjs-script"></script>
 <script>
-// Load PDF.js worker via dynamic import so it's available globally
 window._pdfjs = null;
 import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then(mod=>{
   mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
@@ -16,327 +14,467 @@ import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then
 }).catch(()=>{});
 </script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+/* ══════════════════════════════════════════════════
+   RESET & TOKENS
+══════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
-  --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
-  --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;
+  --green:#3DCD58;--green-d:#2BAE47;--green-glow:rgba(61,205,88,.28);--green-dim:rgba(61,205,88,.08);
+  --bg:#07101F;--surf:#0B1828;--card:#0F2035;--card2:#132540;
+  --border:#172E4A;--border2:#1E3B5E;
+  --text:#E4EDF8;--dim:#8AAAC8;--muted:#4A6A8A;
+  --red:#FF4757;--red-bg:rgba(255,71,87,.08);--red-b:rgba(255,71,87,.22);
+  --amber:#FFA502;--amber-bg:rgba(255,165,2,.08);--amber-b:rgba(255,165,2,.22);
+  --blue:#4A9EFF;--purple:#A855F7;
+  --r:12px;--r-sm:8px;--nav-h:58px;
 }
-html,body{min-height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+button,input{font-family:inherit}
 .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(61,205,88,.06) 0%,transparent 60%);
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(61,205,88,.05) 0%,transparent 60%);
 }
 
-/* ── Navbar ── */
-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
-  padding:0 32px;height:64px;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
+/* ══════════════════════════════════════════════════
+   NAV
+══════════════════════════════════════════════════ */
+nav{
+  position:sticky;top:0;z-index:200;height:var(--nav-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:rgba(7,16,31,.97);backdrop-filter:blur(24px);
   border-bottom:1px solid var(--border);
 }
-.nav-logo{display:flex;align-items:center;gap:12px}
-.nav-sq{width:36px;height:36px;background:var(--green);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0A1628}
-.nav-title{font-size:16px;font-weight:700}
-.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.5px}
-.nav-right{display:flex;align-items:center;gap:16px}
-.nav-user{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
-.nav-avatar{width:32px;height:32px;border-radius:50%;background:rgba(61,205,88,.15);border:1px solid var(--green);
-  display:flex;align-items:center;justify-content:center;color:var(--green);font-size:13px;font-weight:700;
+.nav-logo{display:flex;align-items:center;gap:11px}
+.nav-sq{width:36px;height:36px;background:var(--green);border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;
+  color:#07101F;box-shadow:0 0 20px var(--green-glow);
 }
-.btn-logout{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.nav-title{font-size:14px;font-weight:700;line-height:1.2}
+.nav-title small{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:1px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.nav-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.25);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--green);font-size:12px;font-weight:700;
+}
+.btn-logout{
+  background:transparent;border:1px solid var(--border2);color:var(--muted);
+  padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer;transition:all .2s;
+}
 .btn-logout:hover{border-color:var(--red);color:var(--red)}
-
-/* ── Step Progress Bar ── */
-.step-bar{position:sticky;top:64px;z-index:99;background:rgba(10,22,40,.95);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);padding:0 32px;
+@media(max-width:480px){
+  .nav-user span,.btn-logout span{display:none}
+  .btn-logout{padding:7px 10px}
 }
-.steps{max-width:1200px;margin:0 auto;display:flex;align-items:center;height:56px;gap:0}
-.step{display:flex;align-items:center;gap:10px;padding:0 20px 0 0;position:relative;cursor:pointer;transition:all .2s}
-.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);
+
+/* ══════════════════════════════════════════════════
+   STEP PROGRESS BAR
+══════════════════════════════════════════════════ */
+.step-bar{
+  position:sticky;top:var(--nav-h);z-index:150;
+  background:rgba(7,16,31,.97);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:0 16px;
+}
+.steps{max-width:860px;margin:0 auto;display:flex;align-items:center;height:52px}
+.step{display:flex;align-items:center;gap:8px;flex-shrink:0;cursor:pointer;padding:0 4px}
+.step-num{
+  width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--muted);
   transition:all .3s;flex-shrink:0;
 }
-.step-info{display:flex;flex-direction:column}
+.step-info{display:flex;flex-direction:column;line-height:1.2}
 .step-name{font-size:12px;font-weight:600;color:var(--muted);transition:color .3s;white-space:nowrap}
-.step-sub{font-size:10px;color:var(--border);transition:color .3s;white-space:nowrap}
-.step-line{flex:1;height:2px;background:var(--border);margin:0 8px;transition:background .3s;min-width:20px}
-.step.done .step-num{background:var(--green);border-color:var(--green);color:#0A1628}
+.step-sub{font-size:10px;color:var(--border2);transition:color .3s;white-space:nowrap}
+.step-line{flex:1;height:2px;background:var(--border);min-width:16px;transition:background .3s}
+.step.done .step-num{background:var(--green);border-color:var(--green);color:#07101F}
 .step.done .step-name{color:var(--green)}
-.step.done .step-sub{color:rgba(61,205,88,.6)}
-.step.active .step-num{border-color:var(--green);color:var(--green);box-shadow:0 0 12px var(--green-glow)}
+.step.done .step-sub{color:rgba(61,205,88,.5)}
+.step.active .step-num{border-color:var(--green);color:var(--green);box-shadow:0 0 14px var(--green-glow)}
 .step.active .step-name{color:var(--text)}
 .step.active .step-sub{color:var(--muted)}
 .step-line.done{background:var(--green)}
-
-/* ── Main ── */
-.main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:36px 32px 80px}
-
-/* ── Section ── */
-.section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:20px;
-  transition:all .3s;
+@media(max-width:600px){
+  .step-info{display:none}
+  .steps{height:44px;justify-content:center;gap:4px}
+  .step{padding:0}
+  .step-line{min-width:24px}
 }
-.section.locked{opacity:.45;pointer-events:none;filter:grayscale(.3)}
-.section-head{display:flex;align-items:center;gap:14px;margin-bottom:24px}
-.section-icon{width:42px;height:42px;border-radius:10px;background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);
-  display:flex;align-items:center;justify-content:center;color:var(--green);font-size:17px;flex-shrink:0;
+
+/* ══════════════════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════════════════ */
+.main{
+  position:relative;z-index:1;
+  max-width:860px;margin:0 auto;
+  padding:24px 16px 80px;
+  display:flex;flex-direction:column;gap:16px;
+}
+@media(min-width:768px){.main{padding:32px 24px 80px}}
+
+/* ══════════════════════════════════════════════════
+   SECTION CARDS
+══════════════════════════════════════════════════ */
+.section{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:22px 18px;transition:all .3s;
+}
+@media(min-width:768px){.section{padding:26px 28px}}
+.section.locked{opacity:.42;pointer-events:none;filter:grayscale(.25)}
+.section-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:22px}
+.section-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--green);font-size:16px;flex-shrink:0;
 }
 .section-icon.red{background:rgba(255,71,87,.1);border-color:rgba(255,71,87,.2);color:var(--red)}
-.section-icon.blue{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.2);color:#4A9EFF}
-.section-icon.orange{background:rgba(255,165,2,.1);border-color:rgba(255,165,2,.2);color:var(--orange)}
-.section-label-wrap{}
+.section-icon.blue{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.2);color:var(--blue)}
+.section-icon.orange{background:rgba(255,165,2,.1);border-color:rgba(255,165,2,.2);color:var(--amber)}
+.section-label-wrap{flex:1;min-width:0}
 .section-step{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:3px}
-.section-title{font-size:18px;font-weight:700}
-.section-sub{font-size:13px;color:var(--muted);margin-top:3px}
-.step-check{margin-left:auto;width:28px;height:28px;border-radius:50%;background:var(--green);
-  display:flex;align-items:center;justify-content:center;color:#0A1628;font-size:12px;
-  opacity:0;transform:scale(0);transition:all .3s;
+.section-title{font-size:17px;font-weight:700;color:var(--text)}
+.section-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.step-check{
+  margin-left:auto;width:26px;height:26px;border-radius:50%;background:var(--green);
+  display:flex;align-items:center;justify-content:center;color:#07101F;font-size:11px;
+  opacity:0;transform:scale(0);transition:all .3s;flex-shrink:0;
 }
 .step-check.show{opacity:1;transform:scale(1)}
 
-/* ── Energy Toggle ── */
-.toggle-wrap{display:inline-flex;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:rgba(10,22,40,.5)}
-.toggle-btn{padding:13px 44px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .25s;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
-.toggle-btn.dead-active{background:var(--green);color:#0A1628}
+/* ══════════════════════════════════════════════════
+   PROJECT DETAILS GRID
+══════════════════════════════════════════════════ */
+.proj-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){.proj-grid{grid-template-columns:1fr 1fr}}
+.proj-label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.proj-input{
+  width:100%;padding:11px 13px;background:rgba(7,16,31,.7);
+  border:1px solid var(--border2);border-radius:var(--r-sm);
+  color:var(--text);font-size:14px;transition:border-color .2s;outline:none;
+}
+.proj-input::placeholder{color:var(--muted)}
+.proj-input:focus{border-color:rgba(74,158,255,.5);background:rgba(7,16,31,.9)}
+
+/* ══════════════════════════════════════════════════
+   ENERGY TOGGLE
+══════════════════════════════════════════════════ */
+.toggle-center{display:flex;flex-direction:column;align-items:center;gap:14px}
+.toggle-wrap{
+  display:flex;border-radius:12px;overflow:hidden;
+  border:1px solid var(--border2);background:rgba(7,16,31,.5);
+  width:100%;max-width:440px;
+}
+.toggle-btn{
+  flex:1;padding:14px 16px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;border:none;transition:all .25s;letter-spacing:.4px;
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;
+}
+.toggle-btn.dead-active{background:var(--green);color:#07101F}
 .toggle-btn.dead-inactive{background:transparent;color:var(--muted)}
 .toggle-btn.live-active{background:var(--red);color:#fff}
 .toggle-btn.live-inactive{background:transparent;color:var(--muted)}
-.energy-info{margin-top:14px;padding:12px 18px;border-radius:10px;font-size:13px;line-height:1.6;max-width:540px;text-align:center}
-.energy-info.dead{background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);color:rgba(61,205,88,.9)}
-.energy-info.live{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);color:rgba(255,71,87,.9)}
-.toggle-center{display:flex;flex-direction:column;align-items:center;gap:12px}
+.energy-info{
+  padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.6;
+  text-align:center;max-width:480px;width:100%;
+}
+.energy-info.dead{background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);color:rgba(61,205,88,.9)}
+.energy-info.live{background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);color:rgba(255,71,87,.9)}
 
-/* ── Task Grid ── */
-.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.task-card{background:var(--card2);border:2px solid var(--border);border-radius:13px;
-  padding:22px 18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+/* ══════════════════════════════════════════════════
+   TASK GRID
+══════════════════════════════════════════════════ */
+.task-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.task-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.task-grid{grid-template-columns:repeat(5,1fr)}}
+.task-card{
+  background:var(--card2);border:2px solid var(--border);border-radius:13px;
+  padding:18px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
 }
-.task-card::after{content:'';position:absolute;inset:0;background:var(--green);opacity:0;transition:opacity .2s;pointer-events:none}
-.task-card:hover{border-color:rgba(61,205,88,.35);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3)}
-.task-card:hover::after{opacity:.03}
+.task-card:hover{border-color:rgba(61,205,88,.35);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .task-card.selected{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
-.task-card.selected .task-icon{background:var(--green);color:#0A1628;border-color:var(--green)}
-.task-icon{width:42px;height:42px;border-radius:9px;background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.15);
-  display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--green);transition:all .2s;margin-bottom:12px;
-}
-.task-name{font-size:14px;font-weight:700;margin-bottom:5px}
-.task-desc{font-size:12px;color:var(--muted);line-height:1.5}
-.task-tick{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);
-  display:flex;align-items:center;justify-content:center;font-size:9px;color:#0A1628;
-  opacity:0;transform:scale(0);transition:all .2s;
+.task-card.selected .task-icon{background:var(--green);color:#07101F;border-color:var(--green)}
+.task-tick{
+  position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;
+  background:var(--green);display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#07101F;opacity:0;transform:scale(0);transition:all .2s;
 }
 .task-card.selected .task-tick{opacity:1;transform:scale(1)}
-
-/* ── Documents Section ── */
-.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.doc-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
-.doc-card.has-file{border-color:rgba(61,205,88,.3)}
-.doc-card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.doc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
-.doc-icon.sld{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);color:var(--green)}
-.doc-icon.layout{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:#4A9EFF}
-.doc-title{font-size:14px;font-weight:700}
-.doc-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.doc-preview{display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;background:#000;max-height:140px;align-items:center;justify-content:center}
-.doc-preview.show{display:flex}
-.doc-preview img{max-width:100%;max-height:140px;object-fit:contain}
-.doc-preview-pdf{width:100%;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(10,22,40,.5)}
-.doc-preview-pdf i{font-size:32px;color:var(--red)}
-.doc-preview-pdf span{font-size:12px;color:var(--muted);text-align:center;padding:0 8px;word-break:break-all}
-.doc-status{display:none;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:600;
-  display:flex;align-items:center;gap:8px;margin-bottom:12px;
+.task-icon{
+  width:38px;height:38px;border-radius:9px;background:rgba(61,205,88,.1);
+  border:1px solid rgba(61,205,88,.15);display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--green);transition:all .2s;margin-bottom:10px;
 }
-.doc-status.green{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);color:var(--green)}
-.doc-status.blue{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:#4A9EFF}
+.task-name{font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.task-desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* ══════════════════════════════════════════════════
+   DOCUMENTS GRID
+══════════════════════════════════════════════════ */
+.docs-grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:600px){.docs-grid{grid-template-columns:1fr 1fr}}
+.doc-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:18px}
+.doc-card.has-file{border-color:rgba(61,205,88,.3)}
+.doc-card-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.doc-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.doc-icon.sld{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.doc-icon.layout{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
+.doc-title{font-size:13px;font-weight:700;color:var(--text)}
+.doc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.doc-preview{display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;background:#000;max-height:130px;align-items:center;justify-content:center}
+.doc-preview.show{display:flex}
+.doc-preview img{max-width:100%;max-height:130px;object-fit:contain}
+.doc-preview-pdf{width:100%;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.doc-preview-pdf i{font-size:28px;color:var(--red)}
+.doc-preview-pdf span{font-size:11px;color:var(--muted);text-align:center;word-break:break-all}
+.doc-status{padding:8px 11px;border-radius:8px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.doc-status.green{background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);color:var(--green)}
+.doc-status.blue{background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.2);color:var(--blue)}
 .doc-status.hidden{display:none!important}
-.doc-upload-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;
-  background:rgba(10,22,40,.6);border:1px dashed var(--border);border-radius:8px;
-  cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s;width:100%;
+.doc-upload-btn{
+  display:flex;align-items:center;gap:8px;padding:10px 13px;
+  background:rgba(7,16,31,.6);border:1px dashed var(--border2);border-radius:var(--r-sm);
+  cursor:pointer;font-size:12px;color:var(--muted);transition:all .2s;width:100%;
 }
 .doc-upload-btn:hover{border-color:var(--green);color:var(--green)}
-.doc-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;transition:all .2s;margin-left:auto}
+.doc-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;
+  padding:3px 7px;border-radius:5px;transition:all .2s;margin-left:auto}
 .doc-clear:hover{color:var(--red)}
 
-/* ── Upload / Drop Zone ── */
-.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center;
-  cursor:pointer;transition:all .2s;position:relative;
+/* ══════════════════════════════════════════════════
+   DROP ZONE
+══════════════════════════════════════════════════ */
+.drop-zone{
+  border:2px dashed var(--border2);border-radius:var(--r);padding:36px 20px;
+  text-align:center;cursor:pointer;transition:all .2s;position:relative;background:rgba(255,255,255,.01);
 }
-.drop-zone:hover,.drop-zone.dragover{border-color:var(--green);background:rgba(61,205,88,.03)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--green);background:var(--green-dim)}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.drop-icon{font-size:36px;color:var(--muted);margin-bottom:14px;transition:color .2s}
+.drop-icon{font-size:32px;color:var(--muted);margin-bottom:12px;transition:color .2s}
 .drop-zone:hover .drop-icon,.drop-zone.dragover .drop-icon{color:var(--green)}
 .drop-title{font-size:15px;font-weight:600;margin-bottom:6px}
 .drop-sub{font-size:12px;color:var(--muted)}
 .drop-sub span{color:var(--green);font-weight:500}
 
-/* ── Canvas Zone Drawing ── */
-.preview-wrap{display:none;margin-top:20px}
+/* ══════════════════════════════════════════════════
+   CANVAS AREA
+══════════════════════════════════════════════════ */
+.preview-wrap{display:none;margin-top:18px}
 .preview-wrap.show{display:block;animation:fadeUp .3s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.zone-hint{display:flex;align-items:center;gap:10px;padding:10px 16px;
-  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.15);border-radius:8px;
-  font-size:13px;color:var(--muted);margin-bottom:14px;
+.zone-hint{
+  display:flex;align-items:flex-start;gap:10px;padding:12px 15px;
+  background:rgba(61,205,88,.06);border:1px solid rgba(61,205,88,.15);border-radius:9px;
+  font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5;
 }
-.zone-hint i{color:var(--green);flex-shrink:0}
+.zone-hint i{color:var(--green);flex-shrink:0;margin-top:2px}
 .zone-status{font-weight:600;color:var(--green)}
-.canvas-box{border-radius:12px;overflow:hidden;background:#000;display:flex;justify-content:center;margin-bottom:18px}
+.canvas-box{
+  border-radius:var(--r);overflow:hidden;background:#000;
+  display:flex;justify-content:center;margin-bottom:16px;
+}
 .canvas-box canvas{max-width:100%;cursor:crosshair;display:block}
 
-/* ── Action Buttons ── */
-.action-row{display:flex;gap:12px}
-.btn-primary{flex:1;padding:15px;background:var(--green);border:none;border-radius:11px;
-  color:#0A1628;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;
+/* ══════════════════════════════════════════════════
+   ACTION BUTTONS
+══════════════════════════════════════════════════ */
+.action-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{
+  flex:1;min-width:160px;padding:14px 16px;background:var(--green);border:none;border-radius:11px;
+  color:#07101F;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;
 }
-.btn-primary:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 8px 24px var(--green-glow)}
-.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
-.btn-secondary{flex:.55;padding:15px;background:transparent;border:1px solid var(--border);border-radius:11px;
-  color:var(--text);font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;
+.btn-primary:hover{background:var(--green-d);transform:translateY(-1px);box-shadow:0 8px 24px var(--green-glow)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{
+  flex:0 0 auto;padding:14px 18px;background:transparent;border:1px solid var(--border2);
+  border-radius:11px;color:var(--text);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;
 }
 .btn-secondary:hover{border-color:var(--green);color:var(--green)}
+@media(max-width:480px){
+  .action-row{flex-direction:column}
+  .btn-secondary{order:2}
+}
 
-/* ── Loading Overlay ── */
-.loading-overlay{display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(10,22,40,.93);backdrop-filter:blur(16px);
-  flex-direction:column;align-items:center;justify-content:center;gap:24px;
+/* ══════════════════════════════════════════════════
+   CAMERA MODAL
+══════════════════════════════════════════════════ */
+#cameraModal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;
+}
+#cameraVideo{max-width:100%;max-height:65vh;border-radius:12px;border:2px solid rgba(61,205,88,.4)}
+
+/* ══════════════════════════════════════════════════
+   LOADING OVERLAY
+══════════════════════════════════════════════════ */
+.loading-overlay{
+  display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(7,16,31,.95);backdrop-filter:blur(18px);
+  flex-direction:column;align-items:center;justify-content:center;gap:22px;
 }
 .loading-overlay.active{display:flex}
-.loader-wrap{position:relative;width:80px;height:80px}
-.loader-ring{position:absolute;inset:0;border:3px solid rgba(61,205,88,.15);border-top:3px solid var(--green);
-  border-radius:50%;animation:spin .9s linear infinite;
+.loader-wrap{position:relative;width:76px;height:76px}
+.loader-ring{
+  position:absolute;inset:0;border:3px solid rgba(61,205,88,.15);
+  border-top:3px solid var(--green);border-radius:50%;animation:spin .9s linear infinite;
 }
-.loader-ring2{position:absolute;inset:8px;border:2px solid rgba(61,205,88,.08);border-bottom:2px solid rgba(61,205,88,.4);
-  border-radius:50%;animation:spin 1.4s linear infinite reverse;
+.loader-ring2{
+  position:absolute;inset:9px;border:2px solid rgba(61,205,88,.08);
+  border-bottom:2px solid rgba(61,205,88,.35);border-radius:50%;animation:spin 1.4s linear infinite reverse;
 }
-.loader-dot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--green)}
+.loader-dot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--green)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-title{font-size:22px;font-weight:700}
-.loading-sub{font-size:14px;color:var(--muted)}
-.progress-steps{display:flex;flex-direction:column;gap:10px;margin-top:4px;width:260px}
-.ps{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);padding:8px 14px;border-radius:8px;transition:all .3s}
-.ps.active{background:rgba(61,205,88,.08);color:var(--text)}
+.loading-title{font-size:20px;font-weight:700}
+.loading-sub{font-size:13px;color:var(--muted)}
+.progress-steps{display:flex;flex-direction:column;gap:8px;margin-top:4px;width:240px}
+.ps{display:flex;align-items:center;gap:11px;font-size:13px;color:var(--muted);padding:7px 13px;border-radius:8px;transition:all .3s}
+.ps.active{background:rgba(61,205,88,.07);color:var(--text)}
 .ps.done{color:var(--green)}
-.ps-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .3s}
-.ps.active .ps-dot{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse-dot 1s ease infinite}
+.ps-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .3s}
+.ps.active .ps-dot{background:var(--green);box-shadow:0 0 8px var(--green);animation:pdot 1s ease infinite}
 .ps.done .ps-dot{background:var(--green)}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ── Responsive ── */
-@media(max-width:768px){
-  .task-grid{grid-template-columns:repeat(2,1fr)}
-  .docs-grid{grid-template-columns:1fr}
-  .action-row{flex-direction:column}
-  .main{padding:20px 16px 60px}
-  .steps{gap:0;padding:0 8px}
-  .step-sub{display:none}
-  .step-line{min-width:10px}
-  nav,.step-bar{padding:0 16px}
+/* ══════════════════════════════════════════════════
+   PRE-WORK CHECKLIST MODAL
+══════════════════════════════════════════════════ */
+.checklist-overlay{
+  position:fixed;inset:0;z-index:500;background:rgba(5,12,24,.94);backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;padding:12px;
 }
-@media(max-width:500px){.task-grid{grid-template-columns:1fr}}
-
-/* ── Pre-Work Checklist Modal (Flowchart Wizard) ── */
-.checklist-overlay{position:fixed;inset:0;z-index:500;background:rgba(5,12,24,.92);backdrop-filter:blur(6px);
-  display:none;align-items:center;justify-content:center;padding:20px}
 .checklist-overlay.active{display:flex}
-.checklist-modal{background:var(--card);border:1px solid var(--border);border-radius:20px;
-  width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.checklist-modal{
+  background:var(--card);border:1px solid var(--border);border-radius:18px;
+  width:100%;max-width:660px;max-height:92vh;display:flex;flex-direction:column;
+  overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);
+}
 
 /* Wizard screens */
 .pw-screen{display:none;flex-direction:column;flex:1;min-height:0}
 .pw-screen.active{display:flex}
-
-/* Decision screens */
-.pw-decision-body{padding:24px 32px 20px;display:flex;flex-direction:column;align-items:center;gap:18px;flex:1}
-.pw-step-dots{display:flex;gap:8px}
-.pw-dot{width:9px;height:9px;border-radius:50%;background:var(--border);transition:all .3s}
+.pw-decision-body{padding:20px 22px 16px;display:flex;flex-direction:column;align-items:center;gap:16px;flex:1}
+.pw-step-dots{display:flex;gap:7px}
+.pw-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .3s}
 .pw-dot.active{background:var(--green);box-shadow:0 0 8px var(--green-glow)}
-.pw-dot.done{background:rgba(61,205,88,.45)}
-.pw-question{text-align:center;max-width:460px}
-.pw-q-icon{font-size:36px;margin-bottom:12px;display:block}
-.pw-question h3{font-size:20px;font-weight:800;margin-bottom:6px;line-height:1.3;color:var(--text)}
-.pw-q-hint{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
-.pw-state-tag{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600}
+.pw-dot.done{background:rgba(61,205,88,.4)}
+.pw-question{text-align:center;max-width:440px}
+.pw-q-icon{font-size:32px;margin-bottom:10px;display:block}
+.pw-question h3{font-size:18px;font-weight:800;margin-bottom:6px;line-height:1.3;color:var(--text)}
+.pw-q-hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.pw-state-tag{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:600}
 .pw-state-tag.live{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.25);color:var(--red)}
 .pw-state-tag.dead{background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.25);color:var(--green)}
-.pw-yn-row{display:flex;gap:14px;width:100%;max-width:500px}
-.pw-yn-btn{flex:1;padding:18px 14px;border-radius:14px;border:2px solid var(--border);background:var(--card2);
-  cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;flex-direction:column;
-  align-items:center;gap:7px;text-align:center}
-.pw-yn-btn i{font-size:24px;transition:color .2s}
-.pw-yn-label{font-size:15px;font-weight:800;color:var(--text)}
-.pw-yn-hint{font-size:11px;color:var(--muted);font-weight:400;line-height:1.4}
+.pw-yn-row{display:flex;gap:12px;width:100%;max-width:440px}
+.pw-yn-btn{
+  flex:1;padding:16px 12px;border-radius:13px;border:2px solid var(--border2);
+  background:var(--card2);cursor:pointer;font-family:'Inter',sans-serif;
+  transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+}
+.pw-yn-btn i{font-size:22px;transition:color .2s}
+.pw-yn-label{font-size:14px;font-weight:800;color:var(--text)}
+.pw-yn-hint{font-size:11px;color:var(--muted);font-weight:400;line-height:1.35}
 .pw-yn-btn.pw-no:hover,.pw-yn-btn.pw-no.pw-selected{border-color:var(--green);background:rgba(61,205,88,.06)}
 .pw-yn-btn.pw-no i{color:var(--green)}
 .pw-yn-btn.pw-yes:hover,.pw-yn-btn.pw-yes.pw-selected{border-color:var(--red);background:rgba(255,71,87,.06)}
 .pw-yn-btn.pw-yes i{color:var(--red)}
-.pw-yn-btn.pw-blue:hover,.pw-yn-btn.pw-blue.pw-selected{border-color:#4A9EFF;background:rgba(74,158,255,.06)}
-.pw-yn-btn.pw-blue i{color:#4A9EFF}
-.pw-dec-footer{padding:14px 28px;border-top:1px solid var(--border);flex-shrink:0}
-.pw-back-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;
-  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
-  font-family:'Inter',sans-serif;transition:all .2s}
+.pw-yn-btn.pw-blue:hover,.pw-yn-btn.pw-blue.pw-selected{border-color:var(--blue);background:rgba(74,158,255,.06)}
+.pw-yn-btn.pw-blue i{color:var(--blue)}
+.pw-dec-footer{padding:12px 22px;border-top:1px solid var(--border);flex-shrink:0}
+.pw-back-btn{
+  padding:9px 15px;border-radius:8px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;transition:all .2s;
+}
 .pw-back-btn:hover{color:var(--text);border-color:var(--text)}
-
-/* Path breadcrumb */
-.pw-path{padding:10px 24px;background:var(--card2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
-.pw-path-node{font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
+.pw-path{
+  padding:9px 22px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;
+}
+.pw-path-node{font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
 .pw-path-node.live{background:rgba(255,71,87,.12);color:var(--red)}
 .pw-path-node.dead{background:rgba(61,205,88,.1);color:var(--green)}
-.pw-path-node.neutral{background:rgba(74,158,255,.1);color:#4A9EFF}
-.pw-path-node.task{background:rgba(255,165,2,.1);color:var(--orange)}
-.pw-path-arrow{color:var(--muted);font-size:12px}
+.pw-path-node.neutral{background:rgba(74,158,255,.1);color:var(--blue)}
+.pw-path-node.task{background:rgba(255,165,2,.1);color:var(--amber)}
+.pw-path-arrow{color:var(--muted);font-size:11px}
 
 /* Checklist screens */
-.cm-header{padding:20px 26px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0}
-.cm-icon{width:44px;height:44px;border-radius:11px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);
-  display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--red);flex-shrink:0}
-.cm-icon.green{background:rgba(61,205,88,.1);border-color:rgba(61,205,88,.25);color:var(--green)}
-.cm-icon.blue{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.25);color:#4A9EFF}
-.cm-title{font-size:18px;font-weight:800}
-.cm-sub{font-size:12px;color:var(--muted);margin-top:2px}
-.cm-progress-row{padding:11px 26px;background:var(--card2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:14px;flex-shrink:0}
-.cm-progress-label{font-size:12px;font-weight:600;white-space:nowrap;min-width:160px}
+.cm-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.cm-icon{width:42px;height:42px;border-radius:10px;background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.22);
+  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--red);flex-shrink:0}
+.cm-icon.green{background:rgba(61,205,88,.08);border-color:rgba(61,205,88,.22);color:var(--green)}
+.cm-icon.blue{background:rgba(74,158,255,.08);border-color:rgba(74,158,255,.22);color:var(--blue)}
+.cm-title{font-size:16px;font-weight:800;color:var(--text)}
+.cm-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.cm-progress-row{
+  padding:10px 22px;background:var(--card2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.cm-progress-label{font-size:12px;font-weight:600;white-space:nowrap;min-width:130px}
 .cm-progress-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden}
 .cm-progress-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
-.cm-body{flex:1;overflow-y:auto;padding:18px 26px;display:flex;flex-direction:column;gap:9px;min-height:0}
-.cm-item{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border-radius:11px;
-  background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s,background .2s}
+.cm-body{flex:1;overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:7px;min-height:0}
+.cm-item{
+  display:flex;align-items:flex-start;gap:11px;padding:12px 13px;
+  border-radius:10px;background:var(--card2);border:1px solid var(--border);
+  cursor:pointer;transition:border-color .2s,background .2s;
+}
 .cm-item:hover{border-color:rgba(61,205,88,.3)}
 .cm-item.checked{background:rgba(61,205,88,.06);border-color:rgba(61,205,88,.35)}
 .cm-item.critical-item{border-left:3px solid var(--red)}
 .cm-item.critical-item.checked{border-left-color:var(--green)}
-.cm-cb{width:21px;height:21px;border-radius:6px;border:2px solid var(--border);background:var(--card);
-  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.cm-item.checked .cm-cb{background:var(--green);border-color:var(--green);color:#0A1628;font-size:11px}
-.cm-item-text{font-size:13px;line-height:1.55;flex:1}
-.cm-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;
-  background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;margin-left:8px;flex-shrink:0}
+.cm-cb{
+  width:21px;height:21px;border-radius:6px;border:2px solid var(--border2);
+  background:var(--card);flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.cm-item.checked .cm-cb{background:var(--green);border-color:var(--green);color:#07101F;font-size:11px}
+.cm-item-text{font-size:12px;line-height:1.5;flex:1;color:var(--dim)}
+.cm-badge{
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.5px;
+  background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;flex-shrink:0;
+}
 .cm-badge.ok{background:rgba(61,205,88,.15);color:var(--green)}
-.cm-section-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--muted);padding:4px 0 5px;border-bottom:1px solid var(--border);margin-top:4px;flex-shrink:0}
-.cm-footer{padding:16px 26px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-shrink:0}
-.cm-btn-cancel{padding:10px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;
-  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'Inter',sans-serif}
+.cm-section-label{
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:4px 0 5px;border-bottom:1px solid var(--border);margin-top:4px;flex-shrink:0;
+}
+.cm-footer{
+  padding:14px 22px;border-top:1px solid var(--border);
+  display:flex;gap:10px;justify-content:space-between;align-items:center;flex-shrink:0;
+}
+.cm-btn-cancel{
+  padding:9px 15px;border-radius:9px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;
+}
 .cm-btn-cancel:hover{border-color:var(--text);color:var(--text)}
-.cm-btn-confirm{padding:11px 22px;border-radius:9px;border:none;background:var(--green);
-  color:#0A1628;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;
-  transition:opacity .2s,transform .1s;font-family:'Inter',sans-serif}
-.cm-btn-confirm:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.cm-btn-confirm{
+  padding:11px 20px;border-radius:9px;border:none;background:var(--green);
+  color:#07101F;font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:8px;transition:opacity .2s,transform .1s;
+  font-family:'Inter',sans-serif;
+}
+.cm-btn-confirm:disabled{opacity:.3;cursor:not-allowed;transform:none}
 .cm-btn-confirm:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
-
-/* ── Project Details ── */
-.proj-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-.proj-input{width:100%;padding:11px 14px;background:rgba(10,22,40,.6);border:1px solid var(--border);border-radius:9px;
-  color:var(--text);font-size:14px;font-family:'Inter',sans-serif;transition:border-color .2s;outline:none}
-.proj-input::placeholder{color:rgba(107,142,174,.55)}
-.proj-input:focus{border-color:rgba(74,158,255,.5);background:rgba(10,22,40,.8)}
+@media(max-width:480px){
+  .cm-footer{flex-direction:column-reverse;gap:8px}
+  .cm-btn-confirm,.cm-btn-cancel{width:100%;justify-content:center}
+  .pw-yn-row{flex-direction:column}
+}
 </style>
 </head>
 <body>
 <div class="bg-glow"></div>
 
-<!-- Navbar -->
+<!-- ═══════ NAV ═══════ -->
 <nav>
   <div class="nav-logo">
     <div class="nav-sq">SE</div>
@@ -344,14 +482,14 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
   </div>
   <div class="nav-right">
     <div class="nav-user">
-      <div class="nav-avatar" id="userAvatar">?</div>
-      <span id="navUsername" style="font-size:14px"></span>
+      <div class="nav-avatar" id="userAvatar">T</div>
+      <span id="navUsername"></span>
     </div>
-    <button class="btn-logout" onclick="logout()"><i class="fas fa-right-from-bracket"></i> Sign Out</button>
+    <button class="btn-logout" onclick="logout()"><i class="fas fa-right-from-bracket"></i> <span>Sign Out</span></button>
   </div>
 </nav>
 
-<!-- Step Progress Bar -->
+<!-- ═══════ STEP BAR ═══════ -->
 <div class="step-bar">
   <div class="steps">
     <div class="step active" id="stepEl1">
@@ -388,7 +526,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
   </div>
 </div>
 
-<!-- Main -->
+<!-- ═══════ MAIN ═══════ -->
 <div class="main">
 
   <!-- Project Details -->
@@ -398,10 +536,10 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       <div class="section-label-wrap">
         <div class="section-step">Project Info</div>
         <div class="section-title">Project Details</div>
-        <div class="section-sub">Inspection report header — printed at the top of every report</div>
+        <div class="section-sub">Inspection report header</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="proj-grid">
       <div>
         <label class="proj-label">Project / Work Order Name</label>
         <input id="projName" class="proj-input" type="text" placeholder="e.g. MV-LV Panel Upgrade — Building A">
@@ -456,7 +594,6 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="step-check" id="check2"><i class="fas fa-check"></i></div>
     </div>
-    <!-- Door access question -->
     <div class="toggle-center">
       <div class="toggle-wrap">
         <button class="toggle-btn dead-inactive" id="btnNoDoor" onclick="setDoorAccess(false)">
@@ -468,9 +605,8 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="energy-info dead" id="doorInfo" style="display:none"></div>
     </div>
-    <!-- Task selection — shown only when YES (opening doors) -->
-    <div id="taskGridArea" style="display:none;margin-top:24px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:16px">
+    <div id="taskGridArea" style="display:none;margin-top:22px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:14px">
         Select your task
       </div>
       <div class="task-grid">
@@ -520,21 +656,17 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       <div class="step-check" id="check3"><i class="fas fa-check"></i></div>
     </div>
     <div class="docs-grid">
-      <!-- SLD -->
       <div class="doc-card" id="sldCard">
         <div class="doc-card-head">
           <div class="doc-icon sld"><i class="fas fa-diagram-project"></i></div>
           <div>
             <div class="doc-title">Single Line Diagram (SLD)</div>
-            <div class="doc-sub">PDF or image — used to cross-reference circuit labels &amp; ratings</div>
+            <div class="doc-sub">PDF or image — cross-reference circuit labels &amp; ratings</div>
           </div>
         </div>
         <div class="doc-preview" id="sldPreviewBox">
-          <div class="doc-preview-pdf" id="sldPdfIcon" style="display:none">
-            <i class="fas fa-file-pdf"></i>
-            <span id="sldPdfName"></span>
-          </div>
-          <img id="sldImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:140px">
+          <div class="doc-preview-pdf" id="sldPdfIcon" style="display:none"><i class="fas fa-file-pdf"></i><span id="sldPdfName"></span></div>
+          <img id="sldImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:130px">
         </div>
         <div class="doc-status green hidden" id="sldStatus">
           <i class="fas fa-check-circle"></i>
@@ -546,21 +678,17 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
           <input type="file" accept="image/*,application/pdf" style="display:none" onchange="handleDoc('sld',this)">
         </label>
       </div>
-      <!-- Layout -->
       <div class="doc-card" id="layoutCard">
         <div class="doc-card-head">
           <div class="doc-icon layout"><i class="fas fa-table-cells-large"></i></div>
           <div>
             <div class="doc-title">Mechanical Layout</div>
-            <div class="doc-sub">PDF or image — used to verify cubicle positions &amp; dimensions</div>
+            <div class="doc-sub">PDF or image — verify cubicle positions &amp; dimensions</div>
           </div>
         </div>
         <div class="doc-preview" id="layoutPreviewBox">
-          <div class="doc-preview-pdf" id="layoutPdfIcon" style="display:none">
-            <i class="fas fa-file-pdf"></i>
-            <span id="layoutPdfName"></span>
-          </div>
-          <img id="layoutImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:140px">
+          <div class="doc-preview-pdf" id="layoutPdfIcon" style="display:none"><i class="fas fa-file-pdf"></i><span id="layoutPdfName"></span></div>
+          <img id="layoutImgThumb" src="" alt="" style="display:none;max-width:100%;max-height:130px">
         </div>
         <div class="doc-status blue hidden" id="layoutStatus">
           <i class="fas fa-check-circle"></i>
@@ -574,7 +702,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
     </div>
     <div style="margin-top:16px;text-align:right">
-      <button class="btn-secondary" style="display:inline-flex;padding:10px 20px;font-size:13px" onclick="skipDocs()">
+      <button class="btn-secondary" style="display:inline-flex;padding:10px 18px;font-size:13px" onclick="skipDocs()">
         Skip for now <i class="fas fa-arrow-right"></i>
       </button>
     </div>
@@ -590,26 +718,23 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
         <div class="section-sub">Upload a panel photo then draw your work zone</div>
       </div>
     </div>
-
     <div class="drop-zone" id="dropZone">
       <input type="file" id="fileInput" accept="image/*">
       <div class="drop-icon"><i class="fas fa-camera"></i></div>
       <div class="drop-title">Drop photo here or click to browse</div>
       <div class="drop-sub">Supports JPG, PNG — <span>take a photo or pick from gallery</span></div>
     </div>
-    <button class="btn-secondary" onclick="openCamera()" style="margin-top:12px;width:100%;justify-content:center;gap:10px">
-      <i class="fas fa-video"></i> Use Camera (Live Demo)
+    <button class="btn-secondary" onclick="openCamera()" style="margin-top:10px;width:100%;justify-content:center">
+      <i class="fas fa-video"></i> Use Camera (Live)
     </button>
-
-    <div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px">
-      <video id="cameraVideo" autoplay playsinline muted style="max-width:100%;max-height:70vh;border-radius:12px;border:2px solid rgba(61,205,88,.5)"></video>
-      <div style="display:flex;gap:16px">
-        <button onclick="capturePhoto()" style="padding:14px 36px;background:#3DCD58;color:#000;font-weight:700;border:none;border-radius:10px;font-size:16px;cursor:pointer"><i class="fas fa-circle"></i> &nbsp;Capture</button>
-        <button onclick="closeCamera()" style="padding:14px 24px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer">Cancel</button>
+    <div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px">
+      <video id="cameraVideo" autoplay playsinline muted style="max-width:100%;max-height:65vh;border-radius:12px;border:2px solid rgba(61,205,88,.4)"></video>
+      <div style="display:flex;gap:14px">
+        <button onclick="capturePhoto()" style="padding:13px 32px;background:#3DCD58;color:#000;font-weight:700;border:none;border-radius:10px;font-size:15px;cursor:pointer"><i class="fas fa-circle"></i> &nbsp;Capture</button>
+        <button onclick="closeCamera()" style="padding:13px 22px;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer">Cancel</button>
       </div>
       <canvas id="cameraCanvas" style="display:none"></canvas>
     </div>
-
     <div class="preview-wrap" id="previewWrap">
       <div class="zone-hint">
         <i class="fas fa-hand-pointer"></i>
@@ -619,7 +744,6 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
         </div>
       </div>
       <div class="canvas-box"><canvas id="imgCanvas"></canvas></div>
-
       <div class="action-row">
         <button class="btn-primary" id="btnAnalyze" onclick="runAnalysis(false)">
           <i class="fas fa-magnifying-glass-chart"></i> Analyze Work Zone
@@ -631,20 +755,17 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
     </div>
   </div>
 
-</div>
+</div><!-- /main -->
 
-<!-- ── Stage 1: Pre-Work Safety Checklist Modal (Flowchart Wizard) ── -->
+<!-- ═══════ PRE-WORK SAFETY MODAL ═══════ -->
 <div class="checklist-overlay" id="preWorkOverlay">
   <div class="checklist-modal">
 
-    <!-- SCREEN 1: Is this a Live Intervention? -->
+    <!-- SCREEN 1 -->
     <div id="pws1" class="pw-screen active">
       <div class="cm-header" style="border-bottom:none;padding-bottom:8px">
         <div class="cm-icon green"><i class="fas fa-shield-halved"></i></div>
-        <div>
-          <div class="cm-title">Pre-Work Safety Check</div>
-          <div class="cm-sub">Follow your safety decision tree before scanning</div>
-        </div>
+        <div><div class="cm-title">Pre-Work Safety Check</div><div class="cm-sub">Follow your safety decision tree before scanning</div></div>
       </div>
       <div class="pw-decision-body">
         <div class="pw-step-dots">
@@ -653,8 +774,8 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
           <div class="pw-dot" id="pd1c"></div>
         </div>
         <div class="pw-question">
-          <i class="fas fa-bolt pw-q-icon" style="color:var(--orange)"></i>
-          <h3>Is this a <span style="color:var(--orange)">Live Intervention?</span></h3>
+          <i class="fas fa-bolt pw-q-icon" style="color:var(--amber)"></i>
+          <h3>Is this a <span style="color:var(--amber)">Live Intervention?</span></h3>
           <p class="pw-q-hint">Are you working on or near equipment that has voltage present?</p>
         </div>
         <div id="pw1-state-info"></div>
@@ -676,7 +797,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
     </div>
 
-    <!-- SCREEN 2A: LOTO Protocol (No Live Intervention) -->
+    <!-- SCREEN 2A: LOTO -->
     <div id="pws2a" class="pw-screen">
       <div class="pw-path">
         <span class="pw-path-node dead"><i class="fas fa-plug-circle-xmark"></i> No Live Intervention</span>
@@ -685,10 +806,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="cm-header">
         <div class="cm-icon green"><i class="fas fa-lock"></i></div>
-        <div>
-          <div class="cm-title">LOTO Safety Checklist</div>
-          <div class="cm-sub">De-energised work — confirm lockout/tagout steps (NFPA 70E §120.2)</div>
-        </div>
+        <div><div class="cm-title">LOTO Safety Checklist</div><div class="cm-sub">De-energised work — confirm lockout/tagout steps (NFPA 70E §120.2)</div></div>
       </div>
       <div class="cm-progress-row">
         <div class="cm-progress-label"><span id="pw2a-done">0</span> / <span id="pw2a-total">0</span> items confirmed</div>
@@ -697,13 +815,11 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       <div class="cm-body" id="pw2a-items"></div>
       <div class="cm-footer">
         <button class="cm-btn-cancel" onclick="closePreWork()"><i class="fas fa-arrow-left"></i> Go Back</button>
-        <button class="cm-btn-confirm" id="pw2a-confirm" disabled onclick="confirmPreWork()">
-          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
-        </button>
+        <button class="cm-btn-confirm" id="pw2a-confirm" disabled onclick="confirmPreWork()"><i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan</button>
       </div>
     </div>
 
-    <!-- SCREEN 2B: Requires opening the doors? (Live Work) -->
+    <!-- SCREEN 2B: Door Assessment -->
     <div id="pws2b" class="pw-screen">
       <div class="pw-path">
         <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live Intervention</span>
@@ -712,10 +828,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="cm-header" style="border-bottom:none;padding-bottom:8px">
         <div class="cm-icon"><i class="fas fa-door-open"></i></div>
-        <div>
-          <div class="cm-title">Panel Access Assessment</div>
-          <div class="cm-sub">Determines the required PPE and safety protocol</div>
-        </div>
+        <div><div class="cm-title">Panel Access Assessment</div><div class="cm-sub">Determines the required PPE and safety protocol</div></div>
       </div>
       <div class="pw-decision-body" style="padding-top:10px">
         <div class="pw-step-dots">
@@ -724,15 +837,15 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
           <div class="pw-dot"></div>
         </div>
         <div class="pw-question">
-          <i class="fas fa-door-open pw-q-icon" style="color:#4A9EFF"></i>
-          <h3>Does this task require <span style="color:#4A9EFF">opening the panel doors</span> or accessing the interior?</h3>
+          <i class="fas fa-door-open pw-q-icon" style="color:var(--blue)"></i>
+          <h3>Does this task require <span style="color:var(--blue)">opening the panel doors</span> or accessing the interior?</h3>
           <p class="pw-q-hint">Will your hands or tools enter inside the panel enclosure?</p>
         </div>
         <div class="pw-yn-row">
           <button class="pw-yn-btn pw-no" onclick="pw2Answer(false)">
             <i class="fas fa-xmark-circle" style="color:var(--muted)!important"></i>
             <span class="pw-yn-label">NO</span>
-            <span class="pw-yn-hint">External operation only (switching, reading meters)</span>
+            <span class="pw-yn-hint">External operation only</span>
           </button>
           <button class="pw-yn-btn pw-blue" onclick="pw2Answer(true)">
             <i class="fas fa-door-open"></i>
@@ -746,7 +859,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
     </div>
 
-    <!-- SCREEN 3A: Live + Door Open = Full Live Work Checklist -->
+    <!-- SCREEN 3A: Live Full Work -->
     <div id="pws3a" class="pw-screen">
       <div class="pw-path">
         <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live</span>
@@ -757,25 +870,20 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="cm-header">
         <div class="cm-icon"><i class="fas fa-triangle-exclamation"></i></div>
-        <div>
-          <div class="cm-title">Live Work Safety Checklist</div>
-          <div class="cm-sub" id="pw3a-sub">High-hazard intervention — all critical items mandatory</div>
-        </div>
+        <div><div class="cm-title">Live Work Safety Checklist</div><div class="cm-sub" id="pw3a-sub">High-hazard intervention — all critical items mandatory</div></div>
       </div>
       <div class="cm-progress-row">
-        <div class="cm-progress-label"><span id="pw3a-done">0</span> / <span id="pw3a-total">0</span> critical items confirmed</div>
+        <div class="cm-progress-label"><span id="pw3a-done">0</span> / <span id="pw3a-total">0</span> critical items</div>
         <div class="cm-progress-track"><div class="cm-progress-fill" id="pw3a-fill"></div></div>
       </div>
       <div class="cm-body" id="pw3a-items"></div>
       <div class="cm-footer">
         <button class="cm-btn-cancel" onclick="closePreWork()"><i class="fas fa-arrow-left"></i> Go Back</button>
-        <button class="cm-btn-confirm" id="pw3a-confirm" disabled onclick="confirmPreWork()">
-          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
-        </button>
+        <button class="cm-btn-confirm" id="pw3a-confirm" disabled onclick="confirmPreWork()"><i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan</button>
       </div>
     </div>
 
-    <!-- SCREEN 3B: Live + No Door Open = Switchboard Operation Checklist -->
+    <!-- SCREEN 3B: Live Switchboard Operation -->
     <div id="pws3b" class="pw-screen">
       <div class="pw-path">
         <span class="pw-path-node live"><i class="fas fa-bolt"></i> Live</span>
@@ -786,28 +894,23 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
       </div>
       <div class="cm-header">
         <div class="cm-icon blue"><i class="fas fa-gears"></i></div>
-        <div>
-          <div class="cm-title">Switchboard Operation Checklist</div>
-          <div class="cm-sub">External operation only — confirm safe switching procedure</div>
-        </div>
+        <div><div class="cm-title">Switchboard Operation Checklist</div><div class="cm-sub">External operation only — confirm safe switching procedure</div></div>
       </div>
       <div class="cm-progress-row">
-        <div class="cm-progress-label"><span id="pw3b-done">0</span> / <span id="pw3b-total">0</span> items confirmed</div>
+        <div class="cm-progress-label"><span id="pw3b-done">0</span> / <span id="pw3b-total">0</span> items</div>
         <div class="cm-progress-track"><div class="cm-progress-fill" id="pw3b-fill"></div></div>
       </div>
       <div class="cm-body" id="pw3b-items"></div>
       <div class="cm-footer">
         <button class="cm-btn-cancel" onclick="closePreWork()"><i class="fas fa-arrow-left"></i> Go Back</button>
-        <button class="cm-btn-confirm" id="pw3b-confirm" disabled onclick="confirmPreWork()">
-          <i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan
-        </button>
+        <button class="cm-btn-confirm" id="pw3b-confirm" disabled onclick="confirmPreWork()"><i class="fas fa-check-circle"></i> Confirmed — Proceed to Scan</button>
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- Loading Overlay -->
+<!-- ═══════ LOADING OVERLAY ═══════ -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loader-wrap">
     <div class="loader-ring"></div>
@@ -815,7 +918,7 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
     <div class="loader-dot"><i class="fas fa-bolt"></i></div>
   </div>
   <div class="loading-title">Analysing Panel...</div>
-  <div class="loading-sub" id="loadingSub">Sending to Gemini AI</div>
+  <div class="loading-sub" id="loadingSub">Sending to AI</div>
   <div class="progress-steps">
     <div class="ps active" id="ps1"><div class="ps-dot"></div>Uploading image to server</div>
     <div class="ps" id="ps2"><div class="ps-dot"></div>Identifying panel type</div>
@@ -825,9 +928,8 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-co
 </div>
 
 <script>
-// ── Auth ──
-const username = sessionStorage.getItem('username');
-if(!username) location.href='index.html';
+// ── Auth (graceful — no redirect if no session) ──
+const username = sessionStorage.getItem('username') || 'Technician';
 document.getElementById('navUsername').textContent = username;
 document.getElementById('userAvatar').textContent  = username.charAt(0).toUpperCase();
 document.getElementById('projTech').value = username;
@@ -871,7 +973,6 @@ function setEnergy(state){
     info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — Arc Flash hazard only near adjacent live sections. Ensure LOTO is applied before opening.';
   }
   showCheck(1); unlockSection('sec2'); setStep(2);
-  // Reset Step 2 state when energy type changes
   openDoors=null; selectedTask=null;
   document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
   document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
@@ -913,28 +1014,21 @@ function selectTask(task, el){
 async function handleDoc(type, input){
   const file=input.files[0]; if(!file) return;
   const isPdf=file.type==='application/pdf';
-
-  // For PDFs: render page 1 to canvas via PDF.js → use as JPEG image
   if(isPdf){
     const pdfLib = window._pdfjs;
-    if(!pdfLib){
-      alert('PDF renderer not ready yet — please wait a moment and try again.'); return;
-    }
-    // Show loading state
+    if(!pdfLib){ alert('PDF renderer not ready yet — please wait a moment and try again.'); return; }
     const uploadBtn = document.getElementById(type==='sld'?'sldUploadBtn':'layoutUploadBtn');
     uploadBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Converting PDF…';
-
     try{
       const arrayBuf = await file.arrayBuffer();
       const pdf = await pdfLib.getDocument({data: arrayBuf}).promise;
       const page = await pdf.getPage(1);
-      const vp = page.getViewport({scale: 2.0}); // 2× for readable resolution
+      const vp = page.getViewport({scale: 2.0});
       const cvs = document.createElement('canvas');
       cvs.width=vp.width; cvs.height=vp.height;
       await page.render({canvasContext:cvs.getContext('2d'), viewport:vp}).promise;
       const dataUrl = cvs.toDataURL('image/jpeg', 0.90);
-      const b64 = dataUrl.split(',')[1];
-      _applyDoc(type, b64, 'image/jpeg', dataUrl, file.name, false);
+      _applyDoc(type, dataUrl.split(',')[1], 'image/jpeg', dataUrl, file.name, false);
     } catch(err){
       const uploadBtnEl = document.getElementById(type==='sld'?'sldUploadBtn':'layoutUploadBtn');
       uploadBtnEl.innerHTML='<i class="fas fa-cloud-arrow-up"></i> Upload '+(type==='sld'?'SLD':'Layout')+' (PDF or Image)';
@@ -942,12 +1036,9 @@ async function handleDoc(type, input){
     }
     return;
   }
-
-  // For images: read as data URL
   const reader=new FileReader();
   reader.onload=e=>{
-    const b64=e.target.result.split(',')[1];
-    _applyDoc(type, b64, file.type||'image/jpeg', e.target.result, file.name, false);
+    _applyDoc(type, e.target.result.split(',')[1], file.type||'image/jpeg', e.target.result, file.name, false);
   };
   reader.readAsDataURL(file);
 }
@@ -998,12 +1089,8 @@ function clearDoc(type){
   }
 }
 
-function checkDocsDone(){
-  if(sldBase64||layoutBase64){ showCheck(3); goToStep4(); }
-}
-
+function checkDocsDone(){ if(sldBase64||layoutBase64){ showCheck(3); goToStep4(); } }
 function skipDocs(){ showCheck(3); goToStep4(); }
-
 function goToStep4(){ unlockSection('sec4'); setStep(4); }
 
 // ── Step 4: Image Upload ──
@@ -1017,11 +1104,8 @@ fileInput.addEventListener('change',()=>{if(fileInput.files[0])handleFile(fileIn
 function handleFile(file){
   if(!file.type.startsWith('image/')){ alert('Please upload an image file.'); return; }
   imageFile=file;
-  
-  // Visual feedback: update drop zone text
   const dropTitle = document.querySelector('.drop-title');
   if(dropTitle) dropTitle.innerHTML = `<i class="fas fa-check-circle" style="color:var(--green)"></i> ${file.name} ready`;
-
   const reader=new FileReader();
   reader.onload=e=>{ imageBase64=e.target.result.split(',')[1]; loadCanvas(e.target.result); };
   reader.readAsDataURL(file);
@@ -1032,8 +1116,7 @@ async function openCamera(){
   const modal=document.getElementById('cameraModal');
   const video=document.getElementById('cameraVideo');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    alert('Camera not available.\n\nOn Mac: open http://localhost:8000 instead of the IP address.\nOn iPad: make sure you are on the same WiFi network.');
-    return;
+    alert('Camera not available on this browser/device.'); return;
   }
   modal.style.display='flex';
   try{
@@ -1041,7 +1124,7 @@ async function openCamera(){
     video.srcObject=_camStream;
   }catch(e){
     modal.style.display='none';
-    alert('Camera blocked.\n\nOn Mac: open http://localhost:8000 (not the IP) — browsers require localhost for camera access.\nError: '+e.message);
+    alert('Camera blocked. Error: '+e.message);
   }
 }
 function closeCamera(){
@@ -1060,7 +1143,6 @@ function capturePhoto(){
   loadCanvas(dataUrl);
 }
 
-
 // ── Canvas ──
 const canvas=document.getElementById('imgCanvas');
 const ctx=canvas.getContext('2d');
@@ -1069,8 +1151,8 @@ let imgEl=null, drawing=false, startX,startY,endX,endY;
 function loadCanvas(src){
   imgEl=new Image();
   imgEl.onload=()=>{
-    const maxW=Math.min(760,window.innerWidth-80);
-    const scale=Math.min(maxW/imgEl.naturalWidth,460/imgEl.naturalHeight,1);
+    const maxW=Math.min(800, window.innerWidth - 40);
+    const scale=Math.min(maxW/imgEl.naturalWidth, 500/imgEl.naturalHeight, 1);
     canvas.width=imgEl.naturalWidth*scale; canvas.height=imgEl.naturalHeight*scale;
     drawCanvas();
     document.getElementById('previewWrap').classList.add('show');
@@ -1126,204 +1208,135 @@ canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0]
 canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];canvas.dispatchEvent(new MouseEvent('mousemove',{clientX:t.clientX,clientY:t.clientY}))},{passive:false});
 canvas.addEventListener('touchend',e=>{e.preventDefault();canvas.dispatchEvent(new MouseEvent('mouseup',{}))},{passive:false});
 
-// ── Loading Steps ──
+// ── Loading ──
 let psIdx=0, psTimer=null;
 function startLoading(){
-  psIdx=1; ['ps1','ps2','ps3','ps4'].forEach(id=>{ const el=document.getElementById(id); el.className='ps'; });
+  psIdx=1; ['ps1','ps2','ps3','ps4'].forEach(id=>{document.getElementById(id).className='ps';});
   document.getElementById('ps1').classList.add('active');
   psTimer=setInterval(()=>{
     if(psIdx>1) document.getElementById('ps'+(psIdx-1)).className='ps done';
-    psIdx++; if(psIdx<=4){ document.getElementById('ps'+psIdx).classList.add('active'); }
+    psIdx++; if(psIdx<=4){document.getElementById('ps'+psIdx).classList.add('active');}
   },3500);
 }
 function stopLoading(){ clearInterval(psTimer); }
 
-// ── Stage 1: Pre-Work Safety Checklist Wizard (Flowchart) ──
-let _preWorkCallback = null;
-let _pwLive = false;
+// ── Pre-Work Safety Wizard ──
+let _preWorkCallback=null, _pwLive=false;
 
-// LOTO Protocol items (No Live Intervention path) — NFPA 70E §120.2
-const _LOTO_ITEMS = [
-  {id:'lt1', text:'All energy sources identified — electrical, stored mechanical, and gravity loads noted on work permit.', critical:true, section:'Lockout / Tagout Protocol'},
-  {id:'lt2', text:'All affected personnel in the area notified that equipment is being locked out.', critical:true},
-  {id:'lt3', text:'Equipment de-energised at the correct disconnecting means — verified against SLD.', critical:true},
-  {id:'lt4', text:'Personal LOTO device (lock + tag) physically applied to each isolating device.', critical:true},
-  {id:'lt5', text:'Stored energy released or restrained — capacitor banks discharged, suspended loads blocked.', critical:true},
-  {id:'lt6', text:'Absence of voltage confirmed with an approved CAT III/IV tester — tested phase-to-phase and phase-to-earth.', critical:true},
+const _LOTO_ITEMS=[
+  {id:'lt1',text:'All energy sources identified — electrical, stored mechanical, and gravity loads noted on work permit.',critical:true,section:'Lockout / Tagout Protocol'},
+  {id:'lt2',text:'All affected personnel in the area notified that equipment is being locked out.',critical:true},
+  {id:'lt3',text:'Equipment de-energised at the correct disconnecting means — verified against SLD.',critical:true},
+  {id:'lt4',text:'Personal LOTO device (lock + tag) physically applied to each isolating device.',critical:true},
+  {id:'lt5',text:'Stored energy released or restrained — capacitor banks discharged, suspended loads blocked.',critical:true},
+  {id:'lt6',text:'Absence of voltage confirmed with an approved CAT III/IV tester — tested phase-to-phase and phase-to-earth.',critical:true},
 ];
-
-// Switchboard Operation items (Live, No door opening path)
-const _SWBD_OP_ITEMS = [
-  {id:'op1', text:'Correct switchboard / incomer identified by nameplate — cross-checked with SLD or layout drawing.', critical:true, section:'Switchboard Operation'},
-  {id:'op2', text:'One-line diagram (SLD) reviewed — switching sequence fully understood before touching any device.', critical:true},
-  {id:'op3', text:'Arc flash PPE worn — minimum for restricted boundary (arc-rated face shield + gloves rated for voltage).', critical:true},
-  {id:'op4', text:'Adjacent live compartments identified — no inadvertent contact possible during operation.', critical:false},
-  {id:'op5', text:'Correct switching sequence confirmed: open load side first, then source side to de-energise; reverse to re-energise.', critical:false},
-  {id:'op6', text:'No tools, loose parts or foreign objects inside the panel at time of switching.', critical:true},
+const _SWBD_OP_ITEMS=[
+  {id:'op1',text:'Correct switchboard / incomer identified by nameplate — cross-checked with SLD or layout drawing.',critical:true,section:'Switchboard Operation'},
+  {id:'op2',text:'One-line diagram (SLD) reviewed — switching sequence fully understood before touching any device.',critical:true},
+  {id:'op3',text:'Arc flash PPE worn — minimum for restricted boundary (arc-rated face shield + gloves rated for voltage).',critical:true},
+  {id:'op4',text:'Adjacent live compartments identified — no inadvertent contact possible during operation.',critical:false},
+  {id:'op5',text:'Correct switching sequence confirmed: open load side first, then source side to de-energise; reverse to re-energise.',critical:false},
+  {id:'op6',text:'No tools, loose parts or foreign objects inside the panel at time of switching.',critical:true},
 ];
-
-// Live Work common items (Live + door open path)
-const _LIVE_WORK_COMMON = [
-  {id:'lw1', text:'Live work permit obtained, signed by supervisor and safety officer.', critical:true, section:'Live Work Requirements'},
-  {id:'lw2', text:'ERMS (Energy Reduction Maintenance Setting) activated on the main incomer — arc flash energy reduced.', critical:true},
-  {id:'lw3', text:'Arc flash PPE fully worn — arc-rated face shield, arc suit (correct cal/cm²), double insulated gloves, leather over-gloves.', critical:true, section:'PPE'},
-  {id:'lw4', text:'Safety observer present — knows emergency shutdown procedure, first-aid location, and emergency contacts.', critical:true},
-  {id:'lw5', text:'Correct panel confirmed — nameplate verified, adjacent panels identified and separated.', critical:true, section:'Verification'},
-  {id:'lw6', text:'All personnel not involved have cleared the arc flash boundary.', critical:true},
+const _LIVE_WORK_COMMON=[
+  {id:'lw1',text:'Live work permit obtained, signed by supervisor and safety officer.',critical:true,section:'Live Work Requirements'},
+  {id:'lw2',text:'ERMS (Energy Reduction Maintenance Setting) activated on the main incomer — arc flash energy reduced.',critical:true},
+  {id:'lw3',text:'Arc flash PPE fully worn — arc-rated face shield, arc suit (correct cal/cm²), double insulated gloves, leather over-gloves.',critical:true,section:'PPE'},
+  {id:'lw4',text:'Safety observer present — knows emergency shutdown procedure, first-aid location, and emergency contacts.',critical:true},
+  {id:'lw5',text:'Correct panel confirmed — nameplate verified, adjacent panels identified and separated.',critical:true,section:'Verification'},
+  {id:'lw6',text:'All personnel not involved have cleared the arc flash boundary.',critical:true},
 ];
-
-// Task-specific items for live + door open
-const _TASK_ITEMS_LIVE = {
-  commissioning:[
-    {id:'tc1', text:'SLD verified — all wiring checked against design drawings before first energisation.', critical:true, section:'Commissioning Checklist'},
-    {id:'tc2', text:'Insulation resistance test completed — results recorded and within acceptable specification.', critical:true},
-    {id:'tc3', text:'All protective device settings confirmed to design ratings before closing main incomer.', critical:true},
-  ],
-  operation:[
-    {id:'to1', text:'Correct feeder / incomer identified — confirmed by label and SLD.', critical:true, section:'Operation Checklist'},
-    {id:'to2', text:'CB type confirmed (fixed or withdrawable) — correct racking procedure will be followed.', critical:false},
-  ],
-  service:[
-    {id:'ts1', text:'Test / inspection equipment calibrated and rated for this voltage category.', critical:false, section:'Service Checklist'},
-    {id:'ts2', text:'No direct contact with live parts — insulated probes or thermal camera used only.', critical:true},
-  ],
-  modification:[
-    {id:'tm1', text:'Insulating barriers covering adjacent live busbars installed before work commences.', critical:true, section:'Modification Checklist'},
-    {id:'tm2', text:'Magnetic parts tray in use — screws and nuts captured, cannot fall onto busbars.', critical:true},
-    {id:'tm3', text:'New cables pre-cut and pre-terminated before approaching the busbar compartment.', critical:true},
-  ],
-  replacement:[
-    {id:'tr1', text:'Replacement component verified — correct type, current rating, and frame size confirmed.', critical:true, section:'Replacement Checklist'},
-    {id:'tr2', text:'Phase sequence and polarity confirmed before energising the replacement component.', critical:true},
-  ],
-  others:[
-    {id:'tx1', text:'Work scope defined and approved by supervisor before entering the panel room.', critical:true, section:'Work Scope'},
-  ],
+const _TASK_ITEMS_LIVE={
+  commissioning:[{id:'tc1',text:'SLD verified — all wiring checked against design drawings before first energisation.',critical:true,section:'Commissioning Checklist'},{id:'tc2',text:'Insulation resistance test completed — results recorded and within acceptable specification.',critical:true},{id:'tc3',text:'All protective device settings confirmed to design ratings before closing main incomer.',critical:true}],
+  operation:[{id:'to1',text:'Correct feeder / incomer identified — confirmed by label and SLD.',critical:true,section:'Operation Checklist'},{id:'to2',text:'CB type confirmed (fixed or withdrawable) — correct racking procedure will be followed.',critical:false}],
+  service:[{id:'ts1',text:'Test / inspection equipment calibrated and rated for this voltage category.',critical:false,section:'Service Checklist'},{id:'ts2',text:'No direct contact with live parts — insulated probes or thermal camera used only.',critical:true}],
+  modification:[{id:'tm1',text:'Insulating barriers covering adjacent live busbars installed before work commences.',critical:true,section:'Modification Checklist'},{id:'tm2',text:'Magnetic parts tray in use — screws and nuts captured, cannot fall onto busbars.',critical:true},{id:'tm3',text:'New cables pre-cut and pre-terminated before approaching the busbar compartment.',critical:true}],
+  replacement:[{id:'tr1',text:'Replacement component verified — correct type, current rating, and frame size confirmed.',critical:true,section:'Replacement Checklist'},{id:'tr2',text:'Phase sequence and polarity confirmed before energising the replacement component.',critical:true}],
+  others:[{id:'tx1',text:'Work scope defined and approved by supervisor before entering the panel room.',critical:true,section:'Work Scope'}],
 };
 
 function _pwTaskLabel(task){
-  const map={commissioning:'Commissioning',operation:'Operation',service:'Service & Inspection',
-    modification:'Modification',replacement:'Replacement',others:'Others'};
+  const map={commissioning:'Commissioning',operation:'Operation',service:'Service & Inspection',modification:'Modification',replacement:'Replacement',others:'Others'};
   return map[(task||'others').toLowerCase()]||'Others';
 }
-
-function _pwShowScreen(id){
-  document.querySelectorAll('.pw-screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function _pwBuildChecklist(bodyId, items, confirmId, doneId, totalId, fillId){
-  const body = document.getElementById(bodyId);
-  body.innerHTML = '';
-  let lastSection = null;
-  items.forEach(item => {
-    if(item.section && item.section !== lastSection){
-      const sl = document.createElement('div');
-      sl.className = 'cm-section-label';
-      sl.textContent = item.section;
-      body.appendChild(sl);
-      lastSection = item.section;
-    }
-    const div = document.createElement('div');
-    div.className = 'cm-item' + (item.critical ? ' critical-item' : '');
-    div.innerHTML = `<div class="cm-cb"></div><div class="cm-item-text">${item.text}</div>${item.critical ? '<span class="cm-badge">Critical</span>' : ''}`;
-    div.addEventListener('click', () => _pwToggleItem(div, bodyId, confirmId, doneId, totalId, fillId));
+function _pwShowScreen(id){ document.querySelectorAll('.pw-screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function _pwBuildChecklist(bodyId,items,confirmId,doneId,totalId,fillId){
+  const body=document.getElementById(bodyId); body.innerHTML=''; let lastSection=null;
+  items.forEach(item=>{
+    if(item.section&&item.section!==lastSection){ const sl=document.createElement('div'); sl.className='cm-section-label'; sl.textContent=item.section; body.appendChild(sl); lastSection=item.section; }
+    const div=document.createElement('div');
+    div.className='cm-item'+(item.critical?' critical-item':'');
+    div.innerHTML=`<div class="cm-cb"></div><div class="cm-item-text">${item.text}</div>${item.critical?'<span class="cm-badge">Critical</span>':''}`;
+    div.addEventListener('click',()=>_pwToggleItem(div,bodyId,confirmId,doneId,totalId,fillId));
     body.appendChild(div);
   });
-  const critCount = items.filter(i => i.critical).length;
-  document.getElementById(totalId).textContent = critCount;
-  document.getElementById(doneId).textContent = '0';
-  document.getElementById(fillId).style.width = '0%';
-  document.getElementById(confirmId).disabled = true;
+  const critCount=items.filter(i=>i.critical).length;
+  document.getElementById(totalId).textContent=critCount;
+  document.getElementById(doneId).textContent='0';
+  document.getElementById(fillId).style.width='0%';
+  document.getElementById(confirmId).disabled=true;
 }
-
-function _pwToggleItem(div, bodyId, confirmId, doneId, totalId, fillId){
+function _pwToggleItem(div,bodyId,confirmId,doneId,totalId,fillId){
   div.classList.toggle('checked');
-  div.querySelector('.cm-cb').innerHTML = div.classList.contains('checked') ? '<i class="fas fa-check"></i>' : '';
-  const body = document.getElementById(bodyId);
-  const done = body.querySelectorAll('.cm-item.critical-item.checked').length;
-  const total = body.querySelectorAll('.cm-item.critical-item').length;
-  document.getElementById(doneId).textContent = done;
-  document.getElementById(fillId).style.width = total ? (done / total * 100) + '%' : '0%';
-  document.getElementById(confirmId).disabled = done < total;
+  div.querySelector('.cm-cb').innerHTML=div.classList.contains('checked')?'<i class="fas fa-check"></i>':'';
+  const body=document.getElementById(bodyId);
+  const done=body.querySelectorAll('.cm-item.critical-item.checked').length;
+  const total=body.querySelectorAll('.cm-item.critical-item').length;
+  document.getElementById(doneId).textContent=done;
+  document.getElementById(fillId).style.width=total?(done/total*100)+'%':'0%';
+  document.getElementById(confirmId).disabled=done<total;
 }
-
-function showPreWorkModal(identifyOnly, callback){
-  if(identifyOnly){ callback(); return; }
-  _preWorkCallback = callback;
-  _pwLive = isLive;
-  const doors = openDoors !== false; // null treated as open (conservative default)
-  if(!isLive){
-    // Dead work → LOTO checklist regardless of door access
-    _pwBuildChecklist('pw2a-items', _LOTO_ITEMS, 'pw2a-confirm', 'pw2a-done', 'pw2a-total', 'pw2a-fill');
-    _pwShowScreen('pws2a');
-  } else if(!doors){
-    // Live + no door → switchboard operation
-    _pwBuildChecklist('pw3b-items', _SWBD_OP_ITEMS, 'pw3b-confirm', 'pw3b-done', 'pw3b-total', 'pw3b-fill');
-    _pwShowScreen('pws3b');
-  } else {
-    // Live + open doors → full live work + task-specific
-    const task = (selectedTask || 'others').toLowerCase();
-    const taskItems = _TASK_ITEMS_LIVE[task] || _TASK_ITEMS_LIVE.others;
-    const allItems = [..._LIVE_WORK_COMMON, ...taskItems];
-    const label = _pwTaskLabel(task);
-    document.getElementById('pw3a-task-node').textContent = label;
-    document.getElementById('pw3a-sub').textContent = `Task: ${label} — all critical items mandatory`;
-    _pwBuildChecklist('pw3a-items', allItems, 'pw3a-confirm', 'pw3a-done', 'pw3a-total', 'pw3a-fill');
+function showPreWorkModal(identifyOnly,callback){
+  if(identifyOnly){callback();return;}
+  _preWorkCallback=callback; _pwLive=isLive;
+  const doors=openDoors!==false;
+  if(!isLive){ _pwBuildChecklist('pw2a-items',_LOTO_ITEMS,'pw2a-confirm','pw2a-done','pw2a-total','pw2a-fill'); _pwShowScreen('pws2a'); }
+  else if(!doors){ _pwBuildChecklist('pw3b-items',_SWBD_OP_ITEMS,'pw3b-confirm','pw3b-done','pw3b-total','pw3b-fill'); _pwShowScreen('pws3b'); }
+  else{
+    const task=(selectedTask||'others').toLowerCase();
+    const taskItems=_TASK_ITEMS_LIVE[task]||_TASK_ITEMS_LIVE.others;
+    const allItems=[..._LIVE_WORK_COMMON,...taskItems];
+    const label=_pwTaskLabel(task);
+    document.getElementById('pw3a-task-node').textContent=label;
+    document.getElementById('pw3a-sub').textContent=`Task: ${label} — all critical items mandatory`;
+    _pwBuildChecklist('pw3a-items',allItems,'pw3a-confirm','pw3a-done','pw3a-total','pw3a-fill');
     _pwShowScreen('pws3a');
   }
   document.getElementById('preWorkOverlay').classList.add('active');
 }
-
 function pw1Answer(live){
-  _pwLive = live;
-  if(!live){
-    _pwBuildChecklist('pw2a-items', _LOTO_ITEMS, 'pw2a-confirm', 'pw2a-done', 'pw2a-total', 'pw2a-fill');
-    _pwShowScreen('pws2a');
-  } else {
-    _pwShowScreen('pws2b');
-  }
+  _pwLive=live;
+  if(!live){ _pwBuildChecklist('pw2a-items',_LOTO_ITEMS,'pw2a-confirm','pw2a-done','pw2a-total','pw2a-fill'); _pwShowScreen('pws2a'); }
+  else { _pwShowScreen('pws2b'); }
 }
-
 function pw2Answer(openDoors){
-  if(!openDoors){
-    _pwBuildChecklist('pw3b-items', _SWBD_OP_ITEMS, 'pw3b-confirm', 'pw3b-done', 'pw3b-total', 'pw3b-fill');
-    _pwShowScreen('pws3b');
-  } else {
-    const task = (selectedTask || 'others').toLowerCase();
-    const taskItems = (_TASK_ITEMS_LIVE[task] || _TASK_ITEMS_LIVE.others);
-    const allItems = [..._LIVE_WORK_COMMON, ...taskItems];
-    const label = _pwTaskLabel(task);
-    document.getElementById('pw3a-task-node').textContent = label;
-    document.getElementById('pw3a-sub').textContent = `Task: ${label} — all critical items mandatory before scanning`;
-    _pwBuildChecklist('pw3a-items', allItems, 'pw3a-confirm', 'pw3a-done', 'pw3a-total', 'pw3a-fill');
+  if(!openDoors){ _pwBuildChecklist('pw3b-items',_SWBD_OP_ITEMS,'pw3b-confirm','pw3b-done','pw3b-total','pw3b-fill'); _pwShowScreen('pws3b'); }
+  else{
+    const task=(selectedTask||'others').toLowerCase();
+    const taskItems=(_TASK_ITEMS_LIVE[task]||_TASK_ITEMS_LIVE.others);
+    const allItems=[..._LIVE_WORK_COMMON,...taskItems];
+    const label=_pwTaskLabel(task);
+    document.getElementById('pw3a-task-node').textContent=label;
+    document.getElementById('pw3a-sub').textContent=`Task: ${label} — all critical items mandatory before scanning`;
+    _pwBuildChecklist('pw3a-items',allItems,'pw3a-confirm','pw3a-done','pw3a-total','pw3a-fill');
     _pwShowScreen('pws3a');
   }
 }
-
 function pwGoBack(screenId){ _pwShowScreen(screenId); }
+function closePreWork(){ document.getElementById('preWorkOverlay').classList.remove('active'); _preWorkCallback=null; }
+function confirmPreWork(){ document.getElementById('preWorkOverlay').classList.remove('active'); if(_preWorkCallback) _preWorkCallback(); }
 
-function closePreWork(){
-  document.getElementById('preWorkOverlay').classList.remove('active');
-  _preWorkCallback = null;
-}
-
-function confirmPreWork(){
-  document.getElementById('preWorkOverlay').classList.remove('active');
-  if(_preWorkCallback) _preWorkCallback();
-}
-
-// ── Compress image for sessionStorage (display only — server still gets full res) ──
-function compressForStorage(b64, mime, maxPx=800, quality=0.65){
+// ── Compress image for sessionStorage ──
+function compressForStorage(b64,mime,maxPx=800,quality=0.65){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>{
-      const scale=Math.min(maxPx/img.naturalWidth, maxPx/img.naturalHeight, 1);
+      const scale=Math.min(maxPx/img.naturalWidth,maxPx/img.naturalHeight,1);
       const c=document.createElement('canvas');
-      c.width=Math.round(img.naturalWidth*scale);
-      c.height=Math.round(img.naturalHeight*scale);
+      c.width=Math.round(img.naturalWidth*scale); c.height=Math.round(img.naturalHeight*scale);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      resolve(c.toDataURL('image/jpeg', quality).split(',')[1]);
+      resolve(c.toDataURL('image/jpeg',quality).split(',')[1]);
     };
     img.src='data:'+(mime||'image/jpeg')+';base64,'+b64;
   });
@@ -1332,67 +1345,60 @@ function compressForStorage(b64, mime, maxPx=800, quality=0.65){
 // ── Analyse ──
 async function runAnalysis(identifyOnly){
   if(!imageBase64){ alert('Please upload a panel photo first.'); return; }
-  if(!identifyOnly && !zone){ alert('Please draw a work zone on the image, or use "Identify Panel Only".'); return; }
-  showPreWorkModal(identifyOnly, ()=>_doAnalysis(identifyOnly));
+  if(!identifyOnly&&!zone){ alert('Please draw a work zone on the image, or use "Identify Panel Only".'); return; }
+  showPreWorkModal(identifyOnly,()=>_doAnalysis(identifyOnly));
 }
 
 async function _doAnalysis(identifyOnly){
   document.getElementById('loadingOverlay').classList.add('active');
   startLoading();
   const body={
-    imageBase64, mimeType:imageFile?imageFile.type:'image/jpeg',
-    task:selectedTask||'others', identifyOnly,
-    workZone:identifyOnly?null:zone, safetyBuffer:identifyOnly?null:safetyBuf,
+    imageBase64,mimeType:imageFile?imageFile.type:'image/jpeg',
+    task:selectedTask||'others',identifyOnly,
+    workZone:identifyOnly?null:zone,safetyBuffer:identifyOnly?null:safetyBuf,
     username,
-    ...(sldBase64    ?{sldBase64,    sldMimeType:sldMime}    :{}),
-    ...(layoutBase64 ?{layoutBase64, layoutMimeType:layoutMime}:{}),
+    ...(sldBase64?{sldBase64,sldMimeType:sldMime}:{}),
+    ...(layoutBase64?{layoutBase64,layoutMimeType:layoutMime}:{}),
   };
-  try {
-    const _t0 = Date.now();
+  try{
+    const _t0=Date.now();
     const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
-    sessionStorage.setItem('analysisElapsed', Date.now() - _t0);
+    sessionStorage.setItem('analysisElapsed',Date.now()-_t0);
     stopLoading(); document.getElementById('loadingOverlay').classList.remove('active');
-
-    // Non-panel image rejection
-    if(res.status===422 && data.error==='not_a_panel'){
-      alert('Not an electrical panel.\n\n' + (data.detected_as||'This does not appear to be a switchboard.') + '\n\nPlease upload a photo of a Schneider Electric panel.');
+    if(res.status===422&&data.error==='not_a_panel'){
+      alert('Not an electrical panel.\n\n'+(data.detected_as||'This does not appear to be a switchboard.')+'\n\nPlease upload a photo of a Schneider Electric panel.');
       return;
     }
-    if(!res.ok){
-      alert('Server error '+(res.status)+': '+(data.detail||data.message||'Unknown error'));
-      return;
-    }
-
-    sessionStorage.setItem('analysisResult', JSON.stringify(data));
-    const mime = imageFile?imageFile.type:'image/jpeg';
-    const displayB64 = await compressForStorage(imageBase64, mime);
-    sessionStorage.setItem('analysisImage',  displayB64);
-    sessionStorage.setItem('imageMime',      'image/jpeg');
-    if(sldBase64)    { sessionStorage.setItem('sldBase64',    sldBase64);    sessionStorage.setItem('sldMime',    sldMime||'image/jpeg'); sessionStorage.setItem('sldName', document.getElementById('sldStatusText')?.textContent||'sld'); }
-    if(layoutBase64) { sessionStorage.setItem('layoutBase64', layoutBase64); sessionStorage.setItem('layoutMime', layoutMime||'image/jpeg'); }
-    sessionStorage.setItem('hasSld',    sldBase64    ? 'true' : 'false');
-    sessionStorage.setItem('hasLayout', layoutBase64 ? 'true' : 'false');
-    sessionStorage.setItem('analysisMeta',   JSON.stringify({
-      task:selectedTask||'others', isLive, identifyOnly, openDoors,
-      zoneRect:currentZoneRect, canvasW:canvas.width, canvasH:canvas.height,
-      hasSld:!!sldBase64, sldName:sldBase64?document.getElementById('sldStatusText')?.textContent:'',
+    if(!res.ok){ alert('Server error '+(res.status)+': '+(data.detail||data.message||'Unknown error')); return; }
+    sessionStorage.setItem('analysisResult',JSON.stringify(data));
+    const mime=imageFile?imageFile.type:'image/jpeg';
+    const displayB64=await compressForStorage(imageBase64,mime);
+    sessionStorage.setItem('analysisImage',displayB64);
+    sessionStorage.setItem('imageMime','image/jpeg');
+    if(sldBase64){sessionStorage.setItem('sldBase64',sldBase64);sessionStorage.setItem('sldMime',sldMime||'image/jpeg');sessionStorage.setItem('sldName',document.getElementById('sldStatusText')?.textContent||'sld');}
+    if(layoutBase64){sessionStorage.setItem('layoutBase64',layoutBase64);sessionStorage.setItem('layoutMime',layoutMime||'image/jpeg');}
+    sessionStorage.setItem('hasSld',sldBase64?'true':'false');
+    sessionStorage.setItem('hasLayout',layoutBase64?'true':'false');
+    sessionStorage.setItem('analysisMeta',JSON.stringify({
+      task:selectedTask||'others',isLive,identifyOnly,openDoors,
+      zoneRect:currentZoneRect,canvasW:canvas.width,canvasH:canvas.height,
+      hasSld:!!sldBase64,sldName:sldBase64?document.getElementById('sldStatusText')?.textContent:'',
       hasLayout:!!layoutBase64,
     }));
-    sessionStorage.setItem('projectDetails', JSON.stringify({
-      name:    document.getElementById('projName').value.trim(),
-      site:    document.getElementById('projSite').value.trim(),
-      permit:  document.getElementById('projPermit').value.trim(),
-      tech:    document.getElementById('projTech').value.trim(),
-      date:    new Date().toLocaleString(),
+    sessionStorage.setItem('projectDetails',JSON.stringify({
+      name:document.getElementById('projName').value.trim(),
+      site:document.getElementById('projSite').value.trim(),
+      permit:document.getElementById('projPermit').value.trim(),
+      tech:document.getElementById('projTech').value.trim(),
+      date:new Date().toLocaleString(),
     }));
     location.href='results.html';
-  } catch(err){
+  }catch(err){
     stopLoading(); document.getElementById('loadingOverlay').classList.remove('active');
     alert('Server error: '+err.message+'\n\nMake sure the server is running.');
   }
 }
-
 </script>
 </body>
 </html>

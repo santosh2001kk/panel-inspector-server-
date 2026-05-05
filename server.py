@@ -1568,8 +1568,12 @@ def analyze(body: AnalyzeRequest):
             "\nPERFORM HIGH-PRECISION COMPONENT INVENTORY:\n"
             "1. Detect EVERY visible component, especially those INSIDE the marked Work Zone.\n"
             "2. For each component identify: brand (Schneider, ABB, Siemens, Legrand, etc.), type_detail, and estimated physical dimensions.\n"
-            "3. Detect PANEL STRUCTURE: identify each vertical column/cubicle as a separate entry with category='structure' and type='Column'.\n"
-            "   For draw-out panels (Okken/Blokset): also detect individual drawers as category='structure', type='Drawer'.\n"
+            "3. *** MANDATORY — COLUMNS REQUIRED ***: You MUST detect every vertical column/cubicle section as a separate entry.\n"
+            "   Set category='structure' and type='Column' for each one.\n"
+            "   Each column box must span the FULL HEIGHT of the panel (ymin≈0, ymax≈1000) and cover only the WIDTH of that column.\n"
+            "   Count columns by looking at the vertical dividers or door seams. A 3-column panel needs 3 structure entries.\n"
+            "   For draw-out panels (Okken): also detect individual drawers as category='structure', type='Drawer'.\n"
+            "   DO NOT skip this step — columns MUST always be present in your response.\n"
             "4. Return ONE entry per individual component — do NOT group.\n"
             "5. Read circuit_label and rating from breaker faces and label strips.\n"
             "6. BOUNDING BOXES: Ensure boxes are extremely tight to the component body. Do not include wires or gaps.\n"
@@ -1593,6 +1597,7 @@ def analyze(body: AnalyzeRequest):
             config=_types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=_DetectionResult,
+                temperature=0.0,
             ),
         ))
         data = json.loads(response.text)
@@ -1633,6 +1638,33 @@ def analyze(body: AnalyzeRequest):
         filtered_breakers.append(b)
 
     data["breakers"] = filtered_breakers
+
+    # ── Column fallback: if Gemini returned no structure entries, derive columns
+    #    from the x-spread of detected components so the canvas always shows columns.
+    has_structures = any(b.get("category") == "structure" for b in filtered_breakers)
+    if not has_structures and filtered_breakers:
+        components = [b for b in filtered_breakers if b.get("category") != "structure"]
+        if components:
+            xs = [b["box"][1] for b in components if len(b.get("box", [])) >= 4]
+            xe = [b["box"][3] for b in components if len(b.get("box", [])) >= 4]
+            if xs and xe:
+                panel_x0 = max(0,    min(xs) - 20)
+                panel_x1 = min(1000, max(xe) + 20)
+                width = panel_x1 - panel_x0
+                # Estimate number of columns: roughly every 250-300 units wide
+                n_cols = max(1, round(width / 280))
+                col_w  = width // n_cols
+                print(f"[FALLBACK] No columns from Gemini — deriving {n_cols} column(s) from component spread")
+                for i in range(n_cols):
+                    cx0 = panel_x0 + i * col_w
+                    cx1 = panel_x0 + (i + 1) * col_w if i < n_cols - 1 else panel_x1
+                    filtered_breakers.append({
+                        "type": "Column",
+                        "category": "structure",
+                        "box": [0, cx0, 1000, cx1],
+                        "brand": "", "type_detail": "", "circuit_label": "", "rating": "",
+                    })
+                data["breakers"] = filtered_breakers
 
     # Use panel type returned by the single Gemini call
     panel_type    = data.get("panel_type", "Unknown")

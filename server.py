@@ -10,9 +10,6 @@ import json
 import os
 import re
 import socket
-import sqlite3
-import uuid
-from datetime import datetime
 from pathlib import Path
 
 _env_path = Path(__file__).parent / ".env"
@@ -22,9 +19,6 @@ if _env_path.exists():
         if _line and not _line.startswith("#") and "=" in _line:
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip())
-import numpy as np
-import cv2
-# pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
 from PIL import Image
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -68,63 +62,6 @@ else:
 
 app = FastAPI(title="Breaker Detection API", version="1.0.0")
 
-# --- SQLite Database Setup ---
-_DB_PATH     = os.path.join(os.path.dirname(__file__), "breaker_data.db")
-_IMAGES_DIR  = os.path.join(os.path.dirname(__file__), "scans_images")
-os.makedirs(_IMAGES_DIR, exist_ok=True)
-
-def _get_db():
-    conn = sqlite3.connect(_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def _init_db():
-    conn = _get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id           TEXT PRIMARY KEY,
-            project_name TEXT NOT NULL,
-            site         TEXT,
-            inspector    TEXT,
-            created_at   TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS scans (
-            id              TEXT PRIMARY KEY,
-            project_id      TEXT,
-            timestamp       TEXT NOT NULL,
-            username        TEXT,
-            panel_type      TEXT,
-            notes           TEXT,
-            safety_warnings TEXT,
-            task            TEXT,
-            image_path      TEXT,
-            FOREIGN KEY (project_id) REFERENCES projects(id)
-        );
-    """)
-    conn.commit()
-    conn.close()
-
-_init_db()
-# ------------------------------------
-
-# --- User credentials store ---
-USERS = {
-    "santosh":  "schneider123",
-    "admin":    "admin123",
-    "techuser": "tech2026",
-}
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-@app.post("/api/login")
-def login(body: LoginRequest):
-    user = USERS.get(body.username.lower().strip())
-    if user and user == body.password:
-        return JSONResponse(content={"success": True, "message": "Login successful"})
-    return JSONResponse(status_code=401, content={"success": False, "message": "Invalid username or password"})
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -146,17 +83,9 @@ class AnalyzeRequest(BaseModel):
     workZone: Optional[Zone] = None
     safetyBuffer: Optional[Zone] = None
     identifyOnly: bool = False
-    busbarOnly: bool = False
-    sldBase64: Optional[str] = None        # optional SLD diagram upload (image or PDF)
-    sldMimeType: str = "image/jpeg"        # mime type for sldBase64
-    layoutBase64: Optional[str] = None    # optional mechanical layout upload (image or PDF)
-    layoutMimeType: str = "image/jpeg"    # mime type for layoutBase64
+    sldBase64: Optional[str] = None        # optional SLD diagram upload
+    sldMimeType: str = "image/jpeg"
     task: str = "others"                  # commissioning | maintenance | modification | replacement | others
-    # Project / user metadata (optional — sent from Android app)
-    username: Optional[str] = None
-    projectName: Optional[str] = None
-    site: Optional[str] = None
-    inspector: Optional[str] = None
 
 
 def _official_panel_summary(panel_type: str) -> str:
@@ -1208,143 +1137,6 @@ def identify_panel_only(image_b64: str, mime_type: str) -> dict:
     return _call_llm(prompt, [(image_b64, mime_type)])
 
 
-def _enhance_for_busbar(image_b64: str) -> str:
-    """
-    Pre-process image before sending to Gemini:
-    - Downscale to 768px max — cubicles are large features, don't need full res
-    - CLAHE contrast enhancement → makes frame boundaries visible
-    - Sharpen → crisp vertical edges
-    Returns new base64 string of enhanced image.
-    """
-    img_bytes = base64.b64decode(image_b64)
-    img_pil   = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-    # Downscale to 1024px max side — better detail for cubicle boundary detection
-    max_side = 1024
-    w, h = img_pil.size
-    scale = min(max_side / w, max_side / h, 1.0)
-    if scale < 1.0:
-        img_pil = img_pil.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-
-    img_np    = np.array(img_pil)
-
-    # Convert to LAB — apply CLAHE only on L (lightness) channel
-    lab   = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    l_eq  = clahe.apply(l)
-    lab_eq = cv2.merge([l_eq, a, b])
-    enhanced = cv2.cvtColor(lab_eq, cv2.COLOR_LAB2RGB)
-
-    # Sharpen to make vertical frame edges crisper
-    kernel   = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-    sharpened = cv2.filter2D(enhanced, -1, kernel)
-
-    # Encode back to base64
-    _, buf = cv2.imencode(".jpg", cv2.cvtColor(sharpened, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 92])
-    return base64.b64encode(buf).decode("utf-8")
-
-
-def identify_cubicles_generic(image_b64: str, mime_type: str) -> dict:
-    """
-    Generic cubicle detection — no VBB bias.
-    Works for ALL panel types (Okken, PrismaSeT G, PrismaSeT P).
-    Just detects physical cubicle boundaries and labels each section.
-    """
-    image_b64 = _enhance_for_busbar(image_b64)
-    prompt = (
-        "You are a Schneider Electric panel expert.\n\n"
-        "YOUR TASK — scan this electrical panel from LEFT to RIGHT.\n"
-        "Identify every individual CUBICLE (vertical section with its own door or frame boundary).\n\n"
-        "CUBICLE TYPES:\n"
-        "  - 'breaker': door with visible ACB / MCCBs / MCBs / breaker handles\n"
-        "  - 'cable':   large closed door, cable entry glands, may have emergency stop or display\n"
-        "  - 'vbb':     NARROW plain blank door, no devices at all (PrismaSeT P only)\n\n"
-        "BOUNDING BOX RULES — CRITICAL:\n"
-        "  1. ALL cubicles share the SAME ymin and ymax — the top and bottom of the panel frame.\n"
-        "  2. xmin and xmax define each cubicle's LEFT and RIGHT door edges — vary per cubicle.\n"
-        "  3. The panel does NOT always fill the full image — there is often background/wall visible.\n"
-        "     STOP all boxes at the actual metal panel frame edge, NOT at the image edge (0 or 1000).\n"
-        "  4. Adjacent cubicles share a boundary — xmax of cubicle N = xmin of cubicle N+1.\n"
-        "  5. Do NOT extend any box to x=0 or x=1000 unless the panel truly starts/ends at the image edge.\n\n"
-        "COUNTING RULES:\n"
-        "  - Do NOT invent cubicles that do not exist\n"
-        "  - Do NOT split one cubicle into two\n"
-        "  - Do NOT merge two cubicles into one\n"
-        "  - Count only what you actually see\n\n"
-        "Draw tight bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000.\n"
-        "EXPECT AT LEAST 3 SECTIONS for a typical PrismaSeT P (cable + breaker + VBB).\n"
-        "Return ONLY valid JSON in this exact format:\n"
-        '{"cubicle_count": 3, "cubicles": [{"position": 1, "label": "cable", "box": [30, 50, 970, 350]}, '
-        '{"position": 2, "label": "breaker", "box": [30, 350, 970, 820]}, '
-        '{"position": 3, "label": "vbb", "box": [30, 820, 970, 970]}], "cubicle_summary": "one sentence"}'
-    )
-    return _call_llm(prompt, [(image_b64, mime_type)])
-
-
-def identify_busbar_only(image_b64: str, mime_type: str) -> dict:
-    """Detect every cubicle segment in the panel and return a bounding box for each one."""
-    # Enhance image contrast/sharpness before sending to Gemini
-    image_b64 = _enhance_for_busbar(image_b64)
-
-    prompt = (
-        "You are a Schneider Electric PrismaSeT P panel expert.\n\n"
-        "PRISMASET P PHYSICAL DIMENSIONS — MEMORIZE THESE:\n"
-        "  - VBB (Vertical Busbar Box): exactly 150mm wide — the NARROWEST section\n"
-        "  - Main breaker cubicle (MasterPact / MCCB): 650mm wide — much WIDER than VBB\n"
-        "  - Cable/incoming cubicle: may be present on the opposite side from VBB\n"
-        "  - VBB width is approximately 19% of the breaker cubicle width (150 / 800 total)\n\n"
-        "CRITICAL RULE — PrismaSeT P ALWAYS has a VBB compartment:\n"
-        "  - ALWAYS a SEPARATE cubicle on the FAR LEFT or FAR RIGHT of the panel\n"
-        "  - ALWAYS significantly NARROWER than other cubicles — about 150mm vs 650mm\n"
-        "  - In normalized 0-1000 coords: VBB spans roughly 150-200 units wide; breaker section spans 600-700 units wide\n"
-        "  - Door is ALWAYS plain/blank — NO handles, NO vents, NO devices visible\n"
-        "  - NEVER merge VBB with adjacent section — they are TWO separate cubicles\n\n"
-        "CUBICLE TYPES — set the correct label for each:\n"
-        "  - 'vbb':     NARROW blank plain door (≈150mm), no devices, always on far left or far right\n"
-        "  - 'breaker': door with visible ACB / MCCBs / MCBs / breaker handles inside (≈650mm)\n"
-        "  - 'cable':   large closed door, cable entry glands at bottom, may have emergency stop or display\n\n"
-        "TYPICAL 3-CUBICLE LAYOUT (most common PrismaSeT P with single MasterPact):\n"
-        "  LEFT → RIGHT: [cable compartment] | [breaker compartment with MasterPact] | [VBB 150mm]\n"
-        "  OR:           [VBB 150mm] | [breaker compartment with MasterPact] | [cable compartment]\n"
-        "  ALWAYS detect exactly 3 cubicles minimum — do NOT merge them into 1 or 2.\n\n"
-        "PANEL BOUNDARY RULE:\n"
-        "  - The panel may NOT fill the full image width — stop all boxes at the actual metal panel frame edge\n"
-        "  - Do NOT extend boxes to the image edge (0 or 1000) unless the panel truly starts/ends there\n\n"
-        "ONE DOOR = ONE CUBICLE:\n"
-        "  - Each cubicle is a FULL-HEIGHT vertical section with its own door\n"
-        "  - Horizontal rows of breakers INSIDE one door are NOT separate cubicles\n"
-        "  - DO NOT split a single door into multiple cubicles\n"
-        "  - DO NOT merge the VBB door with the adjacent breaker door\n\n"
-        "VBB DETECTION — CHECK BOTH FAR EDGES:\n"
-        "  - FAR LEFT edge: is there a narrow (≈150mm) blank door? → VBB\n"
-        "  - FAR RIGHT edge: is there a narrow (≈150mm) blank door? → VBB\n"
-        "  - The VBB door has NO handles, NO breakers, NO vents — completely plain grey/white metal\n"
-        "  - V-SHAPED HINGES: PrismaSeT P VBB doors have distinctive V-shaped triangular hinges at top and bottom edge\n"
-        "  - If VBB is partially out of frame, still create a cubicle box for it at the visible edge\n\n"
-        "YOUR TASK — scan LEFT to RIGHT:\n"
-        "  1. Find the actual LEFT and RIGHT edges of the panel metal frame\n"
-        "  2. Identify each distinct FULL-HEIGHT section separated by vertical frame dividers\n"
-        "  3. Check BOTH far edges for the narrow blank VBB door (150mm)\n"
-        "  4. EXPECT 3 sections minimum for a standard PrismaSeT P with 1 MasterPact\n"
-        "  5. Label: vbb / breaker / cable\n"
-        "  6. Bounding boxes [ymin, xmin, ymax, xmax] normalized 0-1000, no overlaps\n\n"
-        "EXAMPLE A — 3-cubicle PrismaSeT P, VBB on RIGHT (most common with single MasterPact):\n"
-        '{"cubicle_count": 3, "cubicles": ['
-        '{"position": 1, "label": "cable",   "box": [50, 30,  950, 380]}, '
-        '{"position": 2, "label": "breaker", "box": [50, 380, 950, 820]}, '
-        '{"position": 3, "label": "vbb",     "box": [50, 820, 950, 970]}'
-        '], "cubicle_summary": "Cable compartment left, MasterPact breaker middle, VBB 150mm right"}\n\n'
-        "EXAMPLE B — 4-cubicle PrismaSeT P, VBB on LEFT:\n"
-        '{"cubicle_count": 4, "cubicles": ['
-        '{"position": 1, "label": "vbb",     "box": [30, 20,  970, 190]}, '
-        '{"position": 2, "label": "cable",   "box": [30, 190, 970, 470]}, '
-        '{"position": 3, "label": "breaker", "box": [30, 470, 970, 770]}, '
-        '{"position": 4, "label": "breaker", "box": [30, 770, 970, 960]}'
-        '], "cubicle_summary": "VBB left, cable compartment, two breaker sections right"}\n\n'
-        "Return ONLY valid JSON."
-    )
-    return _call_llm(prompt, [(image_b64, mime_type)])
 
 
 import time as _time
@@ -1419,41 +1211,6 @@ def analyze(body: AnalyzeRequest):
     print(f"[DEBUG] workZone:    {body.workZone}")
     print(f"[DEBUG] safetyBuffer: {body.safetyBuffer}")
 
-    # --- Busbar-only mode: detect all cubicle segments, draw a box around each one ---
-    if body.busbarOnly:
-        result = identify_busbar_only(body.imageBase64, body.mimeType)
-        img_bytes = base64.b64decode(body.imageBase64)
-        img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-        w, h = img.size
-
-        # Convert all cubicle boxes from 0-1000 → pixel coords
-        cubicles_px = []
-        for c in result.get("cubicles", []):
-            box = c.get("box", [])
-            if len(box) < 4:
-                continue
-            cubicles_px.append({
-                "position": c.get("position"),
-                "box": [
-                    int(box[0] / 1000 * h),
-                    int(box[1] / 1000 * w),
-                    int(box[2] / 1000 * h),
-                    int(box[3] / 1000 * w),
-                ]
-            })
-
-        print(f"[CUBICLES] count={result.get('cubicle_count')} | {result.get('cubicle_summary')}")
-        return JSONResponse(content={
-            "breakers":        [],
-            "notes":           result.get("cubicle_summary", ""),
-            "safety_warnings": [],
-            "panel_type":      "",
-            "panel_summary":   result.get("cubicle_summary", ""),
-            "busbar_side":     "unknown",
-            "cubicle_count":   result.get("cubicle_count", 0),
-            "cubicles":        cubicles_px,
-        })
-
     # --- Identify-only mode: just return panel type + 1 line ---
     if body.identifyOnly:
         result     = identify_panel_only(body.imageBase64, body.mimeType)
@@ -1489,9 +1246,8 @@ def analyze(body: AnalyzeRequest):
         + location_safety_prompt(body.workZone)
     )
 
-    # Start cubicle detection in parallel with main detection
-    _executor       = ThreadPoolExecutor(max_workers=2)
-    _cubicle_future = _executor.submit(identify_cubicles_generic, body.imageBase64, body.mimeType) if body.workZone else None
+    from concurrent.futures import ThreadPoolExecutor
+    _executor = ThreadPoolExecutor(max_workers=1)
 
     json_schema = (
         "\n\nRespond with ONLY valid JSON, no markdown, no explanation. Use this exact structure:\n"
@@ -1653,307 +1409,17 @@ def analyze(body: AnalyzeRequest):
 
     data["qr_codes"] = []
 
-    # --- Integrate Busbar ID into Analyze Zone (parallel) ---
-    cubicles_px  = []
-    cubicle_line = ""
+    # --- Safety warnings + ERMS ---
     if body.workZone:
-        try:
-            detected_panel = data.get("panel_type", "").strip()
+        sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
+        erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+        data["task_recommendations"] = erms_recs
+        data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
 
-            # Helper functions — defined here so all panel branches can use them
-            def _label_desc(c):
-                lbl = c.get("label", "breaker")
-                if lbl == "vbb":   return "VBB busbar compartment ⚡"
-                if lbl == "cable": return "cable compartment"
-                return "breaker section"
-
-            def _full_label_desc(c):
-                lbl = c.get("label", "breaker")
-                box = c.get("box", [0, 0, 0, 1000])
-                w   = (box[3] - box[1]) if len(box) >= 4 else 500
-                if lbl == "vbb":
-                    return "VBB busbar compartment ⚡ — narrow, plain door, ALWAYS live even when isolated. Do NOT open or penetrate."
-                if lbl == "cable":
-                    return "cable compartment (closed/narrow section) — terminal connections and incoming cables."
-                return "breaker cubicle (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
-
-            def _build_layout_overview(raw, total_count=None):
-                """Layout description listing cubicles — filtered to zone when active."""
-                n = total_count or len(raw)
-                directions = {1: "LEFT", n: "RIGHT"}
-                lines = ["Components in your work zone:"]
-                for c in raw:
-                    pos = c.get("position", "?")
-                    lbl_detail = _full_label_desc(c)
-                    side = f" [{directions[pos]}]" if pos in directions else ""
-                    lines.append(f"  C{pos}{side}: {lbl_detail}")
-                return "\n".join(lines)
-
-            def _build_cubicles_px(raw):
-                # All cubicles share the same panel top/bottom — use median ymin/ymax
-                # to avoid outliers (Gemini sometimes extends one cubicle to image edge)
-                valid_boxes = [c.get("box", []) for c in raw if len(c.get("box", [])) >= 4]
-                if len(valid_boxes) >= 2:
-                    ymins = sorted(b[0] for b in valid_boxes)
-                    ymaxs = sorted(b[2] for b in valid_boxes)
-                    panel_ymin = ymins[len(ymins) // 2]   # median top
-                    panel_ymax = ymaxs[len(ymaxs) // 2]   # median bottom
-                    if panel_ymax > panel_ymin:
-                        for c in raw:
-                            b = c.get("box", [])
-                            if len(b) >= 4:
-                                b[0] = panel_ymin
-                                b[2] = panel_ymax
-                result = []
-                for c in raw:
-                    box = c.get("box", [])
-                    if len(box) < 4:
-                        continue
-                    result.append({
-                        "position": c.get("position"),
-                        "label":    c.get("label", "breaker"),
-                        "box": [
-                            int(box[0] / 1000 * h),
-                            int(box[1] / 1000 * w),
-                            int(box[2] / 1000 * h),
-                            int(box[3] / 1000 * w),
-                        ]
-                    })
-                return result
-
-            def _build_cubicle_line(raw, include_vbb=True, detailed=False):
-                wz_cx     = (body.workZone.xmin + body.workZone.xmax) / 2
-                working_c = next((c for c in raw if len(c.get("box",[])) >= 4 and c["box"][1] <= wz_cx <= c["box"][3]), None)
-                vbb_c     = next((c for c in raw if c.get("is_vbb") or c.get("label") == "vbb"), None) if include_vbb else None
-                parts     = []
-                if detailed:
-                    filter_zone = body.safetyBuffer or body.workZone
-                    if filter_zone:
-                        zone_cs = [c for c in raw if len(c.get("box", [])) >= 4
-                                   and c["box"][1] < filter_zone.xmax
-                                   and c["box"][3] > filter_zone.xmin]
-                        display_cs = zone_cs if zone_cs else raw
-                    else:
-                        display_cs = raw
-                    parts += [_build_layout_overview(display_cs, total_count=len(raw)), ""]
-                if working_c:
-                    wz_pos = working_c.get("position", "?")
-                    parts.append(f"You are working in C{wz_pos} ({_label_desc(working_c)}).")
-                    left_c  = next((c for c in raw if c.get("position") == wz_pos - 1), None)
-                    right_c = next((c for c in raw if c.get("position") == wz_pos + 1), None)
-                    if detailed:
-                        if left_c:
-                            parts.append(f"C{left_c.get('position')} immediately to your LEFT: {_full_label_desc(left_c)}")
-                        if right_c:
-                            parts.append(f"C{right_c.get('position')} immediately to your RIGHT: {_full_label_desc(right_c)}")
-                    else:
-                        if left_c:
-                            parts.append(f"Cubicle {left_c.get('position')} immediately to your LEFT is a {_label_desc(left_c)}.")
-                        if right_c:
-                            parts.append(f"Cubicle {right_c.get('position')} immediately to your RIGHT is a {_label_desc(right_c)}.")
-                    if vbb_c:
-                        vbb_pos   = vbb_c.get("position", 0)
-                        proximity = "immediately " if abs(vbb_pos - wz_pos) == 1 else ""
-                        direction = "to your LEFT" if vbb_pos < wz_pos else "to your RIGHT"
-                        parts.append(f"⚠ VBB (C{vbb_pos}) is {proximity}{direction} — live busbars, do NOT drill or penetrate.")
-                return "\n".join(parts)
-
-            # Okken — detect cubicles, no VBB, add HBB message
-            if "okken" in detected_panel.lower():
-                cubicle_result        = _cubicle_future.result(timeout=120)
-                raw_cubicles          = cubicle_result.get("cubicles", [])
-                base_line             = _build_cubicle_line(raw_cubicles, include_vbb=False)
-                data["cubicle_count"] = cubicle_result.get("cubicle_count", 0)
-                data["cubicles"]      = raw_cubicles  # 0-1000 normalised
-                data["cubicle_line"]  = (
-                    f"{base_line} "
-                    f"⚠ Okken panel — Horizontal Busbar (HBB) runs at the TOP "
-                    f"and BEHIND the panel. Keep clear of the top section during intervention."
-                ).strip()
-                sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-                erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
-                data["task_recommendations"] = erms_recs
-                data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
-                _executor.shutdown(wait=False)
-                return JSONResponse(content=data)
-
-            # PrismaSeT G — use AI cubicle detection (parallel call) + draw boxes on canvas
-            if "prismaset g" in detected_panel.lower() or "prisma g" in detected_panel.lower():
-                cubicle_result = _cubicle_future.result(timeout=120) if _cubicle_future else {}
-                raw_cubicles   = cubicle_result.get("cubicles", [])
-
-                # Fallback: if AI detection returned nothing, build 2-cubicle layout from zone
-                if not raw_cubicles:
-                    all_boxes  = [b.get("box", []) for b in data.get("breakers", []) if len(b.get("box", [])) >= 4]
-                    p_top_g    = max((panel_ymin_raw or 50) - 50, 0)
-                    p_bottom_g = min((panel_ymax_raw or 950) + 50, 1000)
-                    if all_boxes:
-                        xmin_all = min(b[1] for b in all_boxes)
-                        xmax_all = max(b[3] for b in all_boxes)
-                        ref_zone = body.safetyBuffer or body.workZone
-                        brk_xmin = ref_zone.xmin if ref_zone else xmin_all
-                        raw_cubicles = [
-                            {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top_g, max(brk_xmin - (xmax_all - xmin_all), 0), p_bottom_g, brk_xmin]},
-                            {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top_g, brk_xmin, p_bottom_g, xmax_all]},
-                        ]
-                    else:
-                        raw_cubicles = [{"position": 1, "label": "breaker", "is_vbb": False, "box": [50, 50, 950, 950]}]
-
-                print(f"[CUBICLE] PrismaSeT G — {len(raw_cubicles)} cubicle(s) detected by AI")
-                data["cubicle_count"] = len(raw_cubicles)
-                data["cubicles"]      = raw_cubicles  # 0-1000 normalised — web uses n2c, Android converts /1000*orig
-                data["cubicle_line"]  = _build_cubicle_line(raw_cubicles, include_vbb=False, detailed=True)
-                sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-                erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
-                data["task_recommendations"] = erms_recs
-                data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
-                _executor.shutdown(wait=False)
-                return JSONResponse(content=data)
-
-            # PrismaSeT P — build cubicles deterministically from busbar_side + zone positions
-            # No second LLM call — avoids unreliable secondary Gemini request
-            bs = data.get("busbar_side", "right")
-
-            # Panel top/bottom from detected breaker Y range (or full extent as fallback)
-            p_top    = max((panel_ymin_raw or 50) - 30, 0)
-            p_bottom = min((panel_ymax_raw or 950) + 30, 1000)
-
-            # Estimate breaker section X extent from safetyBuffer or workZone, else use proportional defaults
-            ref_zone = body.safetyBuffer or body.workZone
-            if ref_zone:
-                brk_xmin = ref_zone.xmin
-                brk_xmax = ref_zone.xmax
-                brk_w    = brk_xmax - brk_xmin
-                # VBB is 150mm, breaker section ~650mm → VBB ≈ 23% of breaker width
-                vbb_w    = max(int(brk_w * 150 / 650), 60)
-                if bs == "left":
-                    vbb_xmin = max(brk_xmin - vbb_w, 0)
-                    cbl_xmax = min(brk_xmax + int(brk_w * 0.7), 1000)
-                    raw_cubicles = [
-                        {"position": 1, "label": "vbb",     "is_vbb": True,  "box": [p_top, vbb_xmin, p_bottom, brk_xmin]},
-                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, brk_xmin, p_bottom, brk_xmax]},
-                        {"position": 3, "label": "cable",   "is_vbb": False, "box": [p_top, brk_xmax, p_bottom, cbl_xmax]},
-                    ]
-                else:  # right or unknown
-                    vbb_xmax = min(brk_xmax + vbb_w, 1000)
-                    cbl_xmin = max(brk_xmin - int(brk_w * 0.7), 0)
-                    raw_cubicles = [
-                        {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top, cbl_xmin, p_bottom, brk_xmin]},
-                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, brk_xmin, p_bottom, brk_xmax]},
-                        {"position": 3, "label": "vbb",     "is_vbb": True,  "box": [p_top, brk_xmax, p_bottom, vbb_xmax]},
-                    ]
-            else:
-                # No zone info — use fixed proportional layout across full image width
-                if bs == "left":
-                    raw_cubicles = [
-                        {"position": 1, "label": "vbb",     "is_vbb": True,  "box": [p_top, 20,  p_bottom, 190]},
-                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, 190, p_bottom, 650]},
-                        {"position": 3, "label": "cable",   "is_vbb": False, "box": [p_top, 650, p_bottom, 970]},
-                    ]
-                else:
-                    raw_cubicles = [
-                        {"position": 1, "label": "cable",   "is_vbb": False, "box": [p_top, 30,  p_bottom, 350]},
-                        {"position": 2, "label": "breaker", "is_vbb": False, "box": [p_top, 350, p_bottom, 820]},
-                        {"position": 3, "label": "vbb",     "is_vbb": True,  "box": [p_top, 820, p_bottom, 970]},
-                    ]
-
-            print(f"[CUBICLE] PrismaSeT P — busbar_side={bs}, cubicles built deterministically")
-            cubicles_px  = _build_cubicles_px(raw_cubicles)
-            cubicle_line = _build_cubicle_line(raw_cubicles, include_vbb=True)
-
-            data["cubicle_count"] = len(raw_cubicles)
-            data["cubicles"]      = []   # no column boxes on canvas — warning shown in text card
-            data["cubicle_line"]  = cubicle_line
-            print(f"[CUBICLE_LINE] {cubicle_line}")
-
-            # Override busbar_side using actual VBB cubicle position (more reliable than Gemini's panel ID)
-            vbb_cubicle = next((c for c in raw_cubicles if c.get("label") == "vbb" or c.get("is_vbb")), None)
-            if vbb_cubicle and raw_cubicles:
-                vbb_idx = raw_cubicles.index(vbb_cubicle)
-                busbar_side = "left" if vbb_idx == 0 else "right"
-                data["busbar_side"] = busbar_side
-            else:
-                busbar_side = data.get("busbar_side", "unknown")
-
-            # Apply slide warnings last for PrismaSeT P — pass VBB cubicle + cubicle count for large/small detection
-            sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw, vbb_cubicle, len(raw_cubicles), body.safetyBuffer)
-            erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
-            data["task_recommendations"] = erms_recs
-            data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
-
-        except Exception as _e:
-            import traceback
-            print(f"[CUBICLE] Auto-detect failed: {_e}\n{traceback.format_exc()}")
-            data["cubicle_count"] = 0
-            data["cubicles"]      = []
-            data["cubicle_line"]  = ""
-            sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
-            erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
-            data["task_recommendations"] = erms_recs
-            data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
-
-    # Ensure catalogue_guidance always present in response
     if "catalogue_guidance" not in data:
         data["catalogue_guidance"] = ""
 
     _executor.shutdown(wait=False)
-
-    # --- Persist scan to SQLite ---
-    try:
-        scan_id    = str(uuid.uuid4())
-        timestamp  = datetime.utcnow().isoformat()
-
-        # Save image to disk
-        img_filename = f"{scan_id}.jpg"
-        img_path     = os.path.join(_IMAGES_DIR, img_filename)
-        with open(img_path, "wb") as _imgf:
-            _imgf.write(base64.b64decode(body.imageBase64))
-
-        # Upsert project if metadata provided
-        project_id = None
-        if body.projectName:
-            conn = _get_db()
-            existing = conn.execute(
-                "SELECT id FROM projects WHERE project_name=? AND site=? AND inspector=?",
-                (body.projectName, body.site or "", body.inspector or "")
-            ).fetchone()
-            if existing:
-                project_id = existing["id"]
-            else:
-                project_id = str(uuid.uuid4())
-                conn.execute(
-                    "INSERT INTO projects (id, project_name, site, inspector, created_at) VALUES (?,?,?,?,?)",
-                    (project_id, body.projectName, body.site or "", body.inspector or "", timestamp)
-                )
-                conn.commit()
-            conn.close()
-
-        conn = _get_db()
-        conn.execute(
-            "INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
-            (
-                scan_id,
-                project_id,
-                timestamp,
-                body.username or "",
-                data.get("panel_type", ""),
-                data.get("notes", ""),
-                json.dumps(data.get("safety_warnings", [])),
-                body.task,
-                img_filename,
-            )
-        )
-        conn.commit()
-        conn.close()
-        print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | project={project_id}")
-        data["scan_id"] = scan_id
-    except Exception as _db_err:
-        import traceback
-        print(f"[DB] Save failed: {_db_err}")
-        traceback.print_exc()
-    # --------------------------------
-
     return JSONResponse(content=data)
 
 
@@ -2068,53 +1534,6 @@ def locate_vbb(body: LocateVbbRequest):
     return JSONResponse(content=result)
 
 
-# --- Database read endpoints ---
-
-@app.get("/api/projects")
-def list_projects():
-    conn = _get_db()
-    rows = conn.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
-    conn.close()
-    return JSONResponse(content=[dict(r) for r in rows])
-
-
-@app.get("/api/scans")
-def list_scans(project_id: Optional[str] = None, username: Optional[str] = None):
-    conn  = _get_db()
-    query = "SELECT * FROM scans"
-    args  = []
-    filters = []
-    if project_id:
-        filters.append("project_id = ?")
-        args.append(project_id)
-    if username:
-        filters.append("username = ?")
-        args.append(username)
-    if filters:
-        query += " WHERE " + " AND ".join(filters)
-    query += " ORDER BY timestamp DESC"
-    rows = conn.execute(query, args).fetchall()
-    conn.close()
-    result = []
-    for r in rows:
-        row = dict(r)
-        row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
-        result.append(row)
-    return JSONResponse(content=result)
-
-
-@app.get("/api/scans/{scan_id}")
-def get_scan(scan_id: str):
-    conn = _get_db()
-    row  = conn.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
-    conn.close()
-    if not row:
-        return JSONResponse(status_code=404, content={"error": "Scan not found"})
-    result = dict(row)
-    result["safety_warnings"] = json.loads(result["safety_warnings"] or "[]")
-    return JSONResponse(content=result)
-
-# --------------------------------
 
 
 # --- Panel Photo Match Verification ---

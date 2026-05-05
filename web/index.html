@@ -3,214 +3,879 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Inspector Pro — Schneider Electric</title>
+<title>Panel Inspector — Schneider Electric</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.25);
-  --bg:#0A1628;--card:#0F2140;--card2:#132850;--border:#1E3A5F;
-  --text:#E0EAF4;--muted:#6B8EAE;--red:#FF4757;--orange:#FFA502;
+  --green:#3DCD58;--green-dark:#2BAE47;--green-glow:rgba(61,205,88,.22);
+  --bg:#0a0d14;--sidebar:#0d1220;--card:#111827;--card2:#141e30;
+  --border:#1c2c42;--border2:#243347;
+  --text:#e2e8f0;--muted:#64748b;--dim:#94a3b8;
+  --red:#ef4444;--red-bg:rgba(239,68,68,.08);--red-border:rgba(239,68,68,.25);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,.08);--amber-border:rgba(245,158,11,.25);
+  --blue:#3b82f6;--purple:#a855f7;
+  --erms-on:#ef4444;--erms-rec:#f59e0b;--erms-off:#3DCD58;--erms-none:#64748b;
 }
 html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
 
-/* ── Background ── */
-.bg-pattern{position:fixed;inset:0;z-index:0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 50%, rgba(61,205,88,.07) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 80% 30%, rgba(0,120,255,.05) 0%, transparent 60%);
-}
-.grid-lines{position:fixed;inset:0;z-index:0;
-  background-image:linear-gradient(rgba(61,205,88,.04) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(61,205,88,.04) 1px,transparent 1px);
-  background-size:60px 60px;
-}
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
 /* ── Layout ── */
-.page{position:relative;z-index:1;display:flex;height:100vh}
+.app{display:flex;height:100vh;overflow:hidden}
 
-/* ── Left Brand Panel ── */
-.brand-panel{flex:1.1;display:flex;flex-direction:column;justify-content:center;padding:60px;
-  background:linear-gradient(135deg,rgba(10,22,40,.95) 0%,rgba(15,33,64,.9) 100%);
-  border-right:1px solid var(--border);position:relative;overflow:hidden;
+/* ── SIDEBAR ── */
+.sidebar{
+  width:340px;min-width:340px;height:100vh;overflow-y:auto;
+  background:var(--sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:0;
 }
-.brand-panel::after{content:'';position:absolute;right:-80px;top:50%;transform:translateY(-50%);
-  width:200px;height:400px;background:radial-gradient(var(--green-glow),transparent 70%);pointer-events:none;
+.sidebar-header{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
 }
-.se-logo{display:flex;align-items:center;gap:16px;margin-bottom:60px}
-.se-square{width:52px;height:52px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;font-weight:800;color:#0A1628;letter-spacing:-1px;
-  box-shadow:0 0 30px var(--green-glow);
-}
-.se-name{font-size:18px;font-weight:600;color:var(--text);line-height:1.3}
-.se-name small{display:block;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
-.brand-title{font-size:42px;font-weight:800;line-height:1.15;margin-bottom:20px;
-  background:linear-gradient(135deg,#fff 0%,var(--green) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.brand-sub{font-size:16px;color:var(--muted);line-height:1.7;max-width:400px;margin-bottom:48px}
-
-.features{display:flex;flex-direction:column;gap:18px}
-.feature{display:flex;align-items:center;gap:14px}
-.feature-icon{width:38px;height:38px;border-radius:8px;background:rgba(61,205,88,.12);border:1px solid rgba(61,205,88,.25);
-  display:flex;align-items:center;justify-content:center;color:var(--green);font-size:15px;flex-shrink:0;
-}
-.feature-text{font-size:14px;color:var(--muted)}
-.feature-text strong{color:var(--text);font-weight:500;display:block;font-size:14px}
-
-/* ── Right Form Panel ── */
-.form-panel{width:480px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 56px;
-  background:rgba(10,22,40,.6);backdrop-filter:blur(20px);
-}
-.form-logo{width:56px;height:56px;background:var(--green);border-radius:12px;
+.se-badge{
+  width:38px;height:38px;background:var(--green);border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-size:24px;font-weight:800;color:#0A1628;margin-bottom:32px;
-  box-shadow:0 8px 32px var(--green-glow);
-  animation:pulse 3s ease-in-out infinite;
+  font-size:14px;font-weight:800;color:#0a0d14;flex-shrink:0;
+  box-shadow:0 0 18px var(--green-glow);
 }
-@keyframes pulse{0%,100%{box-shadow:0 8px 32px var(--green-glow)}50%{box-shadow:0 8px 48px rgba(61,205,88,.45)}}
+.sidebar-title{font-size:15px;font-weight:700;line-height:1.2}
+.sidebar-title span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px}
 
-h2{font-size:28px;font-weight:700;margin-bottom:8px;text-align:center}
-.form-sub{font-size:14px;color:var(--muted);margin-bottom:40px;text-align:center}
-
-.form-group{width:100%;margin-bottom:20px}
-.form-group label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px}
-.form-group input{
-  width:100%;padding:14px 18px;background:var(--card);border:1px solid var(--border);
-  border-radius:10px;color:var(--text);font-size:15px;font-family:'Inter',sans-serif;
-  transition:all .2s;outline:none;
+/* ── Sidebar Sections ── */
+.sb-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.sb-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;
 }
-.form-group input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
-.form-group input::placeholder{color:var(--muted)}
+.sb-label i{font-size:9px}
 
-.btn-login{
-  width:100%;padding:15px;background:var(--green);border:none;border-radius:10px;
-  color:#0A1628;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;
-  cursor:pointer;transition:all .2s;margin-top:8px;
-  display:flex;align-items:center;justify-content:center;gap:10px;
+/* ── Upload Zone ── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:10px;
+  padding:22px 14px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+  background:rgba(255,255,255,.015);
 }
-.btn-login:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 8px 24px var(--green-glow)}
-.btn-login:active{transform:translateY(0)}
-.btn-login .spinner{display:none;width:18px;height:18px;border:2px solid rgba(10,22,40,.3);border-top-color:#0A1628;border-radius:50%;animation:spin .7s linear infinite}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--green);background:rgba(61,205,88,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:24px;color:var(--muted);margin-bottom:8px;transition:color .2s}
+.upload-zone:hover .upload-icon,.upload-zone.drag .upload-icon{color:var(--green)}
+.upload-text{font-size:12px;color:var(--muted);line-height:1.5}
+.upload-text strong{color:var(--dim);font-weight:500}
+.upload-preview{
+  display:none;align-items:center;gap:10px;
+  background:rgba(61,205,88,.06);border:1px solid rgba(61,205,88,.2);
+  border-radius:8px;padding:10px 12px;
+}
+.preview-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;border:1px solid var(--border2)}
+.preview-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.preview-size{font-size:10px;color:var(--muted);margin-top:2px}
+.preview-clear{margin-left:auto;color:var(--muted);cursor:pointer;font-size:12px;padding:4px;transition:color .2s}
+.preview-clear:hover{color:var(--red)}
+
+/* ── Task Selector ── */
+.task-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.task-btn{
+  padding:9px 10px;border-radius:7px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .18s;text-align:left;display:flex;align-items:center;gap:7px;
+  font-family:'Inter',sans-serif;
+}
+.task-btn:hover{border-color:var(--green);color:var(--text);background:rgba(61,205,88,.04)}
+.task-btn.active{border-color:var(--green);color:var(--green);background:rgba(61,205,88,.08)}
+.task-btn i{font-size:11px;flex-shrink:0}
+
+/* ── Work Zone ── */
+.zone-controls{display:flex;flex-direction:column;gap:8px}
+.zone-row{display:flex;align-items:center;justify-content:space-between}
+.zone-toggle{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:12px;color:var(--dim);user-select:none;
+}
+.toggle-pill{
+  width:34px;height:18px;background:var(--border2);border-radius:10px;
+  position:relative;transition:background .2s;flex-shrink:0;
+}
+.toggle-pill::after{
+  content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;
+  background:#fff;border-radius:50%;transition:transform .2s;
+}
+.zone-toggle.on .toggle-pill{background:var(--green)}
+.zone-toggle.on .toggle-pill::after{transform:translateX(16px)}
+.zone-hint{font-size:10px;color:var(--muted);line-height:1.5;
+  padding:7px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);
+  border-radius:6px;display:none;
+}
+.zone-hint.visible{display:block}
+.zone-clear{
+  font-size:11px;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;gap:4px;
+  padding:5px 8px;border-radius:5px;border:1px solid var(--border);
+  transition:all .15s;background:transparent;font-family:'Inter',sans-serif;
+  display:none;
+}
+.zone-clear:hover{color:var(--red);border-color:var(--red-border)}
+.zone-clear.visible{display:flex}
+
+/* ── SLD Collapsible ── */
+.collapsible-header{
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  padding:12px 20px;border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.collapsible-header:hover{background:rgba(255,255,255,.02)}
+.collapsible-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.collapsible-arrow{color:var(--muted);font-size:10px;transition:transform .2s}
+.collapsible-arrow.open{transform:rotate(180deg)}
+.collapsible-body{display:none;padding:14px 20px;border-bottom:1px solid var(--border)}
+.collapsible-body.open{display:block}
+
+.sld-upload{
+  border:2px dashed var(--border2);border-radius:8px;padding:14px;
+  text-align:center;cursor:pointer;position:relative;transition:all .2s;
+  background:rgba(255,255,255,.01);
+}
+.sld-upload:hover{border-color:var(--blue);background:rgba(59,130,246,.04)}
+.sld-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.sld-name{font-size:11px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Detect Button ── */
+.sb-footer{padding:16px 20px;margin-top:auto;flex-shrink:0}
+.btn-detect{
+  width:100%;padding:13px;background:var(--green);border:none;border-radius:9px;
+  color:#0a0d14;font-size:14px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;font-family:'Inter',sans-serif;
+}
+.btn-detect:hover:not(:disabled){background:var(--green-dark);box-shadow:0 6px 20px var(--green-glow);transform:translateY(-1px)}
+.btn-detect:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-detect .spin{display:none;width:16px;height:16px;border:2px solid rgba(10,13,20,.3);border-top-color:#0a0d14;border-radius:50%;animation:spin .65s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.error-msg{margin-top:16px;padding:12px 16px;background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);
-  border-radius:8px;color:var(--red);font-size:13px;text-align:center;display:none;
+/* ── MAIN AREA ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ── Canvas Wrapper ── */
+.canvas-wrap{
+  flex:1;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
 }
-.footer-note{margin-top:40px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.canvas-wrap canvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+#imgCanvas{display:none}
+#overlayCanvas{cursor:crosshair;display:none}
+
+.canvas-placeholder{
+  text-align:center;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.canvas-placeholder i{font-size:40px;opacity:.3}
+.canvas-placeholder p{font-size:13px;opacity:.6;max-width:240px;line-height:1.6}
+
+/* ── Results Panel ── */
+.results{
+  height:260px;min-height:260px;border-top:1px solid var(--border);
+  overflow-y:auto;background:var(--sidebar);display:none;
+}
+.results.visible{display:block}
+.results-inner{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+
+/* ── Panel Type Card ── */
+.panel-type-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid;
+}
+.panel-badge.prismaset-g{color:#3DCD58;border-color:rgba(61,205,88,.3);background:rgba(61,205,88,.08)}
+.panel-badge.prismaset-p{color:#3b82f6;border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.08)}
+.panel-badge.okken      {color:#a855f7;border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08)}
+.panel-badge.unknown    {color:#64748b;border-color:rgba(100,116,139,.3);background:rgba(100,116,139,.08)}
+.panel-summary{font-size:12px;color:var(--dim);line-height:1.5}
+.busbar-note{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:4px}
+
+/* ── Detection Stats ── */
+.stats-row{display:flex;gap:8px;flex-wrap:wrap}
+.stat-chip{
+  padding:4px 10px;background:var(--card);border:1px solid var(--border2);
+  border-radius:5px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px;
+}
+.stat-chip b{color:var(--text);font-weight:600}
+
+/* ── Safety Warnings ── */
+.warnings-section{display:flex;flex-direction:column;gap:5px}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.warning-item{
+  padding:8px 11px;border-radius:7px;font-size:11px;line-height:1.55;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.warning-item.critical{background:var(--red-bg);border:1px solid var(--red-border);color:#fca5a5}
+.warning-item.warn{background:var(--amber-bg);border:1px solid var(--amber-border);color:#fcd34d}
+.warning-item i{flex-shrink:0;margin-top:1px}
+
+/* ── ERMS Table ── */
+.erms-table{width:100%;border-collapse:collapse;font-size:11px}
+.erms-table th{
+  background:var(--card);color:var(--muted);font-weight:600;text-transform:uppercase;
+  letter-spacing:.5px;font-size:9.5px;padding:7px 10px;text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.erms-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--dim)}
+.erms-table tr:last-child td{border-bottom:none}
+.erms-pill{
+  display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+  border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;
+}
+.erms-ON     {background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+.erms-recommended{background:rgba(245,158,11,.12);color:#fcd34d;border:1px solid rgba(245,158,11,.25)}
+.erms-OFF    {background:rgba(61,205,88,.1);color:#6ee7b7;border:1px solid rgba(61,205,88,.2)}
+.erms-none   {background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.2)}
+.hazard-tag{
+  display:inline-flex;align-items:center;gap:3px;font-size:9.5px;
+  padding:1px 6px;border-radius:4px;margin-right:3px;
+}
+.haz-arc{background:rgba(239,68,68,.1);color:#fca5a5}
+.haz-shock{background:rgba(245,158,11,.1);color:#fcd34d}
+
+/* ── Detection Cards Strip ── */
+.cards-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.det-card{
+  min-width:130px;max-width:150px;flex-shrink:0;
+  background:var(--card);border:1px solid var(--border2);border-radius:8px;
+  padding:9px 11px;cursor:pointer;transition:all .15s;
+}
+.det-card:hover,.det-card.active{border-color:var(--green);background:rgba(61,205,88,.06)}
+.det-label{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.det-meta{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+.det-rating{
+  display:inline-block;margin-top:5px;font-size:9px;font-weight:700;
+  padding:1px 6px;background:rgba(59,130,246,.1);color:#93c5fd;border-radius:4px;
+  border:1px solid rgba(59,130,246,.2);
+}
+
+/* ── Canvas box colors ── */
+/* drawn via JS */
 
 /* ── Responsive ── */
-@media(max-width:900px){
-  .brand-panel{display:none}
-  .form-panel{width:100%;padding:40px 32px}
+@media(max-width:768px){
+  .sidebar{width:100%;min-width:0;height:auto;overflow:visible;border-right:none;border-bottom:1px solid var(--border)}
+  .app{flex-direction:column}
+  .main{height:60vh}
   html,body{overflow:auto}
-  .page{justify-content:center}
+}
+
+/* ── Subtle top shimmer ── */
+.sidebar-header::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--green),transparent);
+  opacity:.3;
 }
 </style>
 </head>
 <body>
-<div class="bg-pattern"></div>
-<div class="grid-lines"></div>
-<div class="page">
-  <!-- Left Brand -->
-  <div class="brand-panel">
-    <div class="se-logo">
-      <div class="se-square">SE</div>
-      <div class="se-name">Schneider Electric<small>EcoStruxure™ Platform</small></div>
-    </div>
-    <h1 class="brand-title">Panel Inspector<br>Pro</h1>
-    <p class="brand-sub">AI-powered electrical panel inspection. Detect breakers, assess arc flash hazards, and ensure your team works safely.</p>
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-        <div class="feature-text"><strong>Arc Flash Detection</strong>Automated hazard zone identification with PPE guidance</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon"><i class="fas fa-microchip"></i></div>
-        <div class="feature-text"><strong>Breaker Recognition</strong>MasterPact, Compact NSX, Acti9 and more</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
-        <div class="feature-text"><strong>ERMS & LOTO Guidance</strong>Task-specific safety checklists for each intervention</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon"><i class="fas fa-file-lines"></i></div>
-        <div class="feature-text"><strong>Audit Trail</strong>Every scan saved with GPS, timestamp, and inspector ID</div>
-      </div>
-    </div>
-  </div>
+<div class="app">
 
-  <!-- Right Form -->
-  <div class="form-panel">
-    <div class="form-logo">SE</div>
-    <h2>Welcome Back</h2>
-    <p class="form-sub">Sign in to your Panel Inspector account</p>
-    <form id="loginForm" style="width:100%">
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Enter your username" autocomplete="username">
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <div class="sidebar">
+
+    <div class="sidebar-header" style="position:relative">
+      <div class="se-badge">SE</div>
+      <div class="sidebar-title">
+        Panel Inspector
+        <span>Schneider Electric · AI Analysis</span>
       </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn-login" id="loginBtn">
-        <span id="btnText">Sign In</span>
-        <div class="spinner" id="spinner"></div>
-        <i class="fas fa-arrow-right" id="btnIcon"></i>
-      </button>
-      <div class="error-msg" id="errorMsg"></div>
-    </form>
-    <div class="footer-note">
-      Panel Inspector Pro v2.0<br>
-      Powered by Gemini AI &amp; Schneider Electric Catalogue
     </div>
-  </div>
-</div>
+
+    <!-- Upload -->
+    <div class="sb-section">
+      <div class="sb-label"><i class="fas fa-image"></i> Panel Photo</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+        <div class="upload-text"><strong>Click or drag photo here</strong><br>JPG, PNG, WEBP — max 20 MB</div>
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <img class="preview-thumb" id="previewThumb" src="" alt="">
+        <div>
+          <div class="preview-name" id="previewName"></div>
+          <div class="preview-size" id="previewSize"></div>
+        </div>
+        <div class="preview-clear" id="previewClear" title="Remove image"><i class="fas fa-xmark"></i></div>
+      </div>
+    </div>
+
+    <!-- Task -->
+    <div class="sb-section">
+      <div class="sb-label"><i class="fas fa-list-check"></i> Intervention Task</div>
+      <div class="task-grid">
+        <button class="task-btn active" data-task="commissioning"><i class="fas fa-plug-circle-check"></i> Commissioning</button>
+        <button class="task-btn" data-task="operation"><i class="fas fa-toggle-on"></i> Operation</button>
+        <button class="task-btn" data-task="service"><i class="fas fa-screwdriver-wrench"></i> Service</button>
+        <button class="task-btn" data-task="modification"><i class="fas fa-pen-ruler"></i> Modification</button>
+        <button class="task-btn" data-task="replacement"><i class="fas fa-rotate"></i> Replacement</button>
+        <button class="task-btn" data-task="others"><i class="fas fa-ellipsis"></i> Others</button>
+      </div>
+    </div>
+
+    <!-- Work Zone -->
+    <div class="sb-section">
+      <div class="sb-label"><i class="fas fa-vector-square"></i> Work Zone</div>
+      <div class="zone-controls">
+        <div class="zone-row">
+          <label class="zone-toggle" id="zoneToggle">
+            <div class="toggle-pill"></div>
+            <span>Draw work zone on image</span>
+          </label>
+        </div>
+        <div class="zone-hint" id="zoneHint">
+          <i class="fas fa-hand-pointer" style="margin-right:5px;color:var(--amber)"></i>
+          Click and drag on the image to mark your work area. A red safety buffer will auto-expand around it.
+        </div>
+        <button class="zone-clear" id="zoneClear"><i class="fas fa-trash-can"></i> Clear zone</button>
+      </div>
+    </div>
+
+    <!-- SLD Collapsible -->
+    <div class="collapsible-header" id="sldToggle">
+      <div class="collapsible-title"><i class="fas fa-diagram-project"></i> Single Line Diagram (optional)</div>
+      <i class="fas fa-chevron-down collapsible-arrow" id="sldArrow"></i>
+    </div>
+    <div class="collapsible-body" id="sldBody">
+      <div class="sld-upload" id="sldZone">
+        <input type="file" id="sldInput" accept="image/*">
+        <i class="fas fa-file-image" style="font-size:20px;color:var(--muted)"></i>
+        <div class="sld-name" id="sldName">Click to upload SLD</div>
+      </div>
+    </div>
+
+    <!-- Detect Button -->
+    <div class="sb-footer">
+      <button class="btn-detect" id="detectBtn" disabled>
+        <div class="spin" id="detectSpin"></div>
+        <i class="fas fa-magnifying-glass" id="detectIcon"></i>
+        <span id="detectText">Analyse Panel</span>
+      </button>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div class="main">
+
+    <!-- Canvas -->
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="canvas-placeholder" id="canvasPlaceholder">
+        <i class="fas fa-solar-panel"></i>
+        <p>Upload a panel photo to begin inspection</p>
+      </div>
+      <canvas id="imgCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="resultsPanel">
+      <div class="results-inner" id="resultsInner"></div>
+    </div>
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
 
 <script>
-  // Redirect if already logged in
-  if(sessionStorage.getItem('username')) location.href='dashboard.html';
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const state = {
+  imageBase64: null,
+  mimeType: 'image/jpeg',
+  task: 'commissioning',
+  zoneEnabled: false,
+  zone: null,       // {ymin,xmin,ymax,xmax} in 0-1000
+  drawing: false,
+  drawStart: null,
+  sldBase64: null,
+  detections: [],
+  panelType: null,
+  hoveredIdx: -1,
+};
 
-  document.getElementById('loginForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn    = document.getElementById('loginBtn');
-    const spinner= document.getElementById('spinner');
-    const icon   = document.getElementById('btnIcon');
-    const errEl  = document.getElementById('errorMsg');
-    const user   = document.getElementById('username').value.trim();
-    const pass   = document.getElementById('password').value;
+/* ════════════════════════════════════════════
+   DOM REFS
+════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const fileInput    = $('fileInput');
+const uploadZone   = $('uploadZone');
+const uploadPreview= $('uploadPreview');
+const previewThumb = $('previewThumb');
+const previewName  = $('previewName');
+const previewSize  = $('previewSize');
+const previewClear = $('previewClear');
+const zoneToggle   = $('zoneToggle');
+const zoneHint     = $('zoneHint');
+const zoneClear    = $('zoneClear');
+const sldToggle    = $('sldToggle');
+const sldBody      = $('sldBody');
+const sldArrow     = $('sldArrow');
+const sldInput     = $('sldInput');
+const sldName      = $('sldName');
+const detectBtn    = $('detectBtn');
+const detectSpin   = $('detectSpin');
+const detectIcon   = $('detectIcon');
+const detectText   = $('detectText');
+const canvasWrap   = $('canvasWrap');
+const canvasPlaceholder = $('canvasPlaceholder');
+const imgCanvas    = $('imgCanvas');
+const overlayCanvas= $('overlayCanvas');
+const resultsPanel = $('resultsPanel');
+const resultsInner = $('resultsInner');
+const ictx = imgCanvas.getContext('2d');
+const octx = overlayCanvas.getContext('2d');
 
-    btn.disabled = true;
-    spinner.style.display = 'block';
-    icon.style.display    = 'none';
-    errEl.style.display   = 'none';
+let loadedImage = null;
 
-    try {
-      const res  = await fetch('/api/login', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({username:user, password:pass})
-      });
-      const data = await res.json();
-      if(data.success){
-        sessionStorage.setItem('username', user);
-        location.href = 'dashboard.html';
-      } else {
-        errEl.textContent = data.message || 'Invalid credentials';
-        errEl.style.display = 'block';
-        btn.disabled = false; spinner.style.display='none'; icon.style.display='';
-      }
-    } catch(err){
-      errEl.textContent = 'Cannot reach server. Check your connection.';
-      errEl.style.display = 'block';
-      btn.disabled = false; spinner.style.display='none'; icon.style.display='';
+/* ════════════════════════════════════════════
+   IMAGE UPLOAD
+════════════════════════════════════════════ */
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImage(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+
+previewClear.addEventListener('click', () => {
+  state.imageBase64 = null; loadedImage = null;
+  uploadPreview.style.display = 'none';
+  uploadZone.style.display = '';
+  canvasPlaceholder.style.display = '';
+  imgCanvas.style.display = 'none';
+  overlayCanvas.style.display = 'none';
+  resultsPanel.classList.remove('visible');
+  detectBtn.disabled = true;
+  fileInput.value = '';
+});
+
+function loadImage(file) {
+  state.mimeType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.imageBase64 = ev.target.result.split(',')[1];
+    previewThumb.src  = ev.target.result;
+    previewName.textContent = file.name;
+    previewSize.textContent = (file.size / 1024).toFixed(0) + ' KB';
+    uploadPreview.style.display = 'flex';
+    uploadZone.style.display = 'none';
+    detectBtn.disabled = false;
+    const img = new Image();
+    img.onload = () => { loadedImage = img; renderImage(); state.zone = null; redrawOverlay(); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ════════════════════════════════════════════
+   CANVAS SIZING
+════════════════════════════════════════════ */
+function canvasSize() {
+  if (!loadedImage) return { w: 0, h: 0, offX: 0, offY: 0 };
+  const wrap = canvasWrap.getBoundingClientRect();
+  const maxW = wrap.width  - 32;
+  const maxH = wrap.height - (resultsPanel.classList.contains('visible') ? 0 : 0) - 32;
+  const scale = Math.min(maxW / loadedImage.width, maxH / loadedImage.height, 1);
+  return {
+    w: Math.floor(loadedImage.width  * scale),
+    h: Math.floor(loadedImage.height * scale),
+    scale,
+  };
+}
+
+function renderImage() {
+  if (!loadedImage) return;
+  const { w, h } = canvasSize();
+  imgCanvas.width = w; imgCanvas.height = h;
+  imgCanvas.style.width  = w + 'px'; imgCanvas.style.height = h + 'px';
+  overlayCanvas.width = w; overlayCanvas.height = h;
+  overlayCanvas.style.width  = w + 'px'; overlayCanvas.style.height = h + 'px';
+  ictx.drawImage(loadedImage, 0, 0, w, h);
+  canvasPlaceholder.style.display = 'none';
+  imgCanvas.style.display = 'block';
+  overlayCanvas.style.display = 'block';
+}
+
+window.addEventListener('resize', () => { renderImage(); redrawOverlay(); });
+
+/* ════════════════════════════════════════════
+   COORDINATE CONVERSION  (canvas px ↔ 0-1000)
+════════════════════════════════════════════ */
+function n2px(n, dim) { return n / 1000 * dim; }
+function px2n(px, dim) { return Math.round(px / dim * 1000); }
+function clamp(v) { return Math.max(0, Math.min(1000, v)); }
+function safetyBuffer(z, pad = 80) {
+  return {
+    ymin: clamp(z.ymin - pad), xmin: clamp(z.xmin - pad),
+    ymax: clamp(z.ymax + pad), xmax: clamp(z.xmax + pad),
+  };
+}
+
+/* ════════════════════════════════════════════
+   ZONE TOGGLE
+════════════════════════════════════════════ */
+zoneToggle.addEventListener('click', () => {
+  state.zoneEnabled = !state.zoneEnabled;
+  zoneToggle.classList.toggle('on', state.zoneEnabled);
+  zoneHint.classList.toggle('visible', state.zoneEnabled);
+  overlayCanvas.style.cursor = state.zoneEnabled ? 'crosshair' : 'default';
+});
+
+zoneClear.addEventListener('click', () => {
+  state.zone = null;
+  zoneClear.classList.remove('visible');
+  redrawOverlay();
+});
+
+/* ════════════════════════════════════════════
+   DRAWING WORK ZONE
+════════════════════════════════════════════ */
+function evPos(e) {
+  const r = overlayCanvas.getBoundingClientRect();
+  const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+  const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+  return { cx, cy };
+}
+
+overlayCanvas.addEventListener('mousedown', e => {
+  if (!state.zoneEnabled || !loadedImage) return;
+  state.drawing = true;
+  const { cx, cy } = evPos(e);
+  state.drawStart = { cx, cy };
+});
+overlayCanvas.addEventListener('mousemove', e => {
+  if (!state.drawing) return;
+  const { cx, cy } = evPos(e);
+  const { w, h } = canvasSize();
+  const x0 = px2n(state.drawStart.cx, w), y0 = px2n(state.drawStart.cy, h);
+  const x1 = px2n(cx, w),                y1 = px2n(cy, h);
+  state.zone = {
+    ymin: clamp(Math.min(y0, y1)), xmin: clamp(Math.min(x0, x1)),
+    ymax: clamp(Math.max(y0, y1)), xmax: clamp(Math.max(x0, x1)),
+  };
+  redrawOverlay();
+});
+overlayCanvas.addEventListener('mouseup', () => {
+  if (!state.drawing) return;
+  state.drawing = false;
+  if (state.zone) zoneClear.classList.add('visible');
+});
+overlayCanvas.addEventListener('mouseleave', () => { if (state.drawing) state.drawing = false; });
+
+/* ════════════════════════════════════════════
+   OVERLAY DRAW
+════════════════════════════════════════════ */
+const COLORS = {
+  component: '#3DCD58', structure: '#3b82f6',
+  acb: '#a855f7', mccb: '#f59e0b', mcb: '#22d3ee',
+  contactor: '#ec4899', relay: '#6366f1', plc: '#f97316',
+};
+
+function labelColor(det) {
+  const t = (det.label || det.type || '').toLowerCase();
+  if (t.includes('acb') || t.includes('masterpact'))       return COLORS.acb;
+  if (t.includes('mccb') || t.includes('nsx') || t.includes('ns')) return COLORS.mccb;
+  if (t.includes('mcb')  || t.includes('acti') || t.includes('ic60')) return COLORS.mcb;
+  if (t.includes('contactor'))  return COLORS.contactor;
+  if (t.includes('relay'))      return COLORS.relay;
+  if (t.includes('plc'))        return COLORS.plc;
+  if ((det.category || '') === 'structure') return COLORS.structure;
+  return COLORS.component;
+}
+
+function redrawOverlay() {
+  const { w, h } = canvasSize();
+  octx.clearRect(0, 0, w, h);
+  if (!loadedImage) return;
+
+  // Safety buffer (dashed red)
+  if (state.zone) {
+    const sb = safetyBuffer(state.zone);
+    octx.strokeStyle = 'rgba(239,68,68,.7)';
+    octx.lineWidth = 1.5;
+    octx.setLineDash([5, 4]);
+    octx.strokeRect(n2px(sb.xmin, w), n2px(sb.ymin, h), n2px(sb.xmax - sb.xmin, w), n2px(sb.ymax - sb.ymin, h));
+    octx.setLineDash([]);
+
+    // Work zone (yellow dashed)
+    octx.strokeStyle = 'rgba(245,158,11,.9)';
+    octx.lineWidth = 2;
+    octx.setLineDash([6, 4]);
+    octx.strokeRect(n2px(state.zone.xmin, w), n2px(state.zone.ymin, h), n2px(state.zone.xmax - state.zone.xmin, w), n2px(state.zone.ymax - state.zone.ymin, h));
+    octx.setLineDash([]);
+
+    // Labels
+    octx.font = 'bold 10px Inter,sans-serif';
+    octx.fillStyle = 'rgba(245,158,11,.95)';
+    octx.fillText('WORK ZONE', n2px(state.zone.xmin, w) + 4, n2px(state.zone.ymin, h) - 4);
+    octx.fillStyle = 'rgba(239,68,68,.85)';
+    octx.fillText('SAFETY BUFFER', n2px(sb.xmin, w) + 4, n2px(sb.ymin, h) - 4);
+  }
+
+  // Detections
+  state.detections.forEach((det, i) => {
+    const box = det.box || det.box_2d;
+    if (!box || box.length < 4) return;
+    const [ymin, xmin, ymax, xmax] = box;
+    const bx = n2px(xmin, w), by = n2px(ymin, h);
+    const bw = n2px(xmax - xmin, w), bh = n2px(ymax - ymin, h);
+    const col = labelColor(det);
+    const active = (i === state.hoveredIdx);
+
+    // Box
+    octx.strokeStyle = col;
+    octx.lineWidth = active ? 2.5 : 1.5;
+    octx.globalAlpha = active ? 1 : 0.75;
+    octx.strokeRect(bx, by, bw, bh);
+
+    // Fill on hover
+    if (active) {
+      octx.fillStyle = col.replace(')', ', .08)').replace('rgb', 'rgba');
+      octx.globalAlpha = 0.12;
+      octx.fillRect(bx, by, bw, bh);
     }
-  });
+    octx.globalAlpha = 1;
 
-  // Enter key
-  document.getElementById('password').addEventListener('keydown', e => {
-    if(e.key==='Enter') document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    // Label chip
+    const label = det.label || det.type || 'Component';
+    const rating = det.rating ? ` · ${det.rating}` : '';
+    const chipText = label + rating;
+    octx.font = 'bold 10px Inter,sans-serif';
+    const tw = octx.measureText(chipText).width;
+    const chipX = bx, chipY = by - 1;
+    octx.fillStyle = col;
+    octx.globalAlpha = 0.92;
+    octx.beginPath();
+    octx.roundRect ? octx.roundRect(chipX, chipY - 14, tw + 10, 15, 3) : octx.rect(chipX, chipY - 14, tw + 10, 15);
+    octx.fill();
+    octx.globalAlpha = 1;
+    octx.fillStyle = '#0a0d14';
+    octx.fillText(chipText, chipX + 5, chipY - 3);
   });
+}
+
+/* ════════════════════════════════════════════
+   SLD COLLAPSIBLE
+════════════════════════════════════════════ */
+sldToggle.addEventListener('click', () => {
+  sldBody.classList.toggle('open');
+  sldArrow.classList.toggle('open');
+});
+sldInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  sldName.textContent = f.name;
+  const r = new FileReader();
+  r.onload = ev => { state.sldBase64 = ev.target.result.split(',')[1]; };
+  r.readAsDataURL(f);
+});
+
+/* ════════════════════════════════════════════
+   TASK BUTTONS
+════════════════════════════════════════════ */
+document.querySelectorAll('.task-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.task-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.task = btn.dataset.task;
+  });
+});
+
+/* ════════════════════════════════════════════
+   DETECT
+════════════════════════════════════════════ */
+detectBtn.addEventListener('click', async () => {
+  if (!state.imageBase64) return;
+  detectBtn.disabled = true;
+  detectSpin.style.display = 'block';
+  detectIcon.style.display = 'none';
+  detectText.textContent = 'Analysing…';
+  resultsPanel.classList.remove('visible');
+
+  try {
+    const body = {
+      imageBase64: state.imageBase64,
+      mimeType:    state.mimeType,
+      task:        state.task,
+      identifyOnly: false,
+    };
+    if (state.zone) {
+      body.workZone    = state.zone;
+      body.safetyBuffer = safetyBuffer(state.zone);
+    }
+    if (state.sldBase64) body.sldBase64 = state.sldBase64;
+
+    const res  = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error === 'not_a_panel') throw new Error('Not a panel: ' + (err.detected_as || 'image does not show an electrical switchboard'));
+      throw new Error(err.error || err.detail || `Server error ${res.status}`);
+    }
+    const data = await res.json();
+    renderResults(data);
+  } catch (err) {
+    renderError(err.message);
+  } finally {
+    detectBtn.disabled = false;
+    detectSpin.style.display = 'none';
+    detectIcon.style.display = '';
+    detectText.textContent = 'Analyse Panel';
+  }
+});
+
+/* ════════════════════════════════════════════
+   RENDER RESULTS
+════════════════════════════════════════════ */
+function renderResults(data) {
+  const breakers = data.breakers || [];
+  state.detections = breakers;
+  state.panelType  = data.panel_type || 'Unknown';
+  redrawOverlay();
+
+  resultsPanel.classList.add('visible');
+  renderImage(); // re-layout canvas after results panel expands
+
+  let html = '';
+
+  /* Panel Type */
+  const pt  = (data.panel_type || 'Unknown').toLowerCase().replace(/\s+/g, '-');
+  const ptLabel = data.panel_type || 'Unknown';
+  const ptIcon  = ptLabel.includes('Okken') ? 'fa-industry' : ptLabel.includes('PrismaSeT') ? 'fa-bolt' : 'fa-circle-question';
+  html += `<div>
+    <div class="panel-type-row">
+      <span class="panel-badge ${pt.includes('prismaset-g') ? 'prismaset-g' : pt.includes('prismaset-p') ? 'prismaset-p' : pt.includes('okken') ? 'okken' : 'unknown'}">
+        <i class="fas ${ptIcon}"></i> ${ptLabel}
+      </span>
+      ${data.busbar_side && data.busbar_side !== 'unknown' ? `<span class="busbar-note"><i class="fas fa-arrows-left-right"></i> Busbar compartment: <b style="color:var(--text)">${data.busbar_side}</b></span>` : ''}
+    </div>
+    ${data.summary ? `<p class="panel-summary" style="margin-top:6px">${esc(data.summary)}</p>` : ''}
+  </div>`;
+
+  /* Stats */
+  const components = breakers.filter(b => (b.category || 'component') !== 'structure');
+  const structs    = breakers.filter(b => (b.category || 'component') === 'structure');
+  const acbs  = components.filter(b => { const t = (b.type||'').toLowerCase(); return t.includes('acb') || t.includes('masterpact'); });
+  const mccbs = components.filter(b => { const t = (b.type||'').toLowerCase(); return t.includes('mccb') || t.includes('nsx') || t.includes('ns'); });
+  const mcbs  = components.filter(b => { const t = (b.type||'').toLowerCase(); return t.includes('mcb') || t.includes('acti') || t.includes('ic60'); });
+  html += `<div class="stats-row">
+    ${acbs.length  ? `<div class="stat-chip"><i class="fas fa-bolt" style="color:#a855f7"></i> <b>${acbs.length}</b> ACB</div>` : ''}
+    ${mccbs.length ? `<div class="stat-chip"><i class="fas fa-bolt" style="color:#f59e0b"></i> <b>${mccbs.length}</b> MCCB</div>` : ''}
+    ${mcbs.length  ? `<div class="stat-chip"><i class="fas fa-bolt" style="color:#22d3ee"></i> <b>${mcbs.length}</b> MCB</div>` : ''}
+    ${structs.length ? `<div class="stat-chip"><i class="fas fa-table-columns" style="color:#3b82f6"></i> <b>${structs.length}</b> Column</div>` : ''}
+    ${components.length ? `<div class="stat-chip"><i class="fas fa-microchip" style="color:var(--green)"></i> <b>${components.length}</b> total</div>` : '<div class="stat-chip" style="color:var(--muted)">No components detected</div>'}
+  </div>`;
+
+  /* Safety Warnings */
+  const warnings = data.safety_warnings || [];
+  if (warnings.length) {
+    html += `<div class="warnings-section">
+      <div class="section-title"><i class="fas fa-triangle-exclamation" style="color:var(--amber)"></i> Safety Warnings</div>`;
+    warnings.forEach(w => {
+      const isCritical = w.toLowerCase().includes('arc flash') || w.toLowerCase().includes('energi') || w.toLowerCase().includes('live') || w.includes('🔥');
+      html += `<div class="warning-item ${isCritical ? 'critical' : 'warn'}">
+        <i class="fas ${isCritical ? 'fa-circle-radiation' : 'fa-triangle-exclamation'}"></i>
+        <span>${esc(w)}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  /* ERMS Table */
+  const recs = data.task_recommendations || [];
+  if (recs.length) {
+    html += `<div>
+      <div class="section-title"><i class="fas fa-shield-halved" style="color:var(--green)"></i> ERMS Operations — ${capFirst(state.task)}</div>
+      <div style="overflow-x:auto">
+      <table class="erms-table">
+        <thead><tr>
+          <th>Operation</th><th>Position</th><th>Hazards</th><th>ERMS</th><th>Alternative</th>
+        </tr></thead>
+        <tbody>`;
+    recs.forEach(r => {
+      const ermsClass = `erms-${r.erms}`;
+      const ermsLabel = r.erms === 'ON' ? 'ERMS ON' : r.erms === 'recommended' ? 'Recommended' : r.erms === 'OFF' ? 'ERMS OFF' : '—';
+      const posLabel = r.position === 'inside' ? 'Inside (doors open)' : r.position === 'outside' ? '<0.3 m (doors closed)' : r.position === 'near' ? '0.3–1 m' : '>1 m';
+      const hazards  = (r.hazards || []).map(h => `<span class="hazard-tag ${h === 'Arc Flash' ? 'haz-arc' : 'haz-shock'}">${h === 'Arc Flash' ? '🔥' : '⚡'} ${h}</span>`).join('');
+      html += `<tr>
+        <td style="color:var(--text);font-weight:500">${esc(r.operation)}</td>
+        <td>${esc(posLabel)}</td>
+        <td>${hazards || '<span style="color:var(--muted)">None</span>'}</td>
+        <td><span class="erms-pill ${ermsClass}">${ermsLabel}</span></td>
+        <td>${r.alternative ? esc(r.alternative) : '<span style="color:var(--muted)">—</span>'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+
+  /* Detection Cards */
+  if (components.length) {
+    html += `<div>
+      <div class="section-title"><i class="fas fa-list" style="color:var(--dim)"></i> Detected Components</div>
+      <div class="cards-strip">`;
+    components.forEach((det, i) => {
+      const col = labelColor(det);
+      html += `<div class="det-card" data-idx="${i}" style="border-top:2px solid ${col}20;--hov:${col}">
+        <div class="det-label" title="${esc(det.type || '')}">${esc(det.label || det.type || 'Component')}</div>
+        <div class="det-meta">${esc(det.brand || '')}${det.type_detail ? ' · ' + esc(det.type_detail) : ''}</div>
+        ${det.circuit_label ? `<div class="det-meta" style="color:var(--dim)">${esc(det.circuit_label)}</div>` : ''}
+        ${det.rating ? `<span class="det-rating">${esc(det.rating)}</span>` : ''}
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  resultsInner.innerHTML = html;
+
+  /* Card hover → highlight on canvas */
+  resultsInner.querySelectorAll('.det-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      state.hoveredIdx = parseInt(card.dataset.idx);
+      redrawOverlay();
+    });
+    card.addEventListener('mouseleave', () => {
+      state.hoveredIdx = -1;
+      redrawOverlay();
+    });
+  });
+}
+
+function renderError(msg) {
+  resultsPanel.classList.add('visible');
+  renderImage();
+  resultsInner.innerHTML = `<div class="warning-item critical">
+    <i class="fas fa-circle-xmark"></i>
+    <span><b>Detection failed:</b> ${esc(msg)}</span>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 </script>
 </body>
 </html>

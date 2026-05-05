@@ -1336,9 +1336,6 @@ def analyze(body: AnalyzeRequest):
         if body.sldBase64:
             parts.append({"inline_data": {"mime_type": body.sldMimeType, "data": body.sldBase64}})
             parts.append({"text": "Above is the Single Line Diagram (SLD) of this panel. Use it to understand the circuit layout, breaker ratings, and connections."})
-        if body.layoutBase64:
-            parts.append({"inline_data": {"mime_type": body.layoutMimeType, "data": body.layoutBase64}})
-            parts.append({"text": "Above is the Mechanical Layout / Geometry Alignment diagram. Use it to understand the physical cubicle arrangement and dimensions."})
         parts.append({"inline_data": {"mime_type": body.mimeType, "data": body.imageBase64}})
         parts.append({"text": gemini_prompt})
 

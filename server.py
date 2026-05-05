@@ -37,7 +37,7 @@ ANTHROPIC_KEY = os.environ.get("ANTHROPIC_KEY", "")
 GEMINI_KEY    = os.environ.get("GEMINI_KEY", "")
 
 # Switch: "claude", "gemini", or "vertexai"
-PROVIDER = "claude"
+PROVIDER = "gemini"
 
 VERTEX_PROJECT  = "project-dca768bf-132b-488c-8f2"
 VERTEX_LOCATION = "us-central1"

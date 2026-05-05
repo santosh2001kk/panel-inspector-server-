@@ -170,7 +170,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 }
 .canvas-wrap canvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
 #imgCanvas{display:none}
-#overlayCanvas{cursor:crosshair;display:none}
+#overlayCanvas{cursor:crosshair;display:none;touch-action:none}
 
 .canvas-placeholder{
   text-align:center;color:var(--muted);
@@ -547,19 +547,22 @@ zoneClear.addEventListener('click', () => {
 ════════════════════════════════════════════ */
 function evPos(e) {
   const r = overlayCanvas.getBoundingClientRect();
-  const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
-  const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+  const touch = e.touches?.[0] || e.changedTouches?.[0];
+  const cx = (touch ? touch.clientX : e.clientX) - r.left;
+  const cy = (touch ? touch.clientY : e.clientY) - r.top;
   return { cx, cy };
 }
 
-overlayCanvas.addEventListener('mousedown', e => {
+function startDraw(e) {
   if (!state.zoneEnabled || !loadedImage) return;
+  e.preventDefault();
   state.drawing = true;
   const { cx, cy } = evPos(e);
   state.drawStart = { cx, cy };
-});
-overlayCanvas.addEventListener('mousemove', e => {
+}
+function moveDraw(e) {
   if (!state.drawing) return;
+  e.preventDefault();
   const { cx, cy } = evPos(e);
   const { w, h } = canvasSize();
   const x0 = px2n(state.drawStart.cx, w), y0 = px2n(state.drawStart.cy, h);
@@ -569,13 +572,24 @@ overlayCanvas.addEventListener('mousemove', e => {
     ymax: clamp(Math.max(y0, y1)), xmax: clamp(Math.max(x0, x1)),
   };
   redrawOverlay();
-});
-overlayCanvas.addEventListener('mouseup', () => {
+}
+function endDraw(e) {
   if (!state.drawing) return;
+  e.preventDefault();
   state.drawing = false;
   if (state.zone) zoneClear.classList.add('visible');
-});
+}
+
+// Mouse
+overlayCanvas.addEventListener('mousedown', startDraw);
+overlayCanvas.addEventListener('mousemove', moveDraw);
+overlayCanvas.addEventListener('mouseup',   endDraw);
 overlayCanvas.addEventListener('mouseleave', () => { if (state.drawing) state.drawing = false; });
+
+// Touch (mobile)
+overlayCanvas.addEventListener('touchstart', startDraw, { passive: false });
+overlayCanvas.addEventListener('touchmove',  moveDraw,  { passive: false });
+overlayCanvas.addEventListener('touchend',   endDraw,   { passive: false });
 
 /* ════════════════════════════════════════════
    OVERLAY DRAW

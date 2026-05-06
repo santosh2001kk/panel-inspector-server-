@@ -374,6 +374,24 @@ button,input{font-family:inherit}
 .fw-reset{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;
   padding:0;text-decoration:underline;flex-shrink:0}
 .fw-reset:hover{color:var(--dim)}
+/* Live Warning Overlay */
+.lw-overlay{display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(7,16,31,.85);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px}
+.lw-overlay.lw-open{display:flex}
+.lw-box{background:var(--card);border:1px solid var(--red-b);border-radius:14px;
+  max-width:340px;width:100%;padding:24px;text-align:center}
+.lw-icon{font-size:40px;margin-bottom:12px;animation:lw-pulse 1s ease infinite alternate}
+@keyframes lw-pulse{from{transform:scale(1)}to{transform:scale(1.12)}}
+.lw-title{font-size:16px;font-weight:800;color:var(--red);margin-bottom:8px;letter-spacing:.3px}
+.lw-body{font-size:12px;color:var(--dim);line-height:1.7;margin-bottom:20px}
+.lw-actions{display:flex;gap:10px;justify-content:center}
+.lw-back{padding:9px 18px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:12px;font-weight:600;cursor:pointer}
+.lw-back:hover{border-color:var(--dim);color:var(--text)}
+.lw-proceed{padding:9px 18px;border-radius:8px;border:none;
+  background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.lw-proceed:hover{background:#e03040}
 .fw-crumb{font-size:10px;color:var(--muted);margin-bottom:8px}
 </style>
 </head>
@@ -547,6 +565,23 @@ button,input{font-family:inherit}
     <i class="fas fa-magnifying-glass" id="iconM"></i>
     <span id="txtM">Analyse Panel</span>
   </button>
+</div>
+
+<!-- Live Warning Overlay -->
+<div class="lw-overlay" id="lwOverlay">
+  <div class="lw-box">
+    <div class="lw-icon">⚡</div>
+    <div class="lw-title">LIVE PANEL — DANGER</div>
+    <div class="lw-body">
+      You are about to work on a <strong style="color:var(--red)">live energised panel</strong>.<br>
+      Risk of <strong>Arc Flash</strong> and <strong>Electric Shock</strong>.<br><br>
+      Only proceed if you are a <strong>qualified electrical worker</strong> with correct PPE and authorisation.
+    </div>
+    <div class="lw-actions">
+      <button class="lw-back" onclick="lwCancel()">← Go Back</button>
+      <button class="lw-proceed" onclick="lwProceed()">⚡ I Understand — Proceed</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -909,12 +944,19 @@ function fwDone(msg) {
 }
 function fwGo(step, answer) {
   if (step === 1) {
-    if (answer === 'no') fwDone('⚠ No Live Intervention — Follows LOTO Protocols');
-    else fwShow('fwS2');
+    if (answer === 'no') fwDone('✓ Dead (De-energised) — Follows LOTO Protocols');
+    else document.getElementById('lwOverlay').classList.add('lw-open');
   } else if (step === 2) {
     if (answer === 'no') fwDone('⚡ Live — Switchboard Operation (no door opening)');
     else fwShow('fwRTask');
   }
+}
+function lwCancel() {
+  document.getElementById('lwOverlay').classList.remove('lw-open');
+}
+function lwProceed() {
+  document.getElementById('lwOverlay').classList.remove('lw-open');
+  fwShow('fwS2');
 }
 function fwSetTask(task) {
   document.querySelectorAll('.t-btn').forEach(b => b.classList.toggle('on', b.dataset.task === task));

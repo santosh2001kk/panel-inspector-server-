@@ -941,6 +941,8 @@ function fwDone(msg) {
   document.querySelectorAll('.fw-step, .fw-done').forEach(el => el.classList.remove('fw-visible'));
   document.getElementById('fwDoneTxt').textContent = msg;
   document.getElementById('fwDone').classList.add('fw-visible');
+  document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('on'));
+  S.task = null;
 }
 function fwGo(step, answer) {
   if (step === 1) {
@@ -963,7 +965,11 @@ function fwSetTask(task) {
   document.querySelectorAll('#fwRTask .fw-btn').forEach(b => b.classList.toggle('fw-active', b.getAttribute('onclick').includes("'"+task+"'")));
   S.task = task;
 }
-function fwReset() { fwShow('fwS1'); }
+function fwReset() {
+  document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('on'));
+  S.task = null;
+  fwShow('fwS1');
+}
 </script>
 </body>
 </html>

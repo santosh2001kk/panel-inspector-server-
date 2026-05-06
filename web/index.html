@@ -362,17 +362,19 @@ button,input{font-family:inherit}
 /* ── Flowchart Wizard ── */
 .fw-step{display:none}
 .fw-step.fw-visible{display:block}
-.fw-q{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.fw-q{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px}
 .fw-btns{display:flex;gap:8px;flex-wrap:wrap}
-.fw-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--card);
+.fw-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--card);
   color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
 .fw-btn:hover{border-color:var(--green);color:var(--green)}
 .fw-btn.fw-active{background:var(--green);color:#07101F;border-color:var(--green)}
-.fw-result{font-size:12px;padding:10px 14px;background:var(--card);border-radius:8px;
-  border:1px solid var(--border);margin-bottom:10px;color:var(--text)}
-.fw-reset{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline}
+.fw-done{display:none;align-items:center;justify-content:space-between;gap:8px}
+.fw-done.fw-visible{display:flex}
+.fw-done-txt{font-size:11px;color:var(--dim);flex:1;line-height:1.4}
+.fw-reset{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;
+  padding:0;text-decoration:underline;flex-shrink:0}
 .fw-reset:hover{color:var(--dim)}
-.fw-crumb{font-size:10px;color:var(--muted);margin-bottom:10px}
+.fw-crumb{font-size:10px;color:var(--muted);margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -400,10 +402,10 @@ button,input{font-family:inherit}
 
     <!-- Flowchart Wizard -->
     <div class="sb-blk" id="fw">
+      <div class="sb-lbl"><i class="fas fa-bolt"></i> Safety Check</div>
 
       <!-- Step 1: Live Intervention? -->
       <div class="fw-step fw-visible" id="fwS1">
-        <div class="sb-lbl"><i class="fas fa-bolt"></i> Safety Check</div>
         <div class="fw-q">Is this a Live Intervention?</div>
         <div class="fw-btns">
           <button class="fw-btn" onclick="fwGo(1,'yes')"><i class="fas fa-bolt"></i> YES</button>
@@ -421,21 +423,7 @@ button,input{font-family:inherit}
         </div>
       </div>
 
-      <!-- Result: LOTO -->
-      <div class="fw-step" id="fwRLoto">
-        <div class="sb-lbl"><i class="fas fa-bolt"></i> Safety Check</div>
-        <div class="fw-result"><i class="fas fa-lock"></i> Follows LOTO Protocols — De-energised work.</div>
-        <button class="fw-reset" onclick="fwReset()">Start over</button>
-      </div>
-
-      <!-- Result: Switchboard Operation -->
-      <div class="fw-step" id="fwRSwitch">
-        <div class="fw-crumb">Live &rsaquo; No door opening &rsaquo;</div>
-        <div class="fw-result"><i class="fas fa-toggle-on"></i> Switchboard Operation</div>
-        <button class="fw-reset" onclick="fwReset()">Start over</button>
-      </div>
-
-      <!-- Result: Select task -->
+      <!-- Result: Select task (YES live, YES doors) — shown expanded -->
       <div class="fw-step" id="fwRTask">
         <div class="fw-crumb">Live &rsaquo; Door access &rsaquo;</div>
         <div class="fw-q">Select Task Type</div>
@@ -447,6 +435,12 @@ button,input{font-family:inherit}
           <button class="fw-btn" onclick="fwSetTask('others')">Others</button>
         </div>
         <button class="fw-reset" onclick="fwReset()" style="margin-top:10px">Start over</button>
+      </div>
+
+      <!-- Collapsed summary (shown after LOTO or Switchboard result) -->
+      <div class="fw-done" id="fwDone">
+        <div class="fw-done-txt" id="fwDoneTxt"></div>
+        <button class="fw-reset" onclick="fwReset()">Reset</button>
       </div>
 
     </div>
@@ -905,15 +899,20 @@ function cap(s) { return s ? s[0].toUpperCase()+s.slice(1) : ''; }
 
 /* ── Flowchart Wizard ── */
 function fwShow(id) {
-  document.querySelectorAll('.fw-step').forEach(el => el.classList.remove('fw-visible'));
+  document.querySelectorAll('.fw-step, .fw-done').forEach(el => el.classList.remove('fw-visible'));
   document.getElementById(id).classList.add('fw-visible');
+}
+function fwDone(msg) {
+  document.querySelectorAll('.fw-step, .fw-done').forEach(el => el.classList.remove('fw-visible'));
+  document.getElementById('fwDoneTxt').textContent = msg;
+  document.getElementById('fwDone').classList.add('fw-visible');
 }
 function fwGo(step, answer) {
   if (step === 1) {
-    if (answer === 'no') fwShow('fwRLoto');
+    if (answer === 'no') fwDone('⚠ No Live Intervention — Follows LOTO Protocols');
     else fwShow('fwS2');
   } else if (step === 2) {
-    if (answer === 'no') fwShow('fwRSwitch');
+    if (answer === 'no') fwDone('⚡ Live — Switchboard Operation (no door opening)');
     else fwShow('fwRTask');
   }
 }

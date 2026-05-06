@@ -344,6 +344,75 @@ nav{
 @keyframes pdot{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ══════════════════════════════════════════════════
+   LIVE WARNING MODAL
+══════════════════════════════════════════════════ */
+.live-warn-overlay{
+  position:fixed;inset:0;z-index:600;background:rgba(5,12,24,.96);backdrop-filter:blur(10px);
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.live-warn-overlay.active{display:flex}
+.live-warn-box{
+  background:var(--card);border:1px solid var(--red-b);border-radius:18px;
+  width:100%;max-width:480px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);
+}
+.lw-top{padding:24px 24px 18px;display:flex;gap:14px;align-items:flex-start}
+.lw-icon{width:48px;height:48px;border-radius:12px;background:var(--red-bg);border:1px solid var(--red-b);
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--red);flex-shrink:0}
+.lw-title{font-size:17px;font-weight:800;color:var(--red);margin-bottom:6px}
+.lw-msg{font-size:13px;color:var(--dim);line-height:1.65}
+.lw-msg strong{color:var(--text)}
+.lw-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap}
+.lw-btn-back{flex:1;min-width:120px;padding:12px;border-radius:10px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.lw-btn-back:hover{border-color:var(--text);color:var(--text)}
+.lw-btn-proceed{flex:1;min-width:120px;padding:12px;border-radius:10px;border:none;
+  background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.lw-btn-proceed:hover{opacity:.88;transform:translateY(-1px)}
+
+/* Live Intervention sub-question */
+.liq-wrap{margin-top:18px;padding:18px;background:rgba(255,71,87,.05);border:1px solid var(--red-b);border-radius:12px}
+.liq-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.liq-btns{display:flex;gap:10px}
+.liq-btn{flex:1;padding:14px 10px;border-radius:11px;border:2px solid var(--border2);background:var(--card2);
+  cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.liq-btn i{font-size:20px;transition:color .2s}
+.liq-btn .liq-label{font-size:13px;font-weight:800;color:var(--text)}
+.liq-btn .liq-hint{font-size:10px;color:var(--muted);line-height:1.3}
+.liq-btn.liq-yes:hover,.liq-btn.liq-yes.selected{border-color:var(--red);background:rgba(255,71,87,.08)}
+.liq-btn.liq-yes i{color:var(--red)}
+.liq-btn.liq-no:hover,.liq-btn.liq-no.selected{border-color:var(--green);background:rgba(61,205,88,.07)}
+.liq-btn.liq-no i{color:var(--green)}
+@media(max-width:480px){.liq-btns{flex-direction:column}.lw-footer{flex-direction:column}}
+
+/* LOTO inline checklist */
+.loto-wrap{margin-top:16px;padding:16px;background:rgba(61,205,88,.04);border:1px solid rgba(61,205,88,.2);border-radius:12px}
+.loto-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.loto-items{display:flex;flex-direction:column;gap:7px}
+.loto-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:9px;
+  background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.loto-item:hover{border-color:rgba(61,205,88,.3)}
+.loto-item.checked{background:rgba(61,205,88,.07);border-color:rgba(61,205,88,.35)}
+.loto-item.crit{border-left:3px solid var(--red)}
+.loto-item.crit.checked{border-left-color:var(--green)}
+.loto-cb{width:20px;height:20px;border-radius:5px;border:2px solid var(--border2);background:var(--card);
+  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:10px}
+.loto-item.checked .loto-cb{background:var(--green);border-color:var(--green);color:#07101F}
+.loto-item-text{font-size:12px;line-height:1.5;color:var(--dim);flex:1}
+.loto-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,71,87,.15);color:var(--red);text-transform:uppercase;flex-shrink:0}
+.loto-prog{margin-top:12px;display:flex;align-items:center;gap:10px}
+.loto-prog-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden}
+.loto-prog-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s;width:0%}
+.loto-prog-label{font-size:11px;color:var(--muted);white-space:nowrap}
+.loto-proceed{margin-top:12px;width:100%;padding:12px;border-radius:10px;border:none;background:var(--green);
+  color:#07101F;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s}
+.loto-proceed:disabled{opacity:.3;cursor:not-allowed}
+.loto-proceed:not(:disabled):hover{opacity:.88}
+
+/* ══════════════════════════════════════════════════
    PRE-WORK CHECKLIST MODAL
 ══════════════════════════════════════════════════ */
 .checklist-overlay{
@@ -474,6 +543,27 @@ nav{
 <body>
 <div class="bg-glow"></div>
 
+<!-- ═══════ LIVE WARNING MODAL ═══════ -->
+<div class="live-warn-overlay" id="liveWarnOverlay">
+  <div class="live-warn-box">
+    <div class="lw-top">
+      <div class="lw-icon"><i class="fas fa-triangle-exclamation"></i></div>
+      <div>
+        <div class="lw-title">⚠ Live Panel Warning</div>
+        <div class="lw-msg">
+          You have selected a <strong>LIVE (energised) panel</strong>.<br><br>
+          It is <strong>strongly recommended</strong> to de-energise and isolate the panel before starting any work.<br><br>
+          Working on a live panel exposes you to <strong>Arc Flash</strong> and <strong>Electric Shock</strong> hazards. Only proceed if you are a qualified electrical worker with the correct PPE and authorisation.
+        </div>
+      </div>
+    </div>
+    <div class="lw-footer">
+      <button class="lw-btn-back" onclick="cancelLiveWarn()"><i class="fas fa-arrow-left"></i> Go Back — Select Dead</button>
+      <button class="lw-btn-proceed" onclick="confirmLiveWarn()"><i class="fas fa-bolt"></i> I Understand — Proceed Live</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ NAV ═══════ -->
 <nav>
   <div class="nav-logo">
@@ -580,6 +670,66 @@ nav{
         </button>
       </div>
       <div class="energy-info dead" id="energyInfo" style="display:none"></div>
+    </div>
+
+    <!-- Live Intervention Question (shown after confirming live warning) -->
+    <div id="liveInterventionQ" style="display:none">
+      <div class="liq-wrap">
+        <div class="liq-title"><i class="fas fa-bolt" style="color:var(--red)"></i> Is this a Live Intervention?</div>
+        <div class="liq-btns">
+          <button class="liq-btn liq-yes" id="liqYes" onclick="setLiveIntervention(true)">
+            <i class="fas fa-bolt"></i>
+            <div class="liq-label">YES</div>
+            <div class="liq-hint">Direct live work —<br>opening doors required</div>
+          </button>
+          <button class="liq-btn liq-no" id="liqNo" onclick="setLiveIntervention(false)">
+            <i class="fas fa-shield-check"></i>
+            <div class="liq-label">NO</div>
+            <div class="liq-hint">LOTO protocols apply —<br>follow checklist below</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- LOTO Checklist (shown when Live Intervention = NO) -->
+      <div id="lotoChecklistWrap" style="display:none">
+        <div class="loto-wrap">
+          <div class="loto-title"><i class="fas fa-lock"></i> LOTO Protocol — 5 Required Steps</div>
+          <div class="loto-items" id="lotoItems">
+            <div class="loto-item crit" onclick="toggleLoto(this)">
+              <div class="loto-cb"></div>
+              <div class="loto-item-text">Identify all energy sources and isolation points on the panel</div>
+              <div class="loto-badge">Critical</div>
+            </div>
+            <div class="loto-item crit" onclick="toggleLoto(this)">
+              <div class="loto-cb"></div>
+              <div class="loto-item-text">Notify all affected personnel and obtain work permit (as required at location)</div>
+              <div class="loto-badge">Critical</div>
+            </div>
+            <div class="loto-item crit" onclick="toggleLoto(this)">
+              <div class="loto-cb"></div>
+              <div class="loto-item-text">Apply Lockout/Tagout (LOTO) devices on all isolation points — Section 120.2</div>
+              <div class="loto-badge">Critical</div>
+            </div>
+            <div class="loto-item crit" onclick="toggleLoto(this)">
+              <div class="loto-cb"></div>
+              <div class="loto-item-text">Test with an approved voltage tester to verify complete isolation (Disconnected, Locked out, Tested)</div>
+              <div class="loto-badge">Critical</div>
+            </div>
+            <div class="loto-item crit" onclick="toggleLoto(this)">
+              <div class="loto-cb"></div>
+              <div class="loto-item-text">Apply earthing / grounding where required as per site procedure</div>
+              <div class="loto-badge">Critical</div>
+            </div>
+          </div>
+          <div class="loto-prog">
+            <div class="loto-prog-track"><div class="loto-prog-fill" id="lotoFill"></div></div>
+            <div class="loto-prog-label" id="lotoProgLabel">0 / 5 confirmed</div>
+          </div>
+          <button class="loto-proceed" id="lotoProceedBtn" disabled onclick="lotoComplete()">
+            <i class="fas fa-shield-check"></i> All Steps Confirmed — Proceed to Work Safely
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -936,7 +1086,7 @@ document.getElementById('projTech').value = username;
 function logout(){ sessionStorage.clear(); location.href='index.html'; }
 
 // ── State ──
-let isLive=false, openDoors=null, selectedTask=null, imageFile=null, imageBase64=null;
+let isLive=false, openDoors=null, selectedTask=null, imageFile=null, imageBase64=null, mainFlowSafetyDone=false;
 let zone=null, safetyBuf=null, currentZoneRect=null;
 let sldBase64=null, sldMime=null, layoutBase64=null, layoutMime=null;
 let currentStep=1;
@@ -960,25 +1110,89 @@ function showCheck(n){ const c=document.getElementById('check'+n); if(c){ c.clas
 setStep(1);
 
 function setEnergy(state){
-  isLive=(state==='live');
   const btnD=document.getElementById('btnDead'), btnL=document.getElementById('btnLive');
   const info=document.getElementById('energyInfo');
-  if(isLive){
-    btnD.className='toggle-btn dead-inactive'; btnL.className='toggle-btn live-active';
-    info.className='energy-info live'; info.style.display='';
-    info.innerHTML='<i class="fas fa-triangle-exclamation"></i> Energised — Arc Flash AND Electric Shock hazards present. ERMS activation recommended before any intervention.';
-  } else {
-    btnL.className='toggle-btn live-inactive'; btnD.className='toggle-btn dead-active';
-    info.className='energy-info dead'; info.style.display='';
-    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — Arc Flash hazard only near adjacent live sections. Ensure LOTO is applied before opening.';
-  }
-  showCheck(1); unlockSection('sec2'); setStep(2);
-  openDoors=null; selectedTask=null;
+  // Reset step 2
+  openDoors=null; selectedTask=null; mainFlowSafetyDone=false;
   document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
   document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
   document.getElementById('doorInfo').style.display='none';
   document.getElementById('taskGridArea').style.display='none';
   document.getElementById('check2').classList.remove('show');
+  // Hide live sub-sections
+  document.getElementById('liveInterventionQ').style.display='none';
+  document.getElementById('lotoChecklistWrap').style.display='none';
+
+  if(state==='live'){
+    // Show warning modal first — don't proceed yet
+    btnD.className='toggle-btn dead-inactive'; btnL.className='toggle-btn live-active';
+    document.getElementById('liveWarnOverlay').classList.add('active');
+  } else {
+    isLive=false; selectedTask='inspection'; openDoors=false;
+    btnL.className='toggle-btn live-inactive'; btnD.className='toggle-btn dead-active';
+    info.className='energy-info dead'; info.style.display='';
+    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised panel — proceed to capture and analyse.';
+    showCheck(1); showCheck(2); showCheck(3); unlockSection('sec4'); setStep(4);
+  }
+}
+
+function cancelLiveWarn(){
+  // User went back — reset to no selection
+  document.getElementById('liveWarnOverlay').classList.remove('active');
+  document.getElementById('btnLive').className='toggle-btn live-inactive';
+  document.getElementById('energyInfo').style.display='none';
+  isLive=false;
+}
+
+function confirmLiveWarn(){
+  // User confirmed live — show intervention question
+  isLive=true;
+  document.getElementById('liveWarnOverlay').classList.remove('active');
+  const info=document.getElementById('energyInfo');
+  info.className='energy-info live'; info.style.display='';
+  info.innerHTML='<i class="fas fa-triangle-exclamation"></i> Energised — Arc Flash AND Electric Shock hazards present. ERMS activation recommended before any intervention.';
+  document.getElementById('liveInterventionQ').style.display='';
+  document.getElementById('liveInterventionQ').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function setLiveIntervention(isDirectLive){
+  document.getElementById('liqYes').classList.toggle('selected', isDirectLive);
+  document.getElementById('liqNo').classList.toggle('selected', !isDirectLive);
+  if(isDirectLive){
+    // YES — live intervention, requires opening doors → go to existing step 2
+    document.getElementById('lotoChecklistWrap').style.display='none';
+    showCheck(1); unlockSection('sec2'); setStep(2);
+  } else {
+    // NO — LOTO path → show checklist, skip step 2
+    document.getElementById('lotoChecklistWrap').style.display='';
+    document.getElementById('lotoChecklistWrap').scrollIntoView({behavior:'smooth',block:'nearest'});
+    // Reset LOTO items
+    document.querySelectorAll('.loto-item').forEach(i=>{
+      i.classList.remove('checked');
+      i.querySelector('.loto-cb').innerHTML='';
+    });
+    document.getElementById('lotoFill').style.width='0%';
+    document.getElementById('lotoProgLabel').textContent='0 / 5 confirmed';
+    document.getElementById('lotoProceedBtn').disabled=true;
+  }
+}
+
+function toggleLoto(item){
+  item.classList.toggle('checked');
+  item.querySelector('.loto-cb').innerHTML = item.classList.contains('checked')
+    ? '<i class="fas fa-check"></i>' : '';
+  const total = document.querySelectorAll('.loto-item').length;
+  const done  = document.querySelectorAll('.loto-item.checked').length;
+  document.getElementById('lotoFill').style.width = (done/total*100)+'%';
+  document.getElementById('lotoProgLabel').textContent = done+' / '+total+' confirmed';
+  document.getElementById('lotoProceedBtn').disabled = (done < total);
+}
+
+function lotoComplete(){
+  selectedTask='service'; openDoors=false; mainFlowSafetyDone=true;
+  showCheck(1); showCheck(2); showCheck(3);
+  document.getElementById('sec2').classList.add('locked');
+  unlockSection('sec4'); setStep(4);
 }
 
 // ── Step 2: Work Access ──
@@ -1288,7 +1502,7 @@ function _pwToggleItem(div,bodyId,confirmId,doneId,totalId,fillId){
   document.getElementById(confirmId).disabled=done<total;
 }
 function showPreWorkModal(identifyOnly,callback){
-  if(identifyOnly){callback();return;}
+  if(identifyOnly||!isLive||mainFlowSafetyDone){callback();return;}
   _preWorkCallback=callback; _pwLive=isLive;
   const doors=openDoors!==false;
   if(!isLive){ _pwBuildChecklist('pw2a-items',_LOTO_ITEMS,'pw2a-confirm','pw2a-done','pw2a-total','pw2a-fill'); _pwShowScreen('pws2a'); }

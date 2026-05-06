@@ -937,19 +937,22 @@ function fwShow(id) {
   document.querySelectorAll('.fw-step, .fw-done').forEach(el => el.classList.remove('fw-visible'));
   document.getElementById(id).classList.add('fw-visible');
 }
-function fwDone(msg) {
+function fwDone(msg, autoTask) {
   document.querySelectorAll('.fw-step, .fw-done').forEach(el => el.classList.remove('fw-visible'));
   document.getElementById('fwDoneTxt').textContent = msg;
   document.getElementById('fwDone').classList.add('fw-visible');
-  document.querySelectorAll('.t-btn').forEach(b => { b.classList.remove('on'); b.disabled = true; });
-  S.task = null;
+  document.querySelectorAll('.t-btn').forEach(b => {
+    b.classList.toggle('on', autoTask && b.dataset.task === autoTask);
+    b.disabled = true;
+  });
+  S.task = autoTask || null;
 }
 function fwGo(step, answer) {
   if (step === 1) {
-    if (answer === 'no') fwDone('✓ Dead (De-energised) — Follows LOTO Protocols');
+    if (answer === 'no') fwDone('✓ Dead (De-energised) — Follows LOTO Protocols', null);
     else document.getElementById('lwOverlay').classList.add('lw-open');
   } else if (step === 2) {
-    if (answer === 'no') fwDone('⚡ Live — Switchboard Operation (no door opening)');
+    if (answer === 'no') fwDone('⚡ Live — Switchboard Operation (no door opening)', 'operation');
     else fwShow('fwRTask');
   }
 }

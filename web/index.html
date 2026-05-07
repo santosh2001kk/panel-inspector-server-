@@ -392,10 +392,8 @@ button,input{font-family:inherit}
   .lw-actions{flex-direction:column;gap:8px}
   .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
 
-  /* canvas — full width, grows with image, no clipping */
-  .canvas-wrap{min-height:0;max-height:none;width:100%;overflow:visible;height:auto}
-  .canvas-wrap canvas{position:relative !important;top:auto !important;left:auto !important;
-    transform:none !important;display:block;width:100% !important;height:auto !important}
+  /* canvas — wrap sizes to image, no fixed box */
+  .canvas-wrap{min-height:0;max-height:none;width:100%;overflow:hidden;height:auto}
   .canvas-ph{padding:36px 16px}
   .canvas-ph i{font-size:38px}
 
@@ -750,9 +748,9 @@ function loadFile(file) {
 /* ═══════════════ CANVAS SIZING ═══════════════ */
 function cSize() {
   if (!loadedImg) return { w:0, h:0 };
-  const r = canvasWrap.getBoundingClientRect();
-  const mW = r.width - 2, mH = r.height - 2;
   const isMobile = window.innerWidth < 1024;
+  const mW = isMobile ? window.innerWidth : (canvasWrap.getBoundingClientRect().width - 2);
+  const mH = canvasWrap.getBoundingClientRect().height - 2;
   const sc = isMobile
     ? mW / loadedImg.width
     : Math.min(mW / loadedImg.width, mH / loadedImg.height, 1);
@@ -765,13 +763,14 @@ function renderImg() {
   if (!w || !h) return;
   imgC.width = ovlC.width = w;
   imgC.height = ovlC.height = h;
-  const isMobile = window.innerWidth < 1024;
-  if (isMobile) {
-    imgC.style.width = ovlC.style.width = '100%';
-    imgC.style.height = ovlC.style.height = 'auto';
+  imgC.style.width = ovlC.style.width = w + 'px';
+  imgC.style.height = ovlC.style.height = h + 'px';
+  if (window.innerWidth < 1024) {
+    canvasWrap.style.height = h + 'px';
+    canvasWrap.style.width  = '100%';
   } else {
-    imgC.style.width = ovlC.style.width = w + 'px';
-    imgC.style.height = ovlC.style.height = h + 'px';
+    canvasWrap.style.height = '';
+    canvasWrap.style.width  = '';
   }
   ictx.drawImage(loadedImg, 0, 0, w, h);
   canvasPh.style.display = 'none';

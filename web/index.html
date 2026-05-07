@@ -129,6 +129,19 @@ button,input{font-family:inherit}
 .t-btn:hover{border-color:rgba(61,205,88,.35);color:var(--text);background:var(--green-dim)}
 .t-btn.on{border-color:var(--green);color:var(--green);background:rgba(61,205,88,.1)}
 
+/* ── camera button ── */
+.cam-btn{
+  display:none;position:relative;overflow:hidden;
+  width:100%;margin-top:10px;padding:11px;
+  border-radius:var(--r-sm);border:1px solid var(--border2);
+  background:var(--card);color:var(--dim);
+  font-size:13px;font-weight:600;cursor:pointer;
+  align-items:center;justify-content:center;gap:8px;
+  transition:all .18s;
+}
+.cam-btn:hover{border-color:var(--green);color:var(--green)}
+.cam-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
 /* ── zone toggle ── */
 .tog-row{display:flex;align-items:center;gap:10px}
 .tog-lbl{
@@ -360,6 +373,9 @@ button,input{font-family:inherit}
   .sidebar{overflow-y:visible}
   .sb-blk{padding:14px 16px}
 
+  /* camera button — show on mobile */
+  .cam-btn{display:flex}
+
   /* upload zone — more compact */
   .up-zone{padding:18px 12px}
   .up-icon{width:44px;height:44px;font-size:18px;margin-bottom:8px}
@@ -535,6 +551,11 @@ button,input{font-family:inherit}
         <div class="up-title">Click or drag photo here</div>
         <div class="up-hint">JPG · PNG · WEBP — max 20 MB</div>
       </div>
+      <!-- Camera button (mobile only) -->
+      <button class="cam-btn" id="camBtn">
+        <input type="file" id="camInput" accept="image/*" capture="environment">
+        <i class="fas fa-camera"></i> Take Photo
+      </button>
       <div class="up-preview" id="uploadPreview">
         <img class="prev-thumb" id="prevThumb" src="" alt="">
         <div class="prev-info">
@@ -716,6 +737,7 @@ uploadZone.addEventListener('drop', e => {
   if (f && f.type.startsWith('image/')) loadFile(f);
 });
 fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+g('camInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
 
 prevClr.addEventListener('click', () => {
   S.img64 = null; loadedImg = null;

@@ -392,9 +392,9 @@ button,input{font-family:inherit}
   .lw-actions{flex-direction:column;gap:8px}
   .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
 
-  /* canvas — full width, tall enough to see photo clearly */
-  .canvas-wrap{min-height:75vw;max-height:90vw;width:100%}
-  .canvas-wrap canvas{max-width:100%;max-height:100%;width:auto;height:auto}
+  /* canvas — full width, height follows image aspect ratio */
+  .canvas-wrap{min-height:60vw;max-height:none;width:100%}
+  .canvas-wrap canvas{max-width:100%;width:auto;height:auto}
   .canvas-ph{padding:36px 16px}
   .canvas-ph i{font-size:38px}
 
@@ -751,7 +751,10 @@ function cSize() {
   if (!loadedImg) return { w:0, h:0 };
   const r = canvasWrap.getBoundingClientRect();
   const mW = r.width - 2, mH = r.height - 2;
-  const sc = Math.min(mW / loadedImg.width, mH / loadedImg.height, 1);
+  const isMobile = window.innerWidth < 1024;
+  const sc = isMobile
+    ? mW / loadedImg.width
+    : Math.min(mW / loadedImg.width, mH / loadedImg.height, 1);
   return { w: Math.floor(loadedImg.width * sc), h: Math.floor(loadedImg.height * sc) };
 }
 

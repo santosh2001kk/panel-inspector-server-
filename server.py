@@ -2271,7 +2271,7 @@ _CHECKLIST_COMMON_DEAD = [
     {"id": "dead_2", "text": "LOTO completed — personal lock and tag physically on the isolator (consignation/padlocking done).", "critical": True},
     {"id": "dead_3", "text": "Absence of voltage confirmed using an approved tester — panel is DEAD.", "critical": True},
     {"id": "dead_4", "text": "PPE appropriate for the residual arc flash risk is worn (minimum PPE1 even when de-energized).", "critical": True},
-    {"id": "dead_5", "text": "Arc flash boundary marked and all nearby personnel informed.", "critical": False},
+    {"id": "dead_5", "text": "Arc fl]]l-,[0mp9biy76vt5r3ash boundary marked and all nearby personnel informed.", "critical": False},
 ]
 
 _CHECKLIST_COMMON_LIVE = [
@@ -2409,6 +2409,58 @@ def get_checklist(body: ChecklistRequest):
         "critical":            critical,
         "task_recommendations": task_recommendations,
     })
+
+
+# ── SLD Comparison ───────────────────────────────────────────────────────────
+
+class SldCompareRequest(BaseModel):
+    imageBase64: str        # panel photo
+    imageMime:   str = "image/jpeg"
+    sldBase64:   str        # SLD image
+    sldMime:     str = "image/png"
+
+@app.post("/api/compare-sld")
+def compare_sld(body: SldCompareRequest):
+    prompt = (
+        "You are an expert electrical engineer. You have two images:\n"
+        "IMAGE 1: A photo of a real electrical panel taken on site.\n"
+        "IMAGE 2: The Single Line Diagram (SLD) / schematic for that panel.\n\n"
+        "Compare them carefully and return ONLY valid JSON in this exact format:\n"
+        "{\n"
+        '  "summary": "X matches, Y discrepancies, Z missing",\n'
+        '  "matches": [{"item": "...", "note": "..."}],\n'
+        '  "discrepancies": [{"item": "...", "sld_says": "...", "photo_shows": "..."}],\n'
+        '  "missing": [{"item": "...", "note": "..."}]\n'
+        "}\n\n"
+        "Rules:\n"
+        "- matches: things visible in the photo that match the SLD (breaker ratings, positions, labels)\n"
+        "- discrepancies: things that differ between photo and SLD (wrong rating, wrong position, different label)\n"
+        "- missing: things shown in SLD but not visible or absent in the photo\n"
+        "- Be specific — include ratings, positions, circuit names where visible\n"
+        "- If SLD is unclear or unreadable, return an empty lists and explain in summary\n"
+        "- Return ONLY the JSON object, no extra text"
+    )
+    try:
+        response = _gemini_with_retry(lambda: client.models.generate_content(
+            model=MODEL,
+            contents=[{
+                "parts": [
+                    {"inline_data": {"mime_type": body.imageMime, "data": body.imageBase64}},
+                    {"text": "IMAGE 1: Panel photo taken on site."},
+                    {"inline_data": {"mime_type": body.sldMime,   "data": body.sldBase64}},
+                    {"text": "IMAGE 2: Single Line Diagram (SLD)."},
+                    {"text": prompt},
+                ]
+            }]
+        ))
+        raw = response.text.strip()
+        raw = raw.replace("```json","").replace("```","").strip()
+        result = json.loads(raw)
+        print(f"[SLD-COMPARE] matches={len(result.get('matches',[]))} disc={len(result.get('discrepancies',[]))} missing={len(result.get('missing',[]))}")
+        return JSONResponse(content=result)
+    except Exception as e:
+        print(f"[SLD-COMPARE] error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ----------------------------------------

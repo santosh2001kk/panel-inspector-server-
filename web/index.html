@@ -129,6 +129,30 @@ button,input{font-family:inherit}
 .t-btn:hover{border-color:rgba(61,205,88,.35);color:var(--text);background:var(--green-dim)}
 .t-btn.on{border-color:var(--green);color:var(--green);background:rgba(61,205,88,.1)}
 
+/* ── SLD Compare button ── */
+.btn-cmp{
+  width:100%;margin-top:10px;padding:10px;border-radius:var(--r-sm);
+  border:1px solid rgba(74,158,255,.4);background:rgba(74,158,255,.08);
+  color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;
+}
+.btn-cmp:hover:not(:disabled){background:rgba(74,158,255,.15);border-color:var(--blue)}
+.btn-cmp:disabled{opacity:.4;cursor:not-allowed}
+/* ── SLD Comparison results ── */
+.sld-cmp{background:var(--surf);border-top:1px solid var(--border);padding:14px 18px}
+.sld-cmp-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:12px}
+.sld-cmp-summary{font-size:11px;font-weight:400;color:var(--dim);text-transform:none;letter-spacing:0;flex:1}
+.sld-cmp-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px}
+.sld-cmp-close:hover{color:var(--text)}
+.sld-cmp-section{margin-bottom:12px}
+.sld-cmp-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.sld-cmp-item{font-size:11px;padding:7px 10px;border-radius:7px;margin-bottom:4px;line-height:1.5}
+.sld-match{background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);color:#6EE7B7}
+.sld-disc{background:rgba(255,165,2,.07);border:1px solid rgba(255,165,2,.2);color:#FCD34D}
+.sld-miss{background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);color:#FCA5A5}
+
 /* ── camera button ── */
 .cam-btn{
   display:none;position:relative;overflow:hidden;
@@ -601,10 +625,15 @@ button,input{font-family:inherit}
     </button>
     <div class="coll-body" id="sldBody">
       <div class="sld-drop" id="sldZone">
-        <input type="file" id="sldInput" accept="image/*,.pdf">
+        <input type="file" id="sldInput" accept="image/png,image/jpeg,image/webp">
         <i class="fas fa-file-image"></i>
-        <div class="sld-name" id="sldName">Click to upload SLD</div>
+        <div class="sld-name" id="sldName">Upload SLD as PNG or JPG</div>
       </div>
+      <button class="btn-cmp" id="btnCmp" style="display:none" onclick="runSldCompare()">
+        <div class="spin" id="spinCmp"></div>
+        <i class="fas fa-code-compare" id="iconCmp"></i>
+        <span id="txtCmp">Compare with Photo</span>
+      </button>
     </div>
 
     <!-- Spacer (desktop only — pushes detect to bottom) -->
@@ -637,6 +666,16 @@ button,input{font-family:inherit}
     <!-- Results -->
     <div class="results" id="results">
       <div class="r-inner" id="rInner"></div>
+    </div>
+
+    <!-- SLD Comparison Results -->
+    <div class="sld-cmp" id="sldCmp" style="display:none">
+      <div class="sld-cmp-head">
+        <i class="fas fa-code-compare"></i> SLD Comparison
+        <span class="sld-cmp-summary" id="sldCmpSummary"></span>
+        <button class="sld-cmp-close" onclick="document.getElementById('sldCmp').style.display='none'"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="sld-cmp-body" id="sldCmpBody"></div>
     </div>
 
   </main>
@@ -672,7 +711,7 @@ button,input{font-family:inherit}
 <script>
 /* ═══════════════ STATE ═══════════════ */
 const S = {
-  img64:null, mime:'image/jpeg', task:'commissioning', isLive:false,
+  img64:null, mime:'image/jpeg', task:'commissioning', isLive:false, sldMime:'image/png',
   zoneOn:false, zone:null, drawing:false, drawStart:null,
   sld64:null, dets:[], hovIdx:-1,
 };
@@ -754,6 +793,7 @@ function loadFile(file) {
     upPreview.style.display = 'flex';
     uploadZone.style.display = 'none';
     setEnabled(true);
+    if (S.sld64) document.getElementById('btnCmp').style.display = 'flex';
     const img = new Image();
     img.onload = () => { loadedImg = img; renderImg(); S.zone = null; redraw(); };
     img.src = ev.target.result;
@@ -847,8 +887,12 @@ sldToggle.addEventListener('click', () => {
 sldInput.addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   sldName.textContent = f.name;
+  S.sldMime = f.type || 'image/png';
   const r = new FileReader();
-  r.onload = ev => { S.sld64 = ev.target.result.split(',')[1]; };
+  r.onload = ev => {
+    S.sld64 = ev.target.result.split(',')[1];
+    document.getElementById('btnCmp').style.display = S.img64 ? 'flex' : 'none';
+  };
   r.readAsDataURL(f);
 });
 
@@ -1018,6 +1062,34 @@ function renderError(msg) {
   resultsEl.classList.add('vis');
   requestAnimationFrame(() => renderImg());
   rInner.innerHTML = `<div class="w-item crit fu"><i class="fas fa-circle-xmark"></i><span><b>Detection failed:</b> ${esc(msg)}</span></div>`;
+}
+
+async function runSldCompare() {
+  if (!S.img64 || !S.sld64) return;
+  const btn = g('btnCmp'), spin = g('spinCmp'), icon = g('iconCmp'), txt = g('txtCmp');
+  btn.disabled = true; spin.style.display = 'block'; icon.style.display = 'none'; txt.textContent = 'Comparing…';
+  try {
+    const res = await fetch('/api/compare-sld', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ imageBase64: S.img64, imageMime: S.mime, sldBase64: S.sld64, sldMime: S.sldMime || 'image/png' })
+    });
+    const d = await res.json();
+    const panel = g('sldCmp');
+    g('sldCmpSummary').textContent = d.summary || '';
+    const matches = (d.matches||[]).map(i => `<div class="sld-cmp-item sld-match">✅ <b>${esc(i.item)}</b> — ${esc(i.note)}</div>`).join('');
+    const discs   = (d.discrepancies||[]).map(i => `<div class="sld-cmp-item sld-disc">⚠️ <b>${esc(i.item)}</b> — SLD: ${esc(i.sld_says)} / Photo: ${esc(i.photo_shows)}</div>`).join('');
+    const missing = (d.missing||[]).map(i => `<div class="sld-cmp-item sld-miss">❌ <b>${esc(i.item)}</b> — ${esc(i.note)}</div>`).join('');
+    g('sldCmpBody').innerHTML =
+      (matches ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">✅ Matches</div>${matches}</div>` : '') +
+      (discs   ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">⚠️ Discrepancies</div>${discs}</div>` : '') +
+      (missing ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">❌ Missing from photo</div>${missing}</div>` : '');
+    panel.style.display = 'block';
+  } catch(e) {
+    alert('Comparison failed: ' + e.message);
+  } finally {
+    btn.disabled = false; spin.style.display = 'none'; icon.style.display = 'inline'; txt.textContent = 'Compare with Photo';
+  }
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

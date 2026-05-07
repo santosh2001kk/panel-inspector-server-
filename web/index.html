@@ -1033,13 +1033,16 @@ async function loadChecklist() {
       body: JSON.stringify({ task_type: S.task, is_live: S.isLive, panel_type: '', has_sld: hasSld, vbb_side: null, cubicle_count: 0 })
     });
     const data = await res.json();
+    const critical = data.items.filter(i => i.critical);
+    const rest     = data.items.filter(i => !i.critical);
+    const items    = [...critical, ...rest].slice(0, 6);
     const list = document.getElementById('clList');
-    list.innerHTML = data.items.map(item => `
+    list.innerHTML = items.map(item => `
       <div class="cl-item${item.critical?' cl-crit':''}" id="cli_${item.id}">
         <input class="cl-cb" type="checkbox" id="cb_${item.id}" onchange="clToggle('${item.id}')">
         <label class="cl-txt" for="cb_${item.id}">${esc(item.text)}${item.critical?'<span class="cl-badge">CRITICAL</span>':''}</label>
       </div>`).join('');
-    document.getElementById('clCount').textContent = `(${data.items.length})`;
+    document.getElementById('clCount').textContent = `(${items.length})`;
     document.getElementById('clBlk').style.display = 'block';
     const isMobile = window.innerWidth < 1024;
     const body = document.getElementById('clBody');

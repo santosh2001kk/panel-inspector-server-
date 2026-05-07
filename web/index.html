@@ -392,9 +392,9 @@ button,input{font-family:inherit}
   .lw-actions{flex-direction:column;gap:8px}
   .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
 
-  /* canvas — taller so photos don't shrink */
-  .canvas-wrap{min-height:55vw;max-height:70vw}
-  .canvas-wrap canvas{max-width:100%;max-height:100%}
+  /* canvas — full width, tall enough to see photo clearly */
+  .canvas-wrap{min-height:75vw;max-height:90vw;width:100%}
+  .canvas-wrap canvas{max-width:100%;max-height:100%;width:auto;height:auto}
   .canvas-ph{padding:36px 16px}
   .canvas-ph i{font-size:38px}
 
@@ -556,9 +556,14 @@ button,input{font-family:inherit}
     </div>
 
     <!-- Pre-Work Safety Checklist -->
-    <div class="sb-blk" id="clBlk" style="display:none">
-      <div class="sb-lbl"><i class="fas fa-shield-check"></i> Pre-Work Safety Checklist</div>
-      <div id="clList"></div>
+    <div id="clBlk" style="display:none">
+      <button class="coll-btn" onclick="clToggleOpen()">
+        <span class="coll-title"><i class="fas fa-shield-check"></i> Pre-Work Safety Checklist <span id="clCount" style="margin-left:6px;font-weight:400;color:var(--muted)"></span></span>
+        <i class="fas fa-chevron-down coll-arr" id="clArr"></i>
+      </button>
+      <div class="coll-body" id="clBody">
+        <div id="clList"></div>
+      </div>
     </div>
 
     <!-- Work Zone -->
@@ -1014,8 +1019,19 @@ async function loadChecklist() {
         <input class="cl-cb" type="checkbox" id="cb_${item.id}" onchange="clToggle('${item.id}')">
         <label class="cl-txt" for="cb_${item.id}">${esc(item.text)}${item.critical?'<span class="cl-badge">CRITICAL</span>':''}</label>
       </div>`).join('');
+    document.getElementById('clCount').textContent = `(${data.items.length})`;
     document.getElementById('clBlk').style.display = 'block';
+    const isMobile = window.innerWidth < 1024;
+    const body = document.getElementById('clBody');
+    const arr  = document.getElementById('clArr');
+    if (!isMobile) { body.classList.add('open'); arr.classList.add('open'); }
+    else           { body.classList.remove('open'); arr.classList.remove('open'); }
   } catch(e) { console.warn('Checklist fetch failed', e); }
+}
+function clToggleOpen() {
+  const body = document.getElementById('clBody');
+  const arr  = document.getElementById('clArr');
+  body.classList.toggle('open'); arr.classList.toggle('open');
 }
 function clToggle(id) {
   const row = document.getElementById('cli_' + id);

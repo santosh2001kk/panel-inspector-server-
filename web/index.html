@@ -392,8 +392,12 @@ button,input{font-family:inherit}
   .lw-actions{flex-direction:column;gap:8px}
   .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
 
-  /* canvas — wrap sizes to image, no fixed box */
-  .canvas-wrap{min-height:0;max-height:none;width:100%;overflow:hidden;height:auto}
+  /* canvas — image fills full width, overlay sits on top */
+  .canvas-wrap{min-height:0;height:auto;overflow:visible;display:block;width:100%}
+  #imgCanvas{position:relative !important;top:auto !important;left:auto !important;
+    transform:none !important;display:block !important;width:100% !important;height:auto !important}
+  #overlayCanvas{position:absolute !important;top:0 !important;left:0 !important;
+    transform:none !important;width:100% !important;height:100% !important}
   .canvas-ph{padding:36px 16px}
   .canvas-ph i{font-size:38px}
 
@@ -765,13 +769,8 @@ function renderImg() {
   imgC.height = ovlC.height = h;
   imgC.style.width = ovlC.style.width = w + 'px';
   imgC.style.height = ovlC.style.height = h + 'px';
-  if (window.innerWidth < 1024) {
-    canvasWrap.style.height = h + 'px';
-    canvasWrap.style.width  = '100%';
-  } else {
-    canvasWrap.style.height = '';
-    canvasWrap.style.width  = '';
-  }
+  canvasWrap.style.height = '';
+  canvasWrap.style.width  = '';
   ictx.drawImage(loadedImg, 0, 0, w, h);
   canvasPh.style.display = 'none';
   imgC.style.display = ovlC.style.display = 'block';

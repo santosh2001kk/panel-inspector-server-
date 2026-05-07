@@ -342,21 +342,71 @@ button,input{font-family:inherit}
 @media(min-width:768px) and (max-width:1023px){
   .task-grid{grid-template-columns:repeat(3,1fr)}
   .canvas-wrap{min-height:340px}
-  .det-wrap{display:none} /* use mobile bar */
+  .det-wrap{display:none}
+  .fw-btns{gap:10px}
+  .fw-btn{padding:10px 18px;font-size:13px}
 }
 
 /* ══════════════════════════════════════════════════
    MOBILE  (< 768px)
 ══════════════════════════════════════════════════ */
 @media(max-width:767px){
-  .task-grid{grid-template-columns:repeat(2,1fr)}
-  body{padding-bottom:76px}
-  .canvas-wrap{min-height:210px}
-  .det-wrap{display:none} /* use mobile bar */
+  /* base */
+  body{padding-bottom:80px;font-size:14px}
   .nav-pill span{display:none}
-}
-@media(max-width:400px){
-  .task-grid{grid-template-columns:1fr 1fr}
+  .nav{padding:0 14px}
+
+  /* sidebar scrolls naturally in the page flow on mobile */
+  .sidebar{overflow-y:visible}
+  .sb-blk{padding:14px 16px}
+
+  /* upload zone — more compact */
+  .up-zone{padding:18px 12px}
+  .up-icon{width:44px;height:44px;font-size:18px;margin-bottom:8px}
+  .up-title{font-size:13px}
+
+  /* task grid — 2 cols, taller buttons for touch */
+  .task-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .t-btn{padding:13px 6px;font-size:11px;min-height:56px}
+  .t-btn i{font-size:16px}
+
+  /* flowchart — full-width buttons, bigger tap areas */
+  .fw-q{font-size:13px;margin-bottom:12px}
+  .fw-btns{flex-direction:column;gap:8px}
+  .fw-btn{width:100%;padding:13px 16px;font-size:13px;justify-content:center;border-radius:10px}
+  .fw-crumb{font-size:11px;margin-bottom:10px}
+  .fw-done-txt{font-size:12px}
+  .fw-reset{font-size:12px}
+
+  /* checklist — bigger tap areas */
+  .cl-item{padding:10px 0}
+  .cl-cb{width:20px;height:20px;margin-top:2px}
+  .cl-txt{font-size:12px;line-height:1.6}
+  .cl-badge{font-size:10px;padding:2px 6px}
+
+  /* live warning modal — fits small screens */
+  .lw-box{padding:20px 16px;max-width:100%}
+  .lw-icon{font-size:34px;margin-bottom:10px}
+  .lw-title{font-size:15px}
+  .lw-body{font-size:12px;margin-bottom:16px}
+  .lw-actions{flex-direction:column;gap:8px}
+  .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
+
+  /* canvas — taller so photos don't shrink */
+  .canvas-wrap{min-height:55vw;max-height:70vw}
+  .canvas-wrap canvas{max-width:100%;max-height:100%}
+  .canvas-ph{padding:36px 16px}
+  .canvas-ph i{font-size:38px}
+
+  /* results */
+  .r-inner{padding:14px 14px;gap:12px}
+  .erms-tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .cards-row{gap:6px}
+  .d-card{min-width:120px}
+
+  /* detect button */
+  .det-wrap{display:none}
+  .mob-bar{padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 }
 
 /* ── Pre-Work Checklist ── */

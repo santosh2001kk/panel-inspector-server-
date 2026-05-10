@@ -505,9 +505,22 @@ button,input{font-family:inherit}
       <div class="nav-sub">Schneider Electric · AI Analysis</div>
     </div>
   </div>
-  <div class="nav-pill">
-    <div class="pulse-dot"></div>
-    <span>AI Ready</span>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nav-pill">
+      <div class="pulse-dot"></div>
+      <span>AI Ready</span>
+    </div>
+    <div class="nav-pill" style="gap:7px;padding:5px 10px">
+      <i class="fa-regular fa-user" style="font-size:11px;color:var(--green)"></i>
+      <span id="navUser" style="color:var(--text);font-size:11px;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    </div>
+    <button onclick="doLogout()" title="Sign out"
+      style="background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);
+             padding:6px 9px;cursor:pointer;font-size:12px;transition:all .18s;font-family:inherit"
+      onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+      onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </button>
   </div>
 </nav>
 
@@ -709,6 +722,21 @@ button,input{font-family:inherit}
 </div>
 
 <script>
+/* ═══════════════ AUTH GUARD ═══════════════ */
+if (localStorage.getItem('pi_auth') !== '1') {
+  window.location.replace('login.html');
+} else {
+  document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('navUser');
+    if (el) el.textContent = localStorage.getItem('pi_user') || '';
+  });
+}
+function doLogout(){
+  localStorage.removeItem('pi_auth');
+  localStorage.removeItem('pi_user');
+  window.location.replace('login.html');
+}
+
 /* ═══════════════ STATE ═══════════════ */
 const S = {
   img64:null, mime:'image/jpeg', task:'commissioning', isLive:false, sldMime:'image/png',

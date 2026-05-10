@@ -2464,6 +2464,53 @@ def compare_sld(body: SldCompareRequest):
 
 
 # ----------------------------------------
+# Work-zone nearby analysis
+class WorkzoneRequest(BaseModel):
+    image:  str
+    mime:   str = "image/jpeg"
+    zone:   Optional[dict] = None   # {x0,y0,x1,y1} normalised 0-1
+    panel:  str = ""                # panel type hint if known
+
+@app.post("/api/workzone-nearby")
+def workzone_nearby(body: WorkzoneRequest):
+    zone_desc = ""
+    if body.zone:
+        z = body.zone
+        zone_desc = (
+            f"The engineer has marked a work zone on the image. "
+            f"It covers roughly {int((z['x1']-z['x0'])*100)}% of the panel width "
+            f"and {int((z['y1']-z['y0'])*100)}% of the panel height, "
+            f"positioned at approximately {int(z['x0']*100)}% from the left "
+            f"and {int(z['y0']*100)}% from the top."
+        )
+    else:
+        zone_desc = "No specific work zone was drawn — analyse the full panel."
+
+    panel_hint = f"Panel type: {body.panel}." if body.panel else ""
+
+    prompt = (
+        f"You are a senior Schneider Electric field engineer. {panel_hint}\n"
+        f"{zone_desc}\n\n"
+        "Based on the image and typical Schneider Electric panel layouts, answer in 3–5 bullet points:\n"
+        "• What components are most likely located AT or directly BEHIND this work zone?\n"
+        "• What adjacent live parts or busbars should the engineer be aware of?\n"
+        "• Any specific risk for that position in this panel type?\n\n"
+        "Be concise and practical. No intro sentence — go straight to the bullets."
+    )
+
+    try:
+        img_part = {"inline_data": {"mime_type": body.mime, "data": body.image}}
+        response = _gemini_with_retry(lambda: client.models.generate_content(
+            model=FAST_MODEL,
+            contents=[{"role": "user", "parts": [img_part, {"text": prompt}]}]
+        ))
+        return JSONResponse(content={"text": response.text.strip()})
+    except Exception as e:
+        print(f"[WORKZONE-NEARBY] error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ----------------------------------------
 
 
 # Serve the web UI — must be last so API routes take priority

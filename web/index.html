@@ -629,6 +629,23 @@ button,input{font-family:inherit}
         <span>Click and drag on the image to mark your work area. A safety buffer will auto-expand around it.</span>
       </div>
       <button class="zone-clr" id="zoneClear"><i class="fas fa-trash-can"></i> Clear zone</button>
+
+      <!-- What's nearby box -->
+      <div id="wzNearbyWrap" style="margin-top:12px;display:none">
+        <button id="wzNearbyBtn" onclick="runWzNearby()"
+          style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border2);
+                 background:var(--card2);color:var(--dim);font-size:12px;font-weight:600;
+                 cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
+                 font-family:inherit;transition:all .18s"
+          onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--dim)'">
+          <i class="fas fa-magnifying-glass"></i> What's near my zone?
+        </button>
+        <div id="wzNearbyResult"
+          style="display:none;margin-top:10px;padding:12px;border-radius:8px;
+                 background:var(--card);border:1px solid var(--border2);
+                 font-size:12px;line-height:1.7;color:var(--dim);white-space:pre-wrap"></div>
+      </div>
     </div>
 
     <!-- SLD -->
@@ -873,7 +890,13 @@ zoneToggle.addEventListener('click', () => {
   zoneHint.classList.toggle('vis', S.zoneOn);
   ovlC.style.cursor = S.zoneOn ? 'crosshair' : 'default';
 });
-zoneClear.addEventListener('click', () => { S.zone = null; zoneClear.classList.remove('vis'); redraw(); });
+zoneClear.addEventListener('click', () => {
+  S.zone = null;
+  zoneClear.classList.remove('vis');
+  document.getElementById('wzNearbyWrap').style.display = 'none';
+  document.getElementById('wzNearbyResult').style.display = 'none';
+  redraw();
+});
 
 /* ═══════════════ ZONE DRAWING ═══════════════ */
 function evXY(e) {
@@ -897,7 +920,36 @@ function moveDraw(e) {
 }
 function endDraw(e) {
   if (!S.drawing) return; e.preventDefault(); S.drawing = false;
-  if (S.zone) zoneClear.classList.add('vis');
+  if (S.zone) {
+    zoneClear.classList.add('vis');
+    document.getElementById('wzNearbyWrap').style.display = S.img64 ? 'block' : 'none';
+    document.getElementById('wzNearbyResult').style.display = 'none';
+  }
+}
+
+async function runWzNearby() {
+  if (!S.img64) return;
+  const btn = document.getElementById('wzNearbyBtn');
+  const res = document.getElementById('wzNearbyResult');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analysing…';
+  res.style.display = 'none';
+  try {
+    const zone = S.zone ? {x0:S.zone.xmin, y0:S.zone.ymin, x1:S.zone.xmax, y1:S.zone.ymax} : null;
+    const r = await fetch('/api/workzone-nearby', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({image:S.img64, mime:S.mime, zone, panel: S.panelType||''})
+    });
+    const d = await r.json();
+    res.textContent = d.text || 'No response.';
+    res.style.display = 'block';
+  } catch(e) {
+    res.textContent = 'Error: ' + e.message;
+    res.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magnifying-glass"></i> What\'s near my zone?';
+  }
 }
 ovlC.addEventListener('mousedown',  startDraw);
 ovlC.addEventListener('mousemove',  moveDraw);
@@ -1020,6 +1072,7 @@ function renderResults(data) {
   const acbs  = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('acb')||t.includes('masterpact'); });
   const mccbs = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('mccb')||t.includes('nsx')||t.includes('ns'); });
   const mcbs  = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('mcb')||t.includes('acti')||t.includes('ic60'); });
+  S.panelType = data.panel_type || '';
   const pt    = (data.panel_type||'Unknown').toLowerCase().replace(/\s+/g,'-');
   const ptLbl = data.panel_type||'Unknown';
   const cls   = pt.includes('prismaset-g')?'pg':pt.includes('prismaset-p')?'pp':pt.includes('okken')?'ok':'un';

@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel Inspector — Schneider Electric</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ══════════════════════════════════════════════════
+   RESET & TOKENS
+══════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#3DCD58;--green-d:#2BAE47;--green-glow:rgba(61,205,88,.28);--green-dim:rgba(61,205,88,.08);
+  --bg:#07101F;--surf:#0B1828;--card:#0F2035;--card2:#132540;
+  --border:#172E4A;--border2:#1E3B5E;
+  --text:#E4EDF8;--dim:#8AAAC8;--muted:#4A6A8A;
+  --red:#FF4757;--red-bg:rgba(255,71,87,.08);--red-b:rgba(255,71,87,.22);
+  --amber:#FFA502;--amber-bg:rgba(255,165,2,.08);--amber-b:rgba(255,165,2,.22);
+  --blue:#4A9EFF;--purple:#A855F7;--cyan:#22D3EE;
+  --r:12px;--r-sm:8px;--r-xs:6px;
+  --nav-h:58px;--sb-w:310px;
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+button,input{font-family:inherit}
+
+/* ══════════════════════════════════════════════════
+   NAV BAR
+══════════════════════════════════════════════════ */
+.nav{
+  position:sticky;top:0;z-index:200;height:var(--nav-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;
+  background:rgba(7,16,31,.97);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+}
+.nav-brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.nav-logo{
+  width:36px;height:36px;background:var(--green);border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:900;color:#07101F;
+  box-shadow:0 0 22px var(--green-glow);
+}
+.nav-text{line-height:1.2}
+.nav-name{font-size:14px;font-weight:700;color:var(--text)}
+.nav-sub{font-size:10px;color:var(--muted);font-weight:400;margin-top:1px;letter-spacing:.3px}
+.nav-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;
+  background:var(--card);border:1px solid var(--border2);
+  font-size:11px;color:var(--dim);
+}
+.pulse-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);flex-shrink:0;
+  animation:pulse 2.5s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+
+/* ══════════════════════════════════════════════════
+   APP SHELL  (mobile = column,  desktop = row)
+══════════════════════════════════════════════════ */
+.shell{display:flex;flex-direction:column}
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR  (left panel on desktop)
+══════════════════════════════════════════════════ */
+.sidebar{background:var(--surf);border-bottom:1px solid var(--border)}
+
+/* ── block ── */
+.sb-blk{padding:16px 18px;border-bottom:1px solid var(--border)}
+.sb-lbl{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--muted);margin-bottom:11px;display:flex;align-items:center;gap:6px
+}
+.sb-lbl i{font-size:9px}
+
+/* ── upload zone ── */
+.up-zone{
+  border:2px dashed var(--border2);border-radius:var(--r);
+  padding:24px 14px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;background:rgba(255,255,255,.012);
+}
+.up-zone:hover,.up-zone.drag{border-color:var(--green);background:var(--green-dim)}
+.up-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-icon{
+  width:50px;height:50px;margin:0 auto 12px;border-radius:11px;
+  background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:var(--green);transition:all .2s;
+}
+.up-zone:hover .up-icon{background:rgba(61,205,88,.2);transform:scale(1.06)}
+.up-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.up-hint{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* preview */
+.up-preview{
+  display:none;align-items:center;gap:11px;
+  background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);
+  border-radius:var(--r);padding:11px 13px;
+}
+.prev-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;border:1px solid var(--border2);flex-shrink:0}
+.prev-info{flex:1;min-width:0}
+.prev-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prev-sz{font-size:10px;color:var(--muted);margin-top:2px}
+.prev-clr{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;border:none;background:transparent;
+  display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;
+  font-size:13px;transition:all .15s;
+}
+.prev-clr:hover{color:var(--red);background:var(--red-bg)}
+
+/* ── task grid ── */
+.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.t-btn{
+  padding:10px 6px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:10.5px;font-weight:500;
+  cursor:pointer;transition:all .18s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  line-height:1.25;text-align:center;
+}
+.t-btn i{font-size:14px}
+.t-btn:hover{border-color:rgba(61,205,88,.35);color:var(--text);background:var(--green-dim)}
+.t-btn.on{border-color:var(--green);color:var(--green);background:rgba(61,205,88,.1)}
+
+/* ── SLD Compare button ── */
+.btn-cmp{
+  width:100%;margin-top:10px;padding:10px;border-radius:var(--r-sm);
+  border:1px solid rgba(74,158,255,.4);background:rgba(74,158,255,.08);
+  color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;
+}
+.btn-cmp:hover:not(:disabled){background:rgba(74,158,255,.15);border-color:var(--blue)}
+.btn-cmp:disabled{opacity:.4;cursor:not-allowed}
+/* ── SLD Comparison results ── */
+.sld-cmp{background:var(--surf);border-top:1px solid var(--border);padding:14px 18px}
+.sld-cmp-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:12px}
+.sld-cmp-summary{font-size:11px;font-weight:400;color:var(--dim);text-transform:none;letter-spacing:0;flex:1}
+.sld-cmp-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px}
+.sld-cmp-close:hover{color:var(--text)}
+.sld-cmp-section{margin-bottom:12px}
+.sld-cmp-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.sld-cmp-item{font-size:11px;padding:7px 10px;border-radius:7px;margin-bottom:4px;line-height:1.5}
+.sld-match{background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.2);color:#6EE7B7}
+.sld-disc{background:rgba(255,165,2,.07);border:1px solid rgba(255,165,2,.2);color:#FCD34D}
+.sld-miss{background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);color:#FCA5A5}
+
+/* ── camera button ── */
+.cam-btn{
+  display:none;position:relative;overflow:hidden;
+  width:100%;margin-top:10px;padding:11px;
+  border-radius:var(--r-sm);border:1px solid var(--border2);
+  background:var(--card);color:var(--dim);
+  font-size:13px;font-weight:600;cursor:pointer;
+  align-items:center;justify-content:center;gap:8px;
+  transition:all .18s;
+}
+.cam-btn:hover{border-color:var(--green);color:var(--green)}
+.cam-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ── zone toggle ── */
+.tog-row{display:flex;align-items:center;gap:10px}
+.tog-lbl{
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  font-size:13px;color:var(--dim);user-select:none;flex:1;min-height:44px;
+}
+.tog-pill{
+  width:40px;height:23px;border-radius:12px;background:var(--border2);
+  position:relative;transition:background .2s;flex-shrink:0;
+}
+.tog-pill::after{
+  content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;
+  border-radius:50%;background:#fff;transition:transform .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.tog-lbl.on .tog-pill{background:var(--green)}
+.tog-lbl.on .tog-pill::after{transform:translateX(17px)}
+.zone-hint{
+  margin-top:10px;display:none;padding:10px 12px;
+  background:var(--amber-bg);border:1px solid var(--amber-b);border-radius:var(--r-sm);
+  font-size:11px;color:#FFD580;line-height:1.55;
+}
+.zone-hint.vis{display:flex;align-items:flex-start;gap:8px}
+.zone-hint i{color:var(--amber);flex-shrink:0;margin-top:1px}
+.zone-clr{
+  display:none;margin-top:8px;align-items:center;gap:5px;
+  font-size:11px;color:var(--muted);cursor:pointer;
+  background:transparent;border:1px solid var(--border);border-radius:6px;
+  padding:5px 10px;transition:all .15s;
+}
+.zone-clr.vis{display:flex}
+.zone-clr:hover{color:var(--red);border-color:var(--red-b)}
+
+/* ── SLD collapsible ── */
+.coll-btn{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;background:transparent;border:none;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .15s;
+}
+.coll-btn:hover{background:rgba(255,255,255,.02)}
+.coll-title{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);display:flex;align-items:center;gap:7px;
+}
+.coll-arr{color:var(--muted);font-size:10px;transition:transform .2s}
+.coll-arr.open{transform:rotate(180deg)}
+.coll-body{display:none;padding:13px 18px;border-bottom:1px solid var(--border)}
+.coll-body.open{display:block}
+.sld-drop{
+  border:1.5px dashed var(--border2);border-radius:var(--r-sm);
+  padding:16px;text-align:center;cursor:pointer;position:relative;
+  transition:all .2s;background:rgba(255,255,255,.01);
+}
+.sld-drop:hover{border-color:var(--blue);background:rgba(74,158,255,.04)}
+.sld-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.sld-drop i{font-size:22px;color:var(--muted)}
+.sld-name{font-size:11px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── detect button ── */
+.det-wrap{padding:14px 18px;background:var(--surf)}
+.btn-det{
+  width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--r);
+  color:#07101F;font-size:14px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;letter-spacing:.3px;
+}
+.btn-det:hover:not(:disabled){background:var(--green-d);box-shadow:0 6px 28px var(--green-glow);transform:translateY(-1px)}
+.btn-det:disabled{opacity:.38;cursor:not-allowed;transform:none;box-shadow:none}
+.spin{display:none;width:16px;height:16px;border:2px solid rgba(7,16,31,.2);border-top-color:#07101F;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════════════
+   MOBILE STICKY BOTTOM BAR
+══════════════════════════════════════════════════ */
+.mob-bar{
+  display:block;position:fixed;bottom:0;left:0;right:0;z-index:150;
+  padding:10px 16px;padding-bottom:max(10px,env(safe-area-inset-bottom));
+  background:rgba(7,16,31,.97);backdrop-filter:blur(24px);border-top:1px solid var(--border);
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN AREA
+══════════════════════════════════════════════════ */
+.main-area{flex:1;display:flex;flex-direction:column}
+
+/* ── canvas wrap ── */
+.canvas-wrap{
+  flex:1;position:relative;
+  background:linear-gradient(180deg,#040A16 0%,#020710 100%);
+  display:flex;align-items:center;justify-content:center;
+  min-height:240px;overflow:hidden;
+}
+.canvas-ph{
+  text-align:center;color:var(--muted);padding:52px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+.canvas-ph i{font-size:46px;opacity:.18}
+.canvas-ph p{font-size:13px;opacity:.5;max-width:200px;line-height:1.7}
+.canvas-wrap canvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+#imgCanvas{display:none}
+#overlayCanvas{cursor:crosshair;display:none;touch-action:none}
+
+/* ── results panel ── */
+.results{display:none;background:var(--surf);border-top:1px solid var(--border);overflow-y:auto}
+.results.vis{display:block}
+.r-inner{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+
+/* ══════════════════════════════════════════════════
+   RESULT COMPONENTS
+══════════════════════════════════════════════════ */
+.p-badge-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.p-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid;
+}
+.p-badge.pg{color:#3DCD58;border-color:rgba(61,205,88,.3);background:rgba(61,205,88,.08)}
+.p-badge.pp{color:#4A9EFF;border-color:rgba(74,158,255,.3);background:rgba(74,158,255,.08)}
+.p-badge.ok{color:#A855F7;border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08)}
+.p-badge.un{color:#4A6A8A;border-color:rgba(74,106,138,.3);background:rgba(74,106,138,.08)}
+.p-sum{font-size:12px;color:var(--dim);line-height:1.65;margin-top:6px}
+.bb-note{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+
+.stats-row{display:flex;gap:6px;flex-wrap:wrap}
+.st-chip{
+  padding:4px 10px;background:var(--card);border:1px solid var(--border2);
+  border-radius:6px;font-size:11px;color:var(--dim);
+  display:flex;align-items:center;gap:5px;
+}
+.st-chip b{color:var(--text);font-weight:700}
+
+.sec-ttl{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+  color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:6px;
+}
+.warn-list{display:flex;flex-direction:column;gap:6px}
+.w-item{
+  padding:9px 12px;border-radius:8px;font-size:11px;line-height:1.6;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.w-item.crit{background:var(--red-bg);border:1px solid var(--red-b);color:#FCA5A5}
+.w-item.warn{background:var(--amber-bg);border:1px solid var(--amber-b);color:#FCD34D}
+.w-item i{flex-shrink:0;margin-top:1px}
+
+.erms-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.erms-tbl th{
+  background:var(--card);color:var(--muted);font-weight:600;text-transform:uppercase;
+  letter-spacing:.5px;font-size:9px;padding:7px 9px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.erms-tbl td{padding:7px 9px;border-bottom:1px solid rgba(23,46,74,.7);vertical-align:top;color:var(--dim)}
+.erms-tbl tr:last-child td{border-bottom:none}
+.erms-pill{
+  display:inline-flex;align-items:center;gap:3px;padding:2px 8px;
+  border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;
+}
+.erms-ON         {background:rgba(255,71,87,.12);color:#FCA5A5;border:1px solid rgba(255,71,87,.25)}
+.erms-recommended{background:rgba(255,165,2,.12);color:#FCD34D;border:1px solid rgba(255,165,2,.25)}
+.erms-OFF        {background:rgba(61,205,88,.1);color:#6EE7B7;border:1px solid rgba(61,205,88,.2)}
+.erms-none       {background:rgba(74,106,138,.1);color:#94A3B8;border:1px solid rgba(74,106,138,.2)}
+.haz{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;padding:1px 6px;border-radius:4px;margin-right:3px}
+.haz-arc{background:rgba(255,71,87,.1);color:#FCA5A5}
+.haz-sh{background:rgba(255,165,2,.1);color:#FCD34D}
+
+.cards-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.d-card{
+  min-width:130px;max-width:150px;flex-shrink:0;
+  background:var(--card);border:1px solid var(--border2);border-radius:9px;
+  padding:10px 12px;cursor:pointer;transition:all .15s;
+}
+.d-card:hover,.d-card.hi{border-color:var(--green);background:rgba(61,205,88,.07)}
+.d-lbl{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-meta{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+.d-rat{
+  display:inline-block;margin-top:5px;font-size:9px;font-weight:700;
+  padding:1px 6px;background:rgba(74,158,255,.1);color:#93C5FD;
+  border-radius:4px;border:1px solid rgba(74,158,255,.2);
+}
+
+/* ══════════════════════════════════════════════════
+   FADE-IN ANIMATION
+══════════════════════════════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .3s ease both}
+.fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.15s}.fu4{animation-delay:.2s}
+
+/* ══════════════════════════════════════════════════
+   DESKTOP LAYOUT  (≥ 1024px)
+══════════════════════════════════════════════════ */
+@media(min-width:1024px){
+  html,body{height:100%;overflow:hidden}
+  .shell{flex-direction:row;height:calc(100vh - var(--nav-h));overflow:hidden}
+  .sidebar{
+    width:var(--sb-w);min-width:var(--sb-w);
+    height:100%;overflow-y:auto;
+    border-bottom:none;border-right:1px solid var(--border);
+    flex-shrink:0;display:flex;flex-direction:column;
+  }
+  /* Push detect-wrap to stick to bottom */
+  .sidebar .spacer{flex:1}
+  .det-wrap{position:sticky;bottom:0;z-index:5;border-top:1px solid var(--border)}
+  .mob-bar{display:none}
+  .main-area{flex:1;overflow:hidden;min-width:0}
+  .canvas-wrap{flex:1;overflow:hidden}
+  .results{height:260px;min-height:260px;flex-shrink:0;overflow-y:auto}
+  body{padding-bottom:0}
+}
+
+/* ══════════════════════════════════════════════════
+   TABLET  (768–1023)
+══════════════════════════════════════════════════ */
+@media(min-width:768px) and (max-width:1023px){
+  .task-grid{grid-template-columns:repeat(3,1fr)}
+  .canvas-wrap{min-height:340px}
+  .det-wrap{display:none}
+  .fw-btns{gap:10px}
+  .fw-btn{padding:10px 18px;font-size:13px}
+}
+
+/* ══════════════════════════════════════════════════
+   MOBILE  (< 768px)
+══════════════════════════════════════════════════ */
+@media(max-width:767px){
+  /* base */
+  body{padding-bottom:80px;font-size:14px}
+  .nav-pill span{display:none}
+  .nav{padding:0 14px}
+
+  /* sidebar scrolls naturally in the page flow on mobile */
+  .sidebar{overflow-y:visible}
+  .sb-blk{padding:14px 16px}
+
+  /* camera button — show on mobile */
+  .cam-btn{display:flex}
+
+  /* upload zone — more compact */
+  .up-zone{padding:18px 12px}
+  .up-icon{width:44px;height:44px;font-size:18px;margin-bottom:8px}
+  .up-title{font-size:13px}
+
+  /* task grid — 2 cols, taller buttons for touch */
+  .task-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .t-btn{padding:13px 6px;font-size:11px;min-height:56px}
+  .t-btn i{font-size:16px}
+
+  /* flowchart — full-width buttons, bigger tap areas */
+  .fw-q{font-size:13px;margin-bottom:12px}
+  .fw-btns{flex-direction:column;gap:8px}
+  .fw-btn{width:100%;padding:13px 16px;font-size:13px;justify-content:center;border-radius:10px}
+  .fw-reset{font-size:12px}
+
+  /* checklist — bigger tap areas */
+  .cl-item{padding:10px 0}
+  .cl-cb{width:20px;height:20px;margin-top:2px}
+  .cl-txt{font-size:12px;line-height:1.6}
+  .cl-badge{font-size:10px;padding:2px 6px}
+
+  /* live warning modal — fits small screens */
+  .lw-box{padding:20px 16px;max-width:100%}
+  .lw-icon{font-size:34px;margin-bottom:10px}
+  .lw-title{font-size:15px}
+  .lw-body{font-size:12px;margin-bottom:16px}
+  .lw-actions{flex-direction:column;gap:8px}
+  .lw-back,.lw-proceed{width:100%;padding:12px;font-size:13px}
+
+  /* canvas — image fills full width, overlay sits on top */
+  .canvas-wrap{min-height:0;height:auto;overflow:visible;display:block;width:100%}
+  #imgCanvas{position:relative !important;top:auto !important;left:auto !important;
+    transform:none !important;display:block !important;width:100% !important;height:auto !important}
+  #overlayCanvas{position:absolute !important;top:0 !important;left:0 !important;
+    transform:none !important;width:100% !important;height:100% !important}
+  .canvas-ph{padding:36px 16px}
+  .canvas-ph i{font-size:38px}
+
+  /* results */
+  .r-inner{padding:14px 14px;gap:12px}
+  .erms-tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .cards-row{gap:6px}
+  .d-card{min-width:120px}
+
+  /* detect button */
+  .det-wrap{display:none}
+  .mob-bar{padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+}
+
+/* ── Pre-Work Checklist ── */
+.cl-item{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border)}
+.cl-item:last-child{border-bottom:none}
+.cl-cb{width:16px;height:16px;flex-shrink:0;margin-top:1px;accent-color:var(--green);cursor:pointer}
+.cl-txt{font-size:11px;color:var(--dim);line-height:1.55;cursor:pointer}
+.cl-item.cl-crit .cl-txt{color:var(--text)}
+.cl-item.cl-done .cl-txt{text-decoration:line-through;color:var(--muted)}
+.cl-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;
+  margin-left:4px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+
+/* ── Flowchart Wizard ── */
+.fw-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.fw-row{padding-top:10px;margin-top:10px;border-top:1px solid var(--border)}
+.fw-q{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px}
+.fw-btns{display:flex;gap:8px;flex-wrap:wrap}
+.fw-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--card);
+  color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.fw-btn:hover:not([disabled]){border-color:var(--green);color:var(--green)}
+.fw-btn.fw-active{background:var(--green);color:#07101F;border-color:var(--green)}
+.fw-btn.fw-inactive{opacity:.3;cursor:default}
+.fw-reset{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;
+  padding:0;text-decoration:underline;flex-shrink:0}
+.fw-reset:hover{color:var(--dim)}
+/* Live Warning Overlay */
+.lw-overlay{display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(7,16,31,.85);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px}
+.lw-overlay.lw-open{display:flex}
+.lw-box{background:var(--card);border:1px solid var(--red-b);border-radius:14px;
+  max-width:340px;width:100%;padding:24px;text-align:center}
+.lw-icon{font-size:40px;margin-bottom:12px;animation:lw-pulse 1s ease infinite alternate}
+@keyframes lw-pulse{from{transform:scale(1)}to{transform:scale(1.12)}}
+.lw-title{font-size:16px;font-weight:800;color:var(--red);margin-bottom:8px;letter-spacing:.3px}
+.lw-body{font-size:12px;color:var(--dim);line-height:1.7;margin-bottom:20px}
+.lw-actions{display:flex;gap:10px;justify-content:center}
+.lw-back{padding:9px 18px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:12px;font-weight:600;cursor:pointer}
+.lw-back:hover{border-color:var(--dim);color:var(--text)}
+.lw-proceed{padding:9px 18px;border-radius:8px;border:none;
+  background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.lw-proceed:hover{background:#e03040}
+.fw-crumb{font-size:10px;color:var(--muted);margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ NAV ═══════════════════════ -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">SE</div>
+    <div class="nav-text">
+      <div class="nav-name">Panel Inspector</div>
+      <div class="nav-sub">Schneider Electric · AI Analysis</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nav-pill">
+      <div class="pulse-dot"></div>
+      <span>AI Ready</span>
+    </div>
+    <div class="nav-pill" style="gap:7px;padding:5px 10px">
+      <i class="fa-regular fa-user" style="font-size:11px;color:var(--green)"></i>
+      <span id="navUser" style="color:var(--text);font-size:11px;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    </div>
+    <button onclick="doLogout()" title="Sign out"
+      style="background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);
+             padding:6px 9px;cursor:pointer;font-size:12px;transition:all .18s;font-family:inherit"
+      onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+      onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ APP SHELL ═══════════════════════ -->
+<div class="shell">
+
+  <!-- ─────────── SIDEBAR ─────────── -->
+  <aside class="sidebar">
+
+    <!-- Flowchart Wizard -->
+    <div class="sb-blk" id="fw">
+      <div class="fw-header">
+        <div class="sb-lbl" style="margin-bottom:0"><i class="fas fa-bolt"></i> Safety Check</div>
+        <button class="fw-reset" id="fwResetBtn" onclick="fwReset()" style="display:none">Reset</button>
+      </div>
+
+      <!-- Step 1: Live Intervention? — always visible -->
+      <div class="fw-row" id="fwS1">
+        <div class="fw-q">Is this a Live Intervention?</div>
+        <div class="fw-btns">
+          <button class="fw-btn" id="fwS1yes" onclick="fwGo(1,'yes')"><i class="fas fa-bolt"></i> YES</button>
+          <button class="fw-btn" id="fwS1no"  onclick="fwGo(1,'no')"><i class="fas fa-plug-circle-xmark"></i> NO</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Requires opening the Doors? — appears after step 1 answered -->
+      <div class="fw-row" id="fwS2" style="display:none">
+        <div class="fw-q">Requires opening the Doors?</div>
+        <div class="fw-btns">
+          <button class="fw-btn" id="fwS2yes" onclick="fwGo(2,'yes')">YES</button>
+          <button class="fw-btn" id="fwS2no"  onclick="fwGo(2,'no')">NO</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Task type — appears after step 2 YES -->
+      <div class="fw-row" id="fwS3" style="display:none">
+        <div class="fw-q">Select Task Type</div>
+        <div class="fw-btns">
+          <button class="fw-btn" onclick="fwSetTask('service')">Service &amp; Inspection</button>
+          <button class="fw-btn" onclick="fwSetTask('commissioning')">Commissioning</button>
+          <button class="fw-btn" onclick="fwSetTask('modification')">Modification</button>
+          <button class="fw-btn" onclick="fwSetTask('replacement')">Replacement</button>
+          <button class="fw-btn" onclick="fwSetTask('others')">Others</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Upload -->
+    <div class="sb-blk">
+      <div class="sb-lbl"><i class="fas fa-image"></i> Panel Photo</div>
+      <div class="up-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="up-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+        <div class="up-title">Click or drag photo here</div>
+        <div class="up-hint">JPG · PNG · WEBP — max 20 MB</div>
+      </div>
+      <!-- Camera button (mobile only) -->
+      <button class="cam-btn" id="camBtn">
+        <input type="file" id="camInput" accept="image/*" capture="environment">
+        <i class="fas fa-camera"></i> Take Photo
+      </button>
+      <div class="up-preview" id="uploadPreview">
+        <img class="prev-thumb" id="prevThumb" src="" alt="">
+        <div class="prev-info">
+          <div class="prev-name" id="prevName"></div>
+          <div class="prev-sz" id="prevSz"></div>
+        </div>
+        <button class="prev-clr" id="prevClr" title="Remove"><i class="fas fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <!-- Task -->
+    <div class="sb-blk">
+      <div class="sb-lbl"><i class="fas fa-list-check"></i> Intervention Task</div>
+      <div class="task-grid">
+        <button class="t-btn on" data-task="commissioning"><i class="fas fa-plug-circle-check"></i>Commissioning</button>
+        <button class="t-btn" data-task="operation"><i class="fas fa-toggle-on"></i>Operation</button>
+        <button class="t-btn" data-task="service"><i class="fas fa-screwdriver-wrench"></i>Service</button>
+        <button class="t-btn" data-task="modification"><i class="fas fa-pen-ruler"></i>Modification</button>
+        <button class="t-btn" data-task="replacement"><i class="fas fa-rotate"></i>Replacement</button>
+        <button class="t-btn" data-task="others"><i class="fas fa-ellipsis"></i>Others</button>
+      </div>
+    </div>
+
+    <!-- Pre-Work Safety Checklist -->
+    <div id="clBlk" style="display:none">
+      <button class="coll-btn" onclick="clToggleOpen()">
+        <span class="coll-title"><i class="fas fa-shield-check"></i> Pre-Work Safety Checklist <span id="clCount" style="margin-left:6px;font-weight:400;color:var(--muted)"></span></span>
+        <i class="fas fa-chevron-down coll-arr" id="clArr"></i>
+      </button>
+      <div class="coll-body" id="clBody">
+        <div id="clList"></div>
+      </div>
+    </div>
+
+    <!-- Work Zone -->
+    <div class="sb-blk">
+      <div class="sb-lbl"><i class="fas fa-vector-square"></i> Work Zone</div>
+      <label class="tog-lbl" id="zoneToggle">
+        <div class="tog-pill"></div>
+        <span>Draw work zone on image</span>
+      </label>
+      <div class="zone-hint" id="zoneHint">
+        <i class="fas fa-hand-pointer"></i>
+        <span>Click and drag on the image to mark your work area. A safety buffer will auto-expand around it.</span>
+      </div>
+      <button class="zone-clr" id="zoneClear"><i class="fas fa-trash-can"></i> Clear zone</button>
+    </div>
+
+    <!-- SLD -->
+    <button class="coll-btn" id="sldToggle">
+      <span class="coll-title"><i class="fas fa-diagram-project"></i> Single Line Diagram (optional)</span>
+      <i class="fas fa-chevron-down coll-arr" id="sldArr"></i>
+    </button>
+    <div class="coll-body" id="sldBody">
+      <div class="sld-drop" id="sldZone">
+        <input type="file" id="sldInput" accept="image/png,image/jpeg,image/webp">
+        <i class="fas fa-file-image"></i>
+        <div class="sld-name" id="sldName">Upload SLD as PNG or JPG</div>
+      </div>
+      <button class="btn-cmp" id="btnCmp" style="display:none" onclick="runSldCompare()">
+        <div class="spin" id="spinCmp"></div>
+        <i class="fas fa-code-compare" id="iconCmp"></i>
+        <span id="txtCmp">Compare with Photo</span>
+      </button>
+    </div>
+
+    <!-- Spacer (desktop only — pushes detect to bottom) -->
+    <div class="spacer"></div>
+
+    <!-- Detect button (desktop) -->
+    <div class="det-wrap" id="desktopDetWrap">
+      <button class="btn-det" id="detBtnD" disabled>
+        <div class="spin" id="spinD"></div>
+        <i class="fas fa-magnifying-glass" id="iconD"></i>
+        <span id="txtD">Analyse Panel</span>
+      </button>
+    </div>
+
+  </aside><!-- /sidebar -->
+
+  <!-- ─────────── MAIN ─────────── -->
+  <main class="main-area">
+
+    <!-- Canvas -->
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="canvas-ph" id="canvasPh">
+        <i class="fas fa-solar-panel"></i>
+        <p>Upload a panel photo to begin inspection</p>
+      </div>
+      <canvas id="imgCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="r-inner" id="rInner"></div>
+    </div>
+
+    <!-- SLD Comparison Results -->
+    <div class="sld-cmp" id="sldCmp" style="display:none">
+      <div class="sld-cmp-head">
+        <i class="fas fa-code-compare"></i> SLD Comparison
+        <span class="sld-cmp-summary" id="sldCmpSummary"></span>
+        <button class="sld-cmp-close" onclick="document.getElementById('sldCmp').style.display='none'"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="sld-cmp-body" id="sldCmpBody"></div>
+    </div>
+
+  </main>
+
+</div><!-- /shell -->
+
+<!-- ═══════════════════════ MOBILE BOTTOM BAR ═══════════════════════ -->
+<div class="mob-bar">
+  <button class="btn-det" id="detBtnM" disabled>
+    <div class="spin" id="spinM"></div>
+    <i class="fas fa-magnifying-glass" id="iconM"></i>
+    <span id="txtM">Analyse Panel</span>
+  </button>
+</div>
+
+<!-- Live Warning Overlay -->
+<div class="lw-overlay" id="lwOverlay">
+  <div class="lw-box">
+    <div class="lw-icon">⚡</div>
+    <div class="lw-title">LIVE PANEL — DANGER</div>
+    <div class="lw-body">
+      You are about to work on a <strong style="color:var(--red)">live energised panel</strong>.<br>
+      Risk of <strong>Arc Flash</strong> and <strong>Electric Shock</strong>.<br><br>
+      Only proceed if you are a <strong>qualified electrical worker</strong> with correct PPE and authorisation.
+    </div>
+    <div class="lw-actions">
+      <button class="lw-back" onclick="lwCancel()">← Go Back</button>
+      <button class="lw-proceed" onclick="lwProceed()">⚡ I Understand — Proceed</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════ AUTH GUARD ═══════════════ */
+if (localStorage.getItem('pi_auth') !== '1') {
+  window.location.replace('login.html');
+} else {
+  document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('navUser');
+    if (el) el.textContent = localStorage.getItem('pi_user') || '';
+  });
+}
+function doLogout(){
+  localStorage.removeItem('pi_auth');
+  localStorage.removeItem('pi_user');
+  window.location.replace('login.html');
+}
+
+/* ═══════════════ STATE ═══════════════ */
+const S = {
+  img64:null, mime:'image/jpeg', task:'commissioning', isLive:false, sldMime:'image/png',
+  zoneOn:false, zone:null, drawing:false, drawStart:null,
+  sld64:null, dets:[], hovIdx:-1,
+};
+
+/* ═══════════════ DOM ═══════════════ */
+const g = id => document.getElementById(id);
+const fileInput   = g('fileInput');
+const uploadZone  = g('uploadZone');
+const upPreview   = g('uploadPreview');
+const prevThumb   = g('prevThumb');
+const prevName    = g('prevName');
+const prevSz      = g('prevSz');
+const prevClr     = g('prevClr');
+const zoneToggle  = g('zoneToggle');
+const zoneHint    = g('zoneHint');
+const zoneClear   = g('zoneClear');
+const sldToggle   = g('sldToggle');
+const sldBody     = g('sldBody');
+const sldArr      = g('sldArr');
+const sldInput    = g('sldInput');
+const sldName     = g('sldName');
+const canvasWrap  = g('canvasWrap');
+const canvasPh    = g('canvasPh');
+const imgC        = g('imgCanvas');
+const ovlC        = g('overlayCanvas');
+const resultsEl   = g('results');
+const rInner      = g('rInner');
+const ictx        = imgC.getContext('2d');
+const octx        = ovlC.getContext('2d');
+let loadedImg = null;
+
+/* unified button arrays */
+const detBtns = [g('detBtnD'), g('detBtnM')];
+const spinEls = [g('spinD'),   g('spinM')];
+const iconEls = [g('iconD'),   g('iconM')];
+const txtEls  = [g('txtD'),    g('txtM')];
+
+function setLoading(on) {
+  detBtns.forEach(b => b.disabled = on || !S.img64);
+  spinEls.forEach(s => s.style.display = on ? 'block' : 'none');
+  iconEls.forEach(i => i.style.display = on ? 'none' : '');
+  txtEls.forEach(t => t.textContent = on ? 'Analysing…' : 'Analyse Panel');
+}
+function setEnabled(v) { detBtns.forEach(b => b.disabled = !v); }
+
+/* ═══════════════ UPLOAD ═══════════════ */
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+g('camInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+prevClr.addEventListener('click', () => {
+  S.img64 = null; loadedImg = null;
+  upPreview.style.display = 'none';
+  uploadZone.style.display = '';
+  canvasPh.style.display = '';
+  imgC.style.display = ovlC.style.display = 'none';
+  resultsEl.classList.remove('vis');
+  setEnabled(false);
+  fileInput.value = '';
+  S.dets = []; S.zone = null;
+  zoneClear.classList.remove('vis');
+  redraw();
+});
+
+function loadFile(file) {
+  S.mime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    S.img64 = ev.target.result.split(',')[1];
+    prevThumb.src = ev.target.result;
+    prevName.textContent = file.name;
+    prevSz.textContent = (file.size / 1024).toFixed(0) + ' KB';
+    upPreview.style.display = 'flex';
+    uploadZone.style.display = 'none';
+    setEnabled(true);
+    if (S.sld64) document.getElementById('btnCmp').style.display = 'flex';
+    const img = new Image();
+    img.onload = () => { loadedImg = img; renderImg(); S.zone = null; redraw(); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ═══════════════ CANVAS SIZING ═══════════════ */
+function cSize() {
+  if (!loadedImg) return { w:0, h:0 };
+  const isMobile = window.innerWidth < 1024;
+  const mW = isMobile ? window.innerWidth : (canvasWrap.getBoundingClientRect().width - 2);
+  const mH = canvasWrap.getBoundingClientRect().height - 2;
+  const sc = isMobile
+    ? mW / loadedImg.width
+    : Math.min(mW / loadedImg.width, mH / loadedImg.height, 1);
+  return { w: Math.floor(loadedImg.width * sc), h: Math.floor(loadedImg.height * sc) };
+}
+
+function renderImg() {
+  if (!loadedImg) return;
+  const {w, h} = cSize();
+  if (!w || !h) return;
+  imgC.width = ovlC.width = w;
+  imgC.height = ovlC.height = h;
+  imgC.style.width = ovlC.style.width = w + 'px';
+  imgC.style.height = ovlC.style.height = h + 'px';
+  canvasWrap.style.height = '';
+  canvasWrap.style.width  = '';
+  ictx.drawImage(loadedImg, 0, 0, w, h);
+  canvasPh.style.display = 'none';
+  imgC.style.display = ovlC.style.display = 'block';
+}
+
+window.addEventListener('resize', () => { renderImg(); redraw(); });
+
+/* ═══════════════ COORDINATE HELPERS ═══════════════ */
+const n2p = (n, d) => n / 1000 * d;
+const p2n = (p, d) => Math.round(p / d * 1000);
+const clamp = v => Math.max(0, Math.min(1000, v));
+function safeBuf(z, pad=80) {
+  return { ymin:clamp(z.ymin-pad), xmin:clamp(z.xmin-pad), ymax:clamp(z.ymax+pad), xmax:clamp(z.xmax+pad) };
+}
+
+/* ═══════════════ ZONE TOGGLE ═══════════════ */
+zoneToggle.addEventListener('click', () => {
+  S.zoneOn = !S.zoneOn;
+  zoneToggle.classList.toggle('on', S.zoneOn);
+  zoneHint.classList.toggle('vis', S.zoneOn);
+  ovlC.style.cursor = S.zoneOn ? 'crosshair' : 'default';
+});
+zoneClear.addEventListener('click', () => { S.zone = null; zoneClear.classList.remove('vis'); redraw(); });
+
+/* ═══════════════ ZONE DRAWING ═══════════════ */
+function evXY(e) {
+  const r = ovlC.getBoundingClientRect();
+  const t = e.touches?.[0] || e.changedTouches?.[0];
+  return { cx:(t ? t.clientX : e.clientX) - r.left, cy:(t ? t.clientY : e.clientY) - r.top };
+}
+function startDraw(e) {
+  if (!S.zoneOn || !loadedImg) return;
+  e.preventDefault(); S.drawing = true;
+  const {cx,cy} = evXY(e); S.drawStart = {cx,cy};
+}
+function moveDraw(e) {
+  if (!S.drawing) return; e.preventDefault();
+  const {cx,cy} = evXY(e);
+  const {w,h} = cSize();
+  const x0=p2n(S.drawStart.cx,w), y0=p2n(S.drawStart.cy,h);
+  const x1=p2n(cx,w), y1=p2n(cy,h);
+  S.zone = { ymin:clamp(Math.min(y0,y1)), xmin:clamp(Math.min(x0,x1)), ymax:clamp(Math.max(y0,y1)), xmax:clamp(Math.max(x0,x1)) };
+  redraw();
+}
+function endDraw(e) {
+  if (!S.drawing) return; e.preventDefault(); S.drawing = false;
+  if (S.zone) zoneClear.classList.add('vis');
+}
+ovlC.addEventListener('mousedown',  startDraw);
+ovlC.addEventListener('mousemove',  moveDraw);
+ovlC.addEventListener('mouseup',    endDraw);
+ovlC.addEventListener('mouseleave', () => { if (S.drawing) S.drawing = false; });
+ovlC.addEventListener('touchstart', startDraw, {passive:false});
+ovlC.addEventListener('touchmove',  moveDraw,  {passive:false});
+ovlC.addEventListener('touchend',   endDraw,   {passive:false});
+
+/* ═══════════════ SLD ═══════════════ */
+sldToggle.addEventListener('click', () => {
+  sldBody.classList.toggle('open');
+  sldArr.classList.toggle('open');
+});
+sldInput.addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  sldName.textContent = f.name;
+  S.sldMime = f.type || 'image/png';
+  const r = new FileReader();
+  r.onload = ev => {
+    S.sld64 = ev.target.result.split(',')[1];
+    document.getElementById('btnCmp').style.display = S.img64 ? 'flex' : 'none';
+  };
+  r.readAsDataURL(f);
+});
+
+/* ═══════════════ TASK BUTTONS ═══════════════ */
+document.querySelectorAll('.t-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.t-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); S.task = b.dataset.task; loadChecklist();
+}));
+
+/* ═══════════════ ANALYSE ═══════════════ */
+async function analyse() {
+  if (!S.img64) return;
+  setLoading(true);
+  resultsEl.classList.remove('vis');
+  try {
+    const body = { imageBase64:S.img64, mimeType:S.mime, task:S.task, identifyOnly:false };
+    if (S.zone)  { body.workZone = S.zone; body.safetyBuffer = safeBuf(S.zone); }
+    if (S.sld64) body.sldBase64 = S.sld64;
+    const res = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error === 'not_a_panel') throw new Error('Not a panel: ' + (err.detected_as || 'image does not show an electrical switchboard'));
+      throw new Error(err.error || err.detail || `Server error ${res.status}`);
+    }
+    renderResults(await res.json());
+  } catch(e) {
+    renderError(e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+detBtns.forEach(b => b.addEventListener('click', analyse));
+
+/* ═══════════════ OVERLAY DRAW ═══════════════ */
+const COL = { acb:'#A855F7', mccb:'#FFA502', mcb:'#22D3EE', contactor:'#EC4899', relay:'#6366F1', plc:'#F97316', structure:'#4A9EFF', component:'#3DCD58' };
+function lCol(d) {
+  const t = (d.label||d.type||'').toLowerCase();
+  if (t.includes('acb')||t.includes('masterpact'))        return COL.acb;
+  if (t.includes('mccb')||t.includes('nsx')||t.includes('ns')) return COL.mccb;
+  if (t.includes('mcb')||t.includes('acti')||t.includes('ic60')) return COL.mcb;
+  if (t.includes('contactor')) return COL.contactor;
+  if (t.includes('relay'))     return COL.relay;
+  if (t.includes('plc'))       return COL.plc;
+  if ((d.category||'')==='structure') return COL.structure;
+  return COL.component;
+}
+
+function redraw() {
+  const {w,h} = cSize(); octx.clearRect(0,0,w,h); if (!loadedImg) return;
+
+  if (S.zone) {
+    const sb = safeBuf(S.zone);
+    octx.strokeStyle='rgba(255,71,87,.7)'; octx.lineWidth=1.5; octx.setLineDash([5,4]);
+    octx.strokeRect(n2p(sb.xmin,w), n2p(sb.ymin,h), n2p(sb.xmax-sb.xmin,w), n2p(sb.ymax-sb.ymin,h));
+    octx.setLineDash([]);
+    octx.strokeStyle='rgba(255,165,2,.9)'; octx.lineWidth=2; octx.setLineDash([6,4]);
+    octx.strokeRect(n2p(S.zone.xmin,w), n2p(S.zone.ymin,h), n2p(S.zone.xmax-S.zone.xmin,w), n2p(S.zone.ymax-S.zone.ymin,h));
+    octx.setLineDash([]);
+    octx.font='bold 10px Inter,sans-serif';
+    octx.fillStyle='rgba(255,165,2,.95)'; octx.fillText('WORK ZONE', n2p(S.zone.xmin,w)+4, n2p(S.zone.ymin,h)-4);
+    octx.fillStyle='rgba(255,71,87,.85)'; octx.fillText('SAFETY BUFFER', n2p(sb.xmin,w)+4, n2p(sb.ymin,h)-4);
+  }
+
+  S.dets.forEach((d,i) => {
+    const box = d.box||d.box_2d; if (!box||box.length<4) return;
+    const [ymin,xmin,ymax,xmax] = box;
+    const bx=n2p(xmin,w), by=n2p(ymin,h), bw=n2p(xmax-xmin,w), bh=n2p(ymax-ymin,h);
+    const active = i===S.hovIdx;
+    const inZ = S.zone && !(xmax<S.zone.xmin||xmin>S.zone.xmax||ymax<S.zone.ymin||ymin>S.zone.ymax);
+    const t=(d.label||d.type||'').toLowerCase();
+    const isACB = t.includes('acb')||t.includes('masterpact');
+    let col = inZ && isACB ? '#FF4757' : inZ ? '#FFA502' : lCol(d);
+    const lw = inZ&&isACB ? 3 : active ? 2.5 : 1.5;
+    octx.strokeStyle=col; octx.lineWidth=lw;
+    octx.globalAlpha = active ? 1 : inZ ? .95 : .75;
+    octx.strokeRect(bx,by,bw,bh);
+    if (inZ&&isACB) { octx.fillStyle='rgba(255,71,87,.12)'; octx.globalAlpha=1; octx.fillRect(bx,by,bw,bh); }
+    else if (active) { octx.fillStyle='rgba(255,255,255,.05)'; octx.globalAlpha=.12; octx.fillRect(bx,by,bw,bh); }
+    octx.globalAlpha=1;
+    const chip=(d.label||d.type||'Component')+(d.rating?` · ${d.rating}`:'')+((inZ&&isACB)?' ⚠ DANGER':'');
+    octx.font='bold 10px Inter,sans-serif';
+    const tw=octx.measureText(chip).width;
+    octx.fillStyle=col; octx.globalAlpha=.92;
+    octx.beginPath();
+    if (octx.roundRect) octx.roundRect(bx,by-15,tw+10,15,3); else octx.rect(bx,by-15,tw+10,15);
+    octx.fill(); octx.globalAlpha=1;
+    octx.fillStyle='#07101F'; octx.fillText(chip,bx+5,by-4);
+  });
+}
+
+/* ═══════════════ RENDER RESULTS ═══════════════ */
+function renderResults(data) {
+  S.dets = data.breakers||[]; resultsEl.classList.add('vis');
+  requestAnimationFrame(() => { renderImg(); redraw(); });
+  const comps = S.dets.filter(b=>(b.category||'component')!=='structure');
+  const structs= S.dets.filter(b=>(b.category||'component')==='structure');
+  const acbs  = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('acb')||t.includes('masterpact'); });
+  const mccbs = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('mccb')||t.includes('nsx')||t.includes('ns'); });
+  const mcbs  = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('mcb')||t.includes('acti')||t.includes('ic60'); });
+  const pt    = (data.panel_type||'Unknown').toLowerCase().replace(/\s+/g,'-');
+  const ptLbl = data.panel_type||'Unknown';
+  const cls   = pt.includes('prismaset-g')?'pg':pt.includes('prismaset-p')?'pp':pt.includes('okken')?'ok':'un';
+  const icon  = ptLbl.includes('Okken')?'fa-industry':ptLbl.includes('PrismaSeT')?'fa-bolt':'fa-circle-question';
+
+  let h = `<div class="fu">
+    <div class="p-badge-row">
+      <span class="p-badge ${cls}"><i class="fas ${icon}"></i> ${ptLbl}</span>
+      ${data.busbar_side&&data.busbar_side!=='unknown'?`<span class="bb-note"><i class="fas fa-arrows-left-right"></i> Busbar: <b style="color:var(--text)">${data.busbar_side}</b></span>`:''}
+    </div>
+    ${data.summary?`<p class="p-sum">${esc(data.summary)}</p>`:''}
+  </div>`;
+
+  h += `<div class="stats-row fu fu1">
+    ${acbs.length  ?`<div class="st-chip"><i class="fas fa-bolt" style="color:#A855F7"></i><b>${acbs.length}</b> ACB</div>`:''}
+    ${mccbs.length ?`<div class="st-chip"><i class="fas fa-bolt" style="color:#FFA502"></i><b>${mccbs.length}</b> MCCB</div>`:''}
+    ${mcbs.length  ?`<div class="st-chip"><i class="fas fa-bolt" style="color:#22D3EE"></i><b>${mcbs.length}</b> MCB</div>`:''}
+    ${structs.length?`<div class="st-chip"><i class="fas fa-table-columns" style="color:#4A9EFF"></i><b>${structs.length}</b> Column</div>`:''}
+    ${comps.length?`<div class="st-chip"><i class="fas fa-microchip" style="color:var(--green)"></i><b>${comps.length}</b> total</div>`:'<div class="st-chip" style="color:var(--muted)">No components detected</div>'}
+  </div>`;
+
+  const warns = data.safety_warnings||[];
+  if (warns.length) {
+    h += `<div class="warn-list fu fu2"><div class="sec-ttl"><i class="fas fa-triangle-exclamation" style="color:var(--amber)"></i> Safety Warnings</div>`;
+    warns.forEach(w => {
+      const c=w.toLowerCase().includes('arc')||w.toLowerCase().includes('energi')||w.toLowerCase().includes('live')||w.includes('🔥');
+      h+=`<div class="w-item ${c?'crit':'warn'}"><i class="fas ${c?'fa-circle-radiation':'fa-triangle-exclamation'}"></i><span>${esc(w)}</span></div>`;
+    });
+    h += `</div>`;
+  }
+
+  const recs = data.task_recommendations||[];
+  if (recs.length) {
+    h += `<div class="fu fu3"><div class="sec-ttl"><i class="fas fa-shield-halved" style="color:var(--green)"></i> ERMS Operations — ${cap(S.task)}</div>
+    <div style="overflow-x:auto"><table class="erms-tbl"><thead><tr><th>Operation</th><th>Position</th><th>Hazards</th><th>ERMS</th><th>Alternative</th></tr></thead><tbody>`;
+    recs.forEach(r => {
+      const eClass=`erms-${r.erms}`;
+      const eLbl=r.erms==='ON'?'ERMS ON':r.erms==='recommended'?'Recommended':r.erms==='OFF'?'ERMS OFF':'—';
+      const pos=r.position==='inside'?'Inside (doors open)':r.position==='outside'?'<0.3 m (closed)':r.position==='near'?'0.3–1 m':'>1 m';
+      const haz=(r.hazards||[]).map(x=>`<span class="haz ${x==='Arc Flash'?'haz-arc':'haz-sh'}">${x==='Arc Flash'?'🔥':'⚡'} ${x}</span>`).join('');
+      h+=`<tr><td style="color:var(--text);font-weight:500">${esc(r.operation)}</td><td>${esc(pos)}</td><td>${haz||'<span style="color:var(--muted)">None</span>'}</td><td><span class="erms-pill ${eClass}">${eLbl}</span></td><td>${r.alternative?esc(r.alternative):'<span style="color:var(--muted)">—</span>'}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+  }
+
+  if (comps.length) {
+    h += `<div class="fu fu4"><div class="sec-ttl"><i class="fas fa-list" style="color:var(--dim)"></i> Detected Components</div><div class="cards-row">`;
+    comps.forEach((d,i) => {
+      const c=lCol(d);
+      h+=`<div class="d-card" data-idx="${i}" style="border-top:2px solid ${c}22">
+        <div class="d-lbl" title="${esc(d.type||'')}">${esc(d.label||d.type||'Component')}</div>
+        <div class="d-meta">${esc(d.brand||'')}${d.type_detail?' · '+esc(d.type_detail):''}</div>
+        ${d.circuit_label?`<div class="d-meta" style="color:var(--dim)">${esc(d.circuit_label)}</div>`:''}
+        ${d.rating?`<span class="d-rat">${esc(d.rating)}</span>`:''}
+      </div>`;
+    });
+    h += `</div></div>`;
+  }
+
+  rInner.innerHTML = h;
+  rInner.querySelectorAll('.d-card').forEach(c => {
+    c.addEventListener('mouseenter', () => { S.hovIdx = +c.dataset.idx; redraw(); });
+    c.addEventListener('mouseleave', () => { S.hovIdx = -1; redraw(); });
+  });
+}
+
+function renderError(msg) {
+  resultsEl.classList.add('vis');
+  requestAnimationFrame(() => renderImg());
+  rInner.innerHTML = `<div class="w-item crit fu"><i class="fas fa-circle-xmark"></i><span><b>Detection failed:</b> ${esc(msg)}</span></div>`;
+}
+
+async function runSldCompare() {
+  if (!S.img64 || !S.sld64) return;
+  const btn = g('btnCmp'), spin = g('spinCmp'), icon = g('iconCmp'), txt = g('txtCmp');
+  btn.disabled = true; spin.style.display = 'block'; icon.style.display = 'none'; txt.textContent = 'Comparing…';
+  try {
+    const res = await fetch('/api/compare-sld', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ imageBase64: S.img64, imageMime: S.mime, sldBase64: S.sld64, sldMime: S.sldMime || 'image/png' })
+    });
+    const d = await res.json();
+    const panel = g('sldCmp');
+    g('sldCmpSummary').textContent = d.summary || '';
+    const matches = (d.matches||[]).map(i => `<div class="sld-cmp-item sld-match">✅ <b>${esc(i.item)}</b> — ${esc(i.note)}</div>`).join('');
+    const discs   = (d.discrepancies||[]).map(i => `<div class="sld-cmp-item sld-disc">⚠️ <b>${esc(i.item)}</b> — SLD: ${esc(i.sld_says)} / Photo: ${esc(i.photo_shows)}</div>`).join('');
+    const missing = (d.missing||[]).map(i => `<div class="sld-cmp-item sld-miss">❌ <b>${esc(i.item)}</b> — ${esc(i.note)}</div>`).join('');
+    g('sldCmpBody').innerHTML =
+      (matches ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">✅ Matches</div>${matches}</div>` : '') +
+      (discs   ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">⚠️ Discrepancies</div>${discs}</div>` : '') +
+      (missing ? `<div class="sld-cmp-section"><div class="sld-cmp-ttl">❌ Missing from photo</div>${missing}</div>` : '');
+    panel.style.display = 'block';
+  } catch(e) {
+    alert('Comparison failed: ' + e.message);
+  } finally {
+    btn.disabled = false; spin.style.display = 'none'; icon.style.display = 'inline'; txt.textContent = 'Compare with Photo';
+  }
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s[0].toUpperCase()+s.slice(1) : ''; }
+
+async function loadChecklist() {
+  if (!S.task) { document.getElementById('clBlk').style.display = 'none'; return; }
+  const hasSld = !!document.getElementById('sldInput').files.length;
+  try {
+    const res = await fetch('/api/checklist', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ task_type: S.task, is_live: S.isLive, panel_type: '', has_sld: hasSld, vbb_side: null, cubicle_count: 0 })
+    });
+    const data = await res.json();
+    const src      = data.task_items && data.task_items.length ? data.task_items : data.items;
+    const critical = src.filter(i => i.critical);
+    const rest     = src.filter(i => !i.critical);
+    const items    = [...critical, ...rest].slice(0, 6);
+    const list = document.getElementById('clList');
+    list.innerHTML = items.map(item => `
+      <div class="cl-item${item.critical?' cl-crit':''}" id="cli_${item.id}">
+        <input class="cl-cb" type="checkbox" id="cb_${item.id}" onchange="clToggle('${item.id}')">
+        <label class="cl-txt" for="cb_${item.id}">${esc(item.text)}${item.critical?'<span class="cl-badge">CRITICAL</span>':''}</label>
+      </div>`).join('');
+    document.getElementById('clCount').textContent = `(${items.length})`;
+    document.getElementById('clBlk').style.display = 'block';
+    const isMobile = window.innerWidth < 1024;
+    const body = document.getElementById('clBody');
+    const arr  = document.getElementById('clArr');
+    if (!isMobile) { body.classList.add('open'); arr.classList.add('open'); }
+    else           { body.classList.remove('open'); arr.classList.remove('open'); }
+  } catch(e) { console.warn('Checklist fetch failed', e); }
+}
+function clToggleOpen() {
+  const body = document.getElementById('clBody');
+  const arr  = document.getElementById('clArr');
+  body.classList.toggle('open'); arr.classList.toggle('open');
+}
+function clToggle(id) {
+  const row = document.getElementById('cli_' + id);
+  const cb  = document.getElementById('cb_'  + id);
+  if (row) row.classList.toggle('cl-done', cb.checked);
+}
+
+/* ── Flowchart Wizard ── */
+function fwLockStep(yesId, noId, chosen) {
+  const yBtn = document.getElementById(yesId);
+  const nBtn = document.getElementById(noId);
+  if (!yBtn || !nBtn) return;
+  [yBtn, nBtn].forEach(b => { b.disabled = true; b.classList.add('fw-inactive'); b.onclick = null; });
+  const picked = chosen === 'yes' ? yBtn : nBtn;
+  picked.classList.remove('fw-inactive');
+  picked.classList.add('fw-active');
+}
+function fwGo(step, answer) {
+  if (step === 1) {
+    fwLockStep('fwS1yes','fwS1no', answer);
+    document.getElementById('fwResetBtn').style.display = 'inline';
+    if (answer === 'no') {
+      S.isLive = false;
+      document.querySelectorAll('.t-btn').forEach(b => { b.classList.remove('on'); b.disabled = true; });
+      S.task = null;
+      loadChecklist();
+    } else {
+      document.getElementById('lwOverlay').classList.add('lw-open');
+    }
+  } else if (step === 2) {
+    fwLockStep('fwS2yes','fwS2no', answer);
+    if (answer === 'no') {
+      document.querySelectorAll('.t-btn').forEach(b => {
+        b.classList.toggle('on', b.dataset.task === 'operation');
+        b.disabled = true;
+      });
+      S.task = 'operation';
+      loadChecklist();
+    } else {
+      document.getElementById('fwS3').style.display = 'block';
+    }
+  }
+}
+function lwCancel() {
+  document.getElementById('lwOverlay').classList.remove('lw-open');
+  // undo step 1 lock
+  ['fwS1yes','fwS1no'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = false; b.classList.remove('fw-inactive','fw-active');
+  });
+  document.getElementById('fwS1yes').onclick = () => fwGo(1,'yes');
+  document.getElementById('fwS1no').onclick  = () => fwGo(1,'no');
+  document.getElementById('fwResetBtn').style.display = 'none';
+}
+function lwProceed() {
+  document.getElementById('lwOverlay').classList.remove('lw-open');
+  S.isLive = true;
+  document.getElementById('fwS2').style.display = 'block';
+}
+function fwSetTask(task) {
+  document.querySelectorAll('.t-btn').forEach(b => b.classList.toggle('on', b.dataset.task === task));
+  document.querySelectorAll('#fwS3 .fw-btn').forEach(b => {
+    b.classList.toggle('fw-active', b.getAttribute('onclick').includes("'"+task+"'"));
+  });
+  S.task = task;
+  loadChecklist();
+}
+function fwReset() {
+  ['fwS1yes','fwS1no'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = false; b.classList.remove('fw-inactive','fw-active');
+  });
+  document.getElementById('fwS1yes').onclick = () => fwGo(1,'yes');
+  document.getElementById('fwS1no').onclick  = () => fwGo(1,'no');
+  document.getElementById('fwS2').style.display = 'none';
+  document.getElementById('fwS3').style.display = 'none';
+  document.getElementById('fwResetBtn').style.display = 'none';
+  document.querySelectorAll('.t-btn').forEach(b => { b.classList.remove('on'); b.disabled = false; });
+  document.querySelectorAll('#fwS3 .fw-btn').forEach(b => b.classList.remove('fw-active'));
+  document.getElementById('clBlk').style.display = 'none';
+  S.task = null; S.isLive = false;
+}
+</script>
+</body>
+</html>

@@ -889,24 +889,7 @@ def _task_recommendations(task: str, has_work_zone: bool) -> tuple:
 
     warnings = []
 
-    # One warning per operation — full picture: hazards + ERMS + alternative
-    _ERMS_LABEL = {"ON": "ERMS ON required", "recommended": "ERMS recommended", "OFF": "ERMS OFF", "none": ""}
-    _HAZARD_ICON = {"Arc Flash": "🔥", "Electric Shock": "⚡"}
-
-    for a in ops:
-        parts = []
-        hazard_str = " + ".join(f"{_HAZARD_ICON.get(h, '')} {h}" for h in a["hazards"]) if a["hazards"] else "No direct electrical hazard"
-        erms_str   = _ERMS_LABEL.get(a["erms"], "")
-        parts.append(f"[{a['op']}]")
-        parts.append(f"Position: {a['position'].replace('inside','Inside switchboard (doors open)').replace('outside','Electrical room <0.3m (doors closed)').replace('near','Electrical room 0.3–1m').replace('room','Electrical room >1m')}")
-        parts.append(f"Hazard: {hazard_str}")
-        if erms_str:
-            parts.append(erms_str)
-        if a["alt"]:
-            parts.append(f"Alternative: {a['alt']}")
-        warnings.append("  |  ".join(parts))
-
-    # Add the ERMS supply-side note once if any operation uses ERMS
+    # Only add the ERMS supply-side note — operation details are shown in the ERMS table, not repeated here
     if any(a["erms"] in ("ON", "recommended") for a in ops):
         warnings.append(
             "⚠ ERMS Note: ERMS only protects the LOAD side of the main incomer. "

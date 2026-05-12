@@ -2370,8 +2370,9 @@ def get_checklist(body: ChecklistRequest):
     else:
         items += _CHECKLIST_COMMON_DEAD
 
-    # Task-specific items
-    items += _CHECKLIST_BY_TASK.get(task, _CHECKLIST_BY_TASK["others"])
+    # Task-specific items (kept separate so frontend can show them independently)
+    task_items = list(_CHECKLIST_BY_TASK.get(task, _CHECKLIST_BY_TASK["others"]))
+    items += task_items
 
     # Panel-specific warnings
     panel_key = next((k for k in _CHECKLIST_PANEL_EXTRAS if k.lower() in body.panel_type.lower()), None)
@@ -2405,6 +2406,7 @@ def get_checklist(body: ChecklistRequest):
         "is_live":             body.is_live,
         "panel_type":          body.panel_type,
         "items":               items,
+        "task_items":          task_items,
         "total":               total,
         "critical":            critical,
         "task_recommendations": task_recommendations,

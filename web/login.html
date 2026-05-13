@@ -13,8 +13,8 @@
   --bg:#010912;--text:#F2F8FF;--dim:#6A9EC0;--muted:#1E3D5A;
   --red:#FF4757;--red-b:rgba(255,71,87,.3);
 }
-html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
-  -webkit-font-smoothing:antialiased;overflow:hidden}
+html,body{min-height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased}
 
 /* ─── animated background ─── */
 .bg-layer{position:fixed;inset:0;pointer-events:none}
@@ -40,9 +40,10 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* ─── layout ─── */
 .page{
-  height:100vh;display:grid;grid-template-columns:1fr 480px;position:relative;z-index:1;
+  min-height:100vh;display:grid;grid-template-columns:1fr 480px;position:relative;z-index:1;
 }
-@media(max-width:860px){.page{grid-template-columns:1fr}.hero{display:none}}
+@media(max-width:860px){.page{grid-template-columns:1fr;min-height:100vh}.hero{display:none}}
+@media(max-width:480px){.page{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;min-height:100vh}}
 
 /* ─── hero panel (left) ─── */
 .hero{
@@ -85,8 +86,9 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 /* ─── right panel ─── */
 .right{
   padding:40px;display:flex;flex-direction:column;justify-content:center;align-items:center;
-  background:rgba(1,9,18,.6);backdrop-filter:blur(24px);
+  background:rgba(1,9,18,.6);backdrop-filter:blur(24px);overflow-y:auto;
 }
+@media(max-width:480px){.right{padding:24px 0;background:transparent;backdrop-filter:none;width:100%;max-width:420px}}
 
 .login-card{
   width:100%;max-width:380px;
@@ -187,7 +189,6 @@ input::placeholder{color:rgba(106,158,192,.4)}
 .login-footer span{color:rgba(61,205,88,.5);margin:0 5px}
 
 @media(max-width:480px){
-  .right{padding:24px 16px}
   .login-card{padding:28px 22px;border-radius:18px}
 }
 </style>

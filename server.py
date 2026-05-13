@@ -28,7 +28,7 @@ import cv2
 from PIL import Image
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
@@ -2121,18 +2121,22 @@ def list_projects():
 @app.get("/api/scans")
 def list_scans(project_id: Optional[str] = None, username: Optional[str] = None):
     conn  = _get_db()
-    query = "SELECT * FROM scans"
+    query = """
+        SELECT s.*, p.project_name, p.site, p.inspector
+        FROM scans s
+        LEFT JOIN projects p ON s.project_id = p.id
+    """
     args  = []
     filters = []
     if project_id:
-        filters.append("project_id = ?")
+        filters.append("s.project_id = ?")
         args.append(project_id)
     if username:
-        filters.append("username = ?")
+        filters.append("s.username = ?")
         args.append(username)
     if filters:
         query += " WHERE " + " AND ".join(filters)
-    query += " ORDER BY timestamp DESC"
+    query += " ORDER BY s.timestamp DESC"
     rows = conn.execute(query, args).fetchall()
     conn.close()
     result = []
@@ -2141,6 +2145,16 @@ def list_scans(project_id: Optional[str] = None, username: Optional[str] = None)
         row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
         result.append(row)
     return JSONResponse(content=result)
+
+
+@app.get("/api/scan-image/{filename}")
+def get_scan_image(filename: str):
+    if not filename.replace("-", "").replace(".", "").isalnum():
+        return JSONResponse(status_code=400, content={"error": "Invalid filename"})
+    path = os.path.join(_IMAGES_DIR, filename)
+    if not os.path.isfile(path):
+        return JSONResponse(status_code=404, content={"error": "Image not found"})
+    return FileResponse(path, media_type="image/jpeg")
 
 
 @app.get("/api/scans/{scan_id}")

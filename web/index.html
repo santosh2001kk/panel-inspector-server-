@@ -353,6 +353,16 @@ button,input,textarea{font-family:inherit}
 .reset-link button{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;padding:4px 8px;transition:color .15s}
 .reset-link button:hover{color:var(--dim)}
 
+/* Print button */
+.btn-print{
+  display:none;width:100%;margin-top:12px;padding:13px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+  color:var(--dim);font-size:13px;font-weight:700;cursor:pointer;
+  align-items:center;justify-content:center;gap:8px;transition:all .2s;
+}
+.btn-print.vis{display:flex}
+.btn-print:hover{border-color:rgba(74,158,255,.4);color:var(--blue);background:rgba(74,158,255,.06)}
+
 /* ═══ ANIMATIONS ═══ */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fadeUp .32s ease both}
@@ -681,6 +691,11 @@ button,input,textarea{font-family:inherit}
       </div>
       <div class="sld-cmp-body" id="sldCmpBody"></div>
     </div>
+
+    <!-- Print / Save PDF -->
+    <button class="btn-print" id="btnPrint" onclick="printReport()">
+      <i class="fas fa-print"></i> Print Report / Save as PDF
+    </button>
   </div>
 
 </div><!-- /wiz-wrap -->
@@ -1018,6 +1033,13 @@ function redraw() {
 function renderResults(data) {
   S.dets = data.breakers||[]; resultsEl.classList.add('vis');
   requestAnimationFrame(() => { renderImg(); redraw(); });
+  // cache for printReport
+  window._lastPanelType = data.panel_type||'Unknown';
+  window._lastSummary   = data.summary||'';
+  window._lastWarns     = data.safety_warnings||[];
+  window._lastRecs      = data.task_recommendations||[];
+  window._lastComps     = S.dets.filter(b=>(b.category||'component')!=='structure');
+  g('btnPrint').classList.add('vis');
   const comps  = S.dets.filter(b=>(b.category||'component')!=='structure');
   const structs = S.dets.filter(b=>(b.category||'component')==='structure');
   const acbs   = comps.filter(b=>{ const t=(b.type||'').toLowerCase(); return t.includes('acb')||t.includes('masterpact'); });
@@ -1228,6 +1250,175 @@ function fwSetTask(task){
   document.querySelectorAll('.t-btn').forEach(b=>b.classList.toggle('on',b.dataset.task===task));
   S.task=task; loadChecklist();
 }
+/* ═══════════════ PRINT REPORT ═══════════════ */
+function printReport() {
+  const photoDataUrl = imgC.toDataURL('image/jpeg', 0.92);
+  const projName   = g('projName').value.trim()   || '—';
+  const projSite   = g('projSite').value.trim()   || '—';
+  const projPermit = g('projPermit').value.trim() || '—';
+  const projTech   = g('projTech').value.trim()   || '—';
+  const dateStr    = new Date().toLocaleString('en-GB',{dateStyle:'full',timeStyle:'short'});
+  const task       = cap(S.task || 'N/A');
+  const isLiveLbl  = S.isLive ? '⚡ LIVE Intervention' : '✓ Dead (De-energised)';
+  const ptLbl      = (window._lastPanelType || '—');
+  const summary    = (window._lastSummary   || '');
+  const warns      = (window._lastWarns     || []);
+  const recs       = (window._lastRecs      || []);
+  const comps      = (window._lastComps     || []);
+
+  const warnRows = warns.map(w => {
+    const crit = w.toLowerCase().includes('arc')||w.toLowerCase().includes('energi')||w.toLowerCase().includes('live')||w.includes('🔥');
+    return `<div class="warn-item ${crit?'crit':'warn'}">${esc(w)}</div>`;
+  }).join('');
+
+  const recRows = recs.map(r => {
+    const pos = r.position==='inside'?'Inside (doors open)':r.position==='outside'?'< 0.3 m':r.position==='near'?'0.3–1 m':'> 1 m';
+    const haz = (r.hazards||[]).join(', ') || 'None';
+    const ermsLbl = r.erms==='ON'?'ERMS ON':r.erms==='recommended'?'Recommended':r.erms==='OFF'?'ERMS OFF':'—';
+    return `<tr><td>${esc(r.operation)}</td><td>${esc(pos)}</td><td>${esc(haz)}</td><td><b>${ermsLbl}</b></td><td>${esc(r.alternative||'—')}</td></tr>`;
+  }).join('');
+
+  const compRows = comps.map(d =>
+    `<tr><td>${esc(d.label||d.type||'Component')}</td><td>${esc(d.brand||'—')}</td><td>${esc(d.rating||'—')}</td><td>${esc(d.circuit_label||'—')}</td></tr>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Panel Inspection Report — ${esc(projName)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;color:#0f1923;background:#fff;padding:28px 32px;font-size:12px;line-height:1.5}
+  /* header */
+  .rpt-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:2.5px solid #3DCD58;margin-bottom:20px}
+  .rpt-brand{display:flex;align-items:center;gap:12px}
+  .rpt-logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3DCD58,#2BAE47);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#010912;flex-shrink:0}
+  .rpt-brand-name{font-size:15px;font-weight:800;color:#0f1923;letter-spacing:-.2px}
+  .rpt-brand-sub{font-size:9px;color:#6A9EC0;text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
+  .rpt-date{font-size:10px;color:#555;text-align:right}
+  .rpt-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#3DCD58;margin-bottom:2px}
+  /* proj info */
+  .proj-box{background:#f7fdf9;border:1px solid #d4f0dc;border-radius:12px;padding:16px 20px;margin-bottom:16px}
+  .proj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .pf label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;display:block;margin-bottom:3px}
+  .pf .val{font-size:12px;font-weight:600;color:#0f1923}
+  /* photo */
+  .photo-box{margin-bottom:16px;border-radius:12px;overflow:hidden;border:1px solid #e0e0e0;text-align:center;background:#f5f5f5}
+  .photo-box img{max-width:100%;max-height:360px;object-fit:contain;display:block;margin:0 auto}
+  /* section */
+  .sec{margin-bottom:16px}
+  .sec-ttl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;color:#888;margin-bottom:8px;display:flex;align-items:center;gap:5px;padding-bottom:5px;border-bottom:1px solid #e8e8e8}
+  /* badges */
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .badge{padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;border:1px solid}
+  .badge-g{color:#008A2E;border-color:#b3e6c4;background:#f0fbf4}
+  .badge-b{color:#1565c0;border-color:#b3d4f7;background:#f0f7ff}
+  .badge-p{color:#6a1b9a;border-color:#d7b3f5;background:#fdf4ff}
+  .badge-n{color:#555;border-color:#ddd;background:#f9f9f9}
+  .p-sum{font-size:12px;color:#444;line-height:1.7}
+  /* intervention */
+  .int-row{display:flex;gap:10px;margin-bottom:8px}
+  .int-chip{padding:5px 14px;border-radius:8px;font-size:11px;font-weight:700}
+  .int-live{background:#fff0f1;border:1px solid #ffb3ba;color:#c00}
+  .int-dead{background:#f0fbf4;border:1px solid #b3e6c4;color:#007a20}
+  .int-task{background:#f0f7ff;border:1px solid #b3d4f7;color:#1565c0}
+  /* stats */
+  .stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .stat{padding:5px 12px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:7px;font-size:11px;color:#444}
+  .stat b{color:#0f1923;font-weight:700}
+  /* warnings */
+  .warn-item{padding:8px 12px;border-radius:8px;margin-bottom:5px;font-size:11px;line-height:1.55}
+  .warn-item.crit{background:#fff4f4;border:1px solid #ffc5c5;color:#b00}
+  .warn-item.warn{background:#fffbf0;border:1px solid #ffe0a0;color:#7a4f00}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:10.5px}
+  th{background:#f5f5f5;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:8.5px;padding:7px 9px;text-align:left;border-bottom:1.5px solid #ddd}
+  td{padding:7px 9px;border-bottom:1px solid #eee;color:#333;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  /* footer */
+  .rpt-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e0e0e0;font-size:9.5px;color:#888;display:flex;justify-content:space-between}
+  @media print{body{padding:16px 20px}@page{margin:16mm}}
+</style></head><body>
+
+<div class="rpt-header">
+  <div class="rpt-brand">
+    <div class="rpt-logo">SE</div>
+    <div>
+      <div class="rpt-brand-name">Panel Inspector Pro</div>
+      <div class="rpt-brand-sub">EcoStruxure™ AI · Schneider Electric</div>
+    </div>
+  </div>
+  <div class="rpt-date">
+    <div class="rpt-title">Inspection Report</div>
+    <div>${esc(dateStr)}</div>
+  </div>
+</div>
+
+<div class="proj-box">
+  <div class="proj-grid">
+    <div class="pf"><label>Project / Work Order</label><div class="val">${esc(projName)}</div></div>
+    <div class="pf"><label>Site / Location</label><div class="val">${esc(projSite)}</div></div>
+    <div class="pf"><label>Work Permit / Ref No.</label><div class="val">${esc(projPermit)}</div></div>
+    <div class="pf"><label>Technician</label><div class="val">${esc(projTech)}</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">Intervention Setup</div>
+  <div class="int-row">
+    <span class="int-chip ${S.isLive?'int-live':'int-dead'}">${esc(isLiveLbl)}</span>
+    <span class="int-chip int-task">Task: ${esc(task)}</span>
+  </div>
+</div>
+
+<div class="photo-box">
+  <img src="${photoDataUrl}" alt="Panel photo">
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">Panel Identification</div>
+  <div class="badge-row">
+    <span class="badge badge-g">${esc(ptLbl)}</span>
+  </div>
+  ${summary ? `<p class="p-sum">${esc(summary)}</p>` : ''}
+</div>
+
+${comps.length ? `
+<div class="sec">
+  <div class="sec-ttl">Detected Components (${comps.length})</div>
+  <table>
+    <thead><tr><th>Label</th><th>Brand</th><th>Rating</th><th>Circuit</th></tr></thead>
+    <tbody>${compRows}</tbody>
+  </table>
+</div>` : ''}
+
+${warns.length ? `
+<div class="sec">
+  <div class="sec-ttl">Safety Warnings</div>
+  ${warnRows}
+</div>` : ''}
+
+${recs.length ? `
+<div class="sec">
+  <div class="sec-ttl">ERMS Operations — ${esc(task)}</div>
+  <table>
+    <thead><tr><th>Operation</th><th>Position</th><th>Hazards</th><th>ERMS</th><th>Alternative</th></tr></thead>
+    <tbody>${recRows}</tbody>
+  </table>
+</div>` : ''}
+
+<div class="rpt-footer">
+  <span>Panel Inspector Pro · Schneider Electric · Internal Use Only</span>
+  <span>Generated ${esc(dateStr)}</span>
+</div>
+
+<script>setTimeout(()=>window.print(),400);<\/script>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else alert('Please allow pop-ups to generate the PDF report.');
+}
+
 function fwReset(){
   ['fwS1yes','fwS1no'].forEach(id=>{
     const b=g(id); b.disabled=false; b.classList.remove('fw-inactive','fw-active');

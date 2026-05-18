@@ -115,6 +115,9 @@ def _get_db():
         if "sslmode" not in url:
             url += ("&" if "?" in url else "?") + "sslmode=require"
         conn = psycopg2.connect(url)
+        conn.autocommit = False
+        # Disable prepared statements — required for Supabase transaction pooler (port 6543)
+        psycopg2.extensions.register_type(psycopg2.extensions.UNICODE, conn)
         return conn
     conn = sqlite3.connect(_DB_PATH)
     conn.row_factory = sqlite3.Row

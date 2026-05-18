@@ -10,10 +10,23 @@ import json
 import os
 import re
 import socket
-import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
+
+try:
+    import psycopg2
+    import psycopg2.extras
+    _PSYCOPG2_OK = True
+except ImportError:
+    import sqlite3
+    _PSYCOPG2_OK = False
+
+try:
+    from supabase import create_client as _sb_create
+    _SUPABASE_LIB_OK = True
+except ImportError:
+    _SUPABASE_LIB_OK = False
 
 _env_path = Path(__file__).parent / ".env"
 if _env_path.exists():
@@ -73,36 +86,102 @@ _DB_PATH     = os.path.join(os.path.dirname(__file__), "breaker_data.db")
 _IMAGES_DIR  = os.path.join(os.path.dirname(__file__), "scans_images")
 os.makedirs(_IMAGES_DIR, exist_ok=True)
 
+# ── Persistence backend ───────────────────────────────────────────────────────
+DATABASE_URL         = os.environ.get("DATABASE_URL", "")
+SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_STORAGE_BUCKET     = "scan-images"
+_USE_POSTGRES       = bool(DATABASE_URL) and _PSYCOPG2_OK
+_USE_SUPABASE_STORAGE = bool(SUPABASE_URL and SUPABASE_SERVICE_KEY and _SUPABASE_LIB_OK)
+
+_sb_client = None
+if _USE_SUPABASE_STORAGE:
+    try:
+        _sb_client = _sb_create(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        try:
+            _sb_client.storage.create_bucket(_STORAGE_BUCKET, {"public": True})
+        except Exception:
+            pass  # bucket already exists
+        print(f"[STORAGE] Supabase Storage ready — bucket: {_STORAGE_BUCKET}")
+    except Exception as _e:
+        print(f"[STORAGE] Supabase init failed: {_e}")
+        _sb_client = None
+
 def _get_db():
+    if _USE_POSTGRES:
+        url = DATABASE_URL
+        if "sslmode" not in url:
+            url += ("&" if "?" in url else "?") + "sslmode=require"
+        conn = psycopg2.connect(url)
+        return conn
     conn = sqlite3.connect(_DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+def _fetchall(cur):
+    if _USE_POSTGRES:
+        return [dict(r) for r in cur.fetchall()]
+    return [dict(r) for r in cur.fetchall()]
+
+def _fetchone(cur):
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return dict(row)
+
+def _execute(conn, sql, params=()):
+    if _USE_POSTGRES:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    else:
+        cur = conn.cursor()
+    cur.execute(sql, params)
+    return cur
+
 def _init_db():
     conn = _get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id           TEXT PRIMARY KEY,
-            project_name TEXT NOT NULL,
-            site         TEXT,
-            inspector    TEXT,
-            created_at   TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS scans (
-            id              TEXT PRIMARY KEY,
-            project_id      TEXT,
-            timestamp       TEXT NOT NULL,
-            username        TEXT,
-            panel_type      TEXT,
-            notes           TEXT,
-            safety_warnings TEXT,
-            task            TEXT,
-            image_path      TEXT,
-            FOREIGN KEY (project_id) REFERENCES projects(id)
-        );
-    """)
-    conn.commit()
+    if _USE_POSTGRES:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS projects (
+                id           TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                site         TEXT,
+                inspector    TEXT,
+                created_at   TEXT NOT NULL
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS scans (
+                id              TEXT PRIMARY KEY,
+                project_id      TEXT,
+                timestamp       TEXT NOT NULL,
+                username        TEXT,
+                panel_type      TEXT,
+                notes           TEXT,
+                safety_warnings TEXT,
+                task            TEXT,
+                image_path      TEXT,
+                FOREIGN KEY (project_id) REFERENCES projects(id)
+            )
+        """)
+        conn.commit()
+        cur.close()
+    else:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY, project_name TEXT NOT NULL,
+                site TEXT, inspector TEXT, created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS scans (
+                id TEXT PRIMARY KEY, project_id TEXT, timestamp TEXT NOT NULL,
+                username TEXT, panel_type TEXT, notes TEXT,
+                safety_warnings TEXT, task TEXT, image_path TEXT,
+                FOREIGN KEY (project_id) REFERENCES projects(id)
+            );
+        """)
+        conn.commit()
     conn.close()
+    print(f"[DB] Backend: {'PostgreSQL (Supabase)' if _USE_POSTGRES else 'SQLite (local)'}")
 
 _init_db()
 # ------------------------------------
@@ -2061,50 +2140,61 @@ def analyze(body: AnalyzeRequest):
 
     _executor.shutdown(wait=False)
 
-    # --- Persist scan to SQLite ---
+    # --- Persist scan ---
     try:
-        scan_id    = str(uuid.uuid4())
-        timestamp  = datetime.utcnow().isoformat()
+        scan_id   = str(uuid.uuid4())
+        timestamp = datetime.utcnow().isoformat()
 
-        # Save image to disk
+        # Save image — Supabase Storage if available, else local disk
         img_filename = f"{scan_id}.jpg"
-        img_path     = os.path.join(_IMAGES_DIR, img_filename)
-        with open(img_path, "wb") as _imgf:
-            _imgf.write(base64.b64decode(body.imageBase64))
+        img_bytes    = base64.b64decode(body.imageBase64)
+        if _sb_client:
+            try:
+                _sb_client.storage.from_(_STORAGE_BUCKET).upload(
+                    img_filename, img_bytes, {"content-type": "image/jpeg"}
+                )
+                image_ref = f"{SUPABASE_URL}/storage/v1/object/public/{_STORAGE_BUCKET}/{img_filename}"
+                print(f"[STORAGE] Uploaded to Supabase: {img_filename}")
+            except Exception as _se:
+                print(f"[STORAGE] Upload error: {_se}")
+                image_ref = img_filename
+        else:
+            img_path = os.path.join(_IMAGES_DIR, img_filename)
+            with open(img_path, "wb") as _imgf:
+                _imgf.write(img_bytes)
+            image_ref = img_filename
+
+        ph = "%s" if _USE_POSTGRES else "?"
 
         # Upsert project if metadata provided
         project_id = None
         if body.projectName:
             conn = _get_db()
-            existing = conn.execute(
-                "SELECT id FROM projects WHERE project_name=? AND site=? AND inspector=?",
+            cur = _execute(conn,
+                f"SELECT id FROM projects WHERE project_name={ph} AND site={ph} AND inspector={ph}",
                 (body.projectName, body.site or "", body.inspector or "")
-            ).fetchone()
+            )
+            existing = _fetchone(cur)
             if existing:
                 project_id = existing["id"]
             else:
                 project_id = str(uuid.uuid4())
-                conn.execute(
-                    "INSERT INTO projects (id, project_name, site, inspector, created_at) VALUES (?,?,?,?,?)",
+                _execute(conn,
+                    f"INSERT INTO projects (id, project_name, site, inspector, created_at) VALUES ({ph},{ph},{ph},{ph},{ph})",
                     (project_id, body.projectName, body.site or "", body.inspector or "", timestamp)
                 )
                 conn.commit()
             conn.close()
 
         conn = _get_db()
-        conn.execute(
-            "INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
+        _execute(conn,
+            f"INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path) "
+            f"VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})",
             (
-                scan_id,
-                project_id,
-                timestamp,
-                body.username or "",
-                data.get("panel_type", ""),
-                data.get("notes", ""),
+                scan_id, project_id, timestamp, body.username or "",
+                data.get("panel_type", ""), data.get("notes", ""),
                 json.dumps(data.get("safety_warnings", [])),
-                body.task,
-                img_filename,
+                body.task, image_ref,
             )
         )
         conn.commit()
@@ -2245,44 +2335,48 @@ def locate_vbb(body: LocateVbbRequest):
 @app.get("/api/projects")
 def list_projects():
     conn = _get_db()
-    rows = conn.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
+    cur  = _execute(conn, "SELECT * FROM projects ORDER BY created_at DESC")
+    rows = _fetchall(cur)
     conn.close()
-    return JSONResponse(content=[dict(r) for r in rows])
+    return JSONResponse(content=rows)
 
 
 @app.get("/api/scans")
 def list_scans(project_id: Optional[str] = None, username: Optional[str] = None):
-    conn  = _get_db()
-    query = """
+    conn    = _get_db()
+    ph      = "%s" if _USE_POSTGRES else "?"
+    query   = """
         SELECT s.*, p.project_name, p.site, p.inspector
         FROM scans s
         LEFT JOIN projects p ON s.project_id = p.id
     """
-    args  = []
+    args    = []
     filters = []
     if project_id:
-        filters.append("s.project_id = ?")
+        filters.append(f"s.project_id = {ph}")
         args.append(project_id)
     if username:
-        filters.append("s.username = ?")
+        filters.append(f"s.username = {ph}")
         args.append(username)
     if filters:
         query += " WHERE " + " AND ".join(filters)
     query += " ORDER BY s.timestamp DESC"
-    rows = conn.execute(query, args).fetchall()
+    cur  = _execute(conn, query, args)
+    rows = _fetchall(cur)
     conn.close()
-    result = []
-    for r in rows:
-        row = dict(r)
+    for row in rows:
         row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
-        result.append(row)
-    return JSONResponse(content=result)
+    return JSONResponse(content=rows)
 
 
 @app.get("/api/scan-image/{filename}")
 def get_scan_image(filename: str):
     if not filename.replace("-", "").replace(".", "").isalnum():
         return JSONResponse(status_code=400, content={"error": "Invalid filename"})
+    if _sb_client:
+        return RedirectResponse(
+            url=f"{SUPABASE_URL}/storage/v1/object/public/{_STORAGE_BUCKET}/{filename}"
+        )
     path = os.path.join(_IMAGES_DIR, filename)
     if not os.path.isfile(path):
         return JSONResponse(status_code=404, content={"error": "Image not found"})
@@ -2292,13 +2386,14 @@ def get_scan_image(filename: str):
 @app.get("/api/scans/{scan_id}")
 def get_scan(scan_id: str):
     conn = _get_db()
-    row  = conn.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
+    ph   = "%s" if _USE_POSTGRES else "?"
+    cur  = _execute(conn, f"SELECT * FROM scans WHERE id = {ph}", (scan_id,))
+    row  = _fetchone(cur)
     conn.close()
     if not row:
         return JSONResponse(status_code=404, content={"error": "Scan not found"})
-    result = dict(row)
-    result["safety_warnings"] = json.loads(result["safety_warnings"] or "[]")
-    return JSONResponse(content=result)
+    row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
+    return JSONResponse(content=row)
 
 # --------------------------------
 

@@ -243,7 +243,9 @@ function renderGrid(scans) {
     return;
   }
   const html = scans.map(s => {
-    const imgSrc   = s.image_path ? `${API}/api/scan-image/${s.image_path}` : null;
+    const imgSrc   = s.image_path
+      ? (s.image_path.startsWith('http') ? s.image_path : `${API}/api/scan-image/${s.image_path}`)
+      : null;
     const ptCls    = panelBadgeClass(s.panel_type);
     const projName = s.project_name || 'No project';
     const site     = s.site || s.username || '—';
@@ -285,7 +287,9 @@ function renderGrid(scans) {
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function openPrint(scan) {
-  const imgSrc = scan.image_path ? `${API}/api/scan-image/${scan.image_path}` : null;
+  const imgSrc = scan.image_path
+    ? (scan.image_path.startsWith('http') ? scan.image_path : `${API}/api/scan-image/${scan.image_path}`)
+    : null;
   const date   = new Date((scan.timestamp||'') + (scan.timestamp&&scan.timestamp.endsWith('Z')?'':'Z'));
   const dateStr = date.toLocaleString('en-GB', { dateStyle:'full', timeStyle:'short' });
   const warns  = (scan.safety_warnings||[]);

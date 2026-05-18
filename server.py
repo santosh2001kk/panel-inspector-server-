@@ -160,25 +160,39 @@ class AnalyzeRequest(BaseModel):
 
 
 def _official_panel_summary(panel_type: str) -> str:
-    """Returns official Schneider Electric definition for each panel type."""
+    """Returns official definition for each panel type (Schneider and ABB)."""
     pt = panel_type.lower()
     if "prismaset g" in pt or "prisma g" in pt:
         return (
-            "Panel building system for switchboards up to 630A, IEC 61439-1&2 compliant. "
+            "Schneider Electric panel building system for switchboards up to 630A, IEC 61439-1&2 compliant. "
             "Modular fixed-mounted distribution board using Linergy busbar system (up to 630A / 50kA). "
             "Integrates MCCBs (Compact NS/NSX) and MCBs (Acti9/iC60). IP30, 1230×600×250mm standard enclosure."
         )
     if "prismaset p" in pt or "prisma p" in pt:
         return (
-            "Power switchboard system up to 4000A with Vertical Busbar Box (VBB) compartment. "
+            "Schneider Electric power switchboard system up to 4000A with Vertical Busbar Box (VBB) compartment. "
             "Supports withdrawable MasterPact ACBs and fixed Compact NS/NSX MCCBs. "
             "IEC 61439-1&2 compliant. VBB remains LIVE at all times — even with main breaker OFF."
         )
     if "okken" in pt:
         return (
-            "High-power MV/LV switchboard for currents up to 6300A. "
+            "Schneider Electric high-power MV/LV switchboard for currents up to 6300A. "
             "Draw-out withdrawable cubicle design with horizontal busbar system (HBB) at the top. "
             "Supports MasterPact MTZ ACBs. IEC 61439-1&2 compliant. HBB remains LIVE during intervention."
+        )
+    if "abb mns" in pt:
+        return (
+            "ABB MNS low-voltage switchgear system — modular, type-tested IEC 61439-2 compliant. "
+            "Horizontal draw-out functional units (motor starters, feeders). "
+            "Used as Motor Control Centres (MCC) and power distribution boards up to 6300A. "
+            "Busbar system remains live during individual unit withdrawal — isolate upstream before working."
+        )
+    if "abb artu" in pt or "abb artu k" in pt or "abb artu l" in pt:
+        return (
+            "ABB ArTu modular LV switchboard — IEC 61439-1&2 compliant, up to 4000A. "
+            "Modular floor-standing system with glass/transparent doors and visible DIN-rail breakers. "
+            "Characteristic red top bar. Integrates ABB Emax 2 ACBs, Tmax XT MCCBs, and System pro M MCBs. "
+            "Busbar compartment may remain energised even with outgoing breakers open."
         )
     return ""
 
@@ -523,6 +537,66 @@ def catalogue_knowledge(panel_type: str, task: str) -> str:
             )
         return base
 
+    # ── ABB ArTu ─────────────────────────────────────────────────────────────
+    if "abb artu" in pt:
+        base = (
+            "\n\n--- ABB CATALOGUE REFERENCE: ArTu Modular LV Switchboard ---\n"
+            "PHYSICAL LAYOUT:\n"
+            "  - Modular floor-standing LV switchboard, IEC 61439-1&2 type-tested\n"
+            "  - Characteristic red horizontal top rail/bar across the full width\n"
+            "  - Transparent or glass doors showing DIN-rail mounted breakers\n"
+            "  - Integrates: ABB Emax 2 ACBs, Tmax XT/T MCCBs, System pro M / S200 MCBs\n"
+            "  - Busbar system: horizontal copper busbars, up to 4000A / 100kA\n\n"
+            "CRITICAL SAFETY:\n"
+            "  - Horizontal busbars at top remain LIVE even with all outgoing breakers OPEN\n"
+            "  - Always LOTO on upstream supply before opening any door\n"
+            "  - Verify dead with approved VAT (Voltage Absence Tester) — all three phases + neutral\n"
+            "  - Arc flash risk exists even with individual breakers tripped — busbar still live\n"
+            "  - IEC 60900 insulated tools mandatory for any live-adjacent work\n\n"
+        )
+        if t in ("maintenance", "replacement", "modification", "commissioning"):
+            return base + (
+                f"TASK GUIDANCE ({t.upper()}):\n"
+                "  1. LOTO on upstream incomer — verify dead with VAT\n"
+                "  2. For Tmax XT/T MCCB: check rating, trip unit type (thermal-magnetic or electronic)\n"
+                "  3. For Emax 2 ACB: rack to DISCONNECTED position — lock with padlock — test dead\n"
+                "  4. Replacement breakers must be ABB type-tested for ArTu busbar system\n"
+                "  5. After work: close all doors, remove LOTO, test operation before re-energising\n"
+                "  6. IEC 60439 / IEC 61439-2 form of separation — verify correct form before opening\n"
+            )
+        return base
+
+    # ── ABB MNS ──────────────────────────────────────────────────────────────
+    if "abb mns" in pt:
+        base = (
+            "\n\n--- ABB CATALOGUE REFERENCE: MNS LV Switchgear ---\n"
+            "PHYSICAL LAYOUT:\n"
+            "  - Modular type-tested LV switchgear, IEC 61439-2 compliant\n"
+            "  - Horizontal draw-out functional units (motor starters, feeders, tie feeders)\n"
+            "  - Compartmentalised construction — Form 4b separation standard\n"
+            "  - Typical use: Motor Control Centres (MCC), power distribution up to 6300A\n"
+            "  - ABB Emax 2 ACBs as incomers; Tmax XT MCCBs as feeders; contactors for motors\n\n"
+            "CRITICAL SAFETY:\n"
+            "  - Busbar compartment ALWAYS LIVE — isolated from functional unit compartments by shutters\n"
+            "  - Draw-out units can be withdrawn WITHOUT isolating the busbar (Form 4b design)\n"
+            "  - BUT: incoming terminals of the drawn-out position remain live — do NOT touch\n"
+            "  - LOTO mandatory before any work inside the busbar compartment\n"
+            "  - Verify dead on both supply AND load sides of any functional unit\n"
+            "  - Arc flash risk: high energy available at busbar. PPE Cat 2+ minimum\n\n"
+        )
+        if t in ("maintenance", "replacement", "modification", "commissioning"):
+            return base + (
+                f"TASK GUIDANCE ({t.upper()}):\n"
+                "  1. Identify functional unit type (motor starter, feeder, bus coupler)\n"
+                "  2. Move draw-out unit to TEST position → verify control before DISCONNECTED\n"
+                "  3. Move to DISCONNECTED → lock with padlock → apply LOTO tag\n"
+                "  4. Verify dead on load side with approved VAT\n"
+                "  5. Replacement units must match: frame size, rating, draw-out cassette type\n"
+                "  6. After reinsertion: TEST position first → functional test → CONNECTED\n"
+                "  7. Busbar compartment work requires full upstream isolation — never open live\n"
+            )
+        return base
+
     return ""  # unknown panel type
 
 
@@ -555,16 +629,24 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
         "  - If the RIGHT side has a plain blank narrow door → busbar_side = 'right'\n"
         "  - If you cannot determine it clearly → busbar_side = 'unknown'\n"
         "For PrismaSeT G and Okken → busbar_side = 'unknown'\n\n"
-        "BREAKER CLASSIFICATION RULES (Schneider Electric) — use the SPECIFIC PRODUCT NAME as the label:\n"
-        "- MasterPact MTZ or MasterPact NT: Very large and bulky ACB, typically 630A or above. "
-        "Has visible arc chambers, large front face, heavy construction. Label as 'MasterPact MTZ' or 'MasterPact NT'.\n"
-        "- Compact NSX or Compact NS: Medium-sized MCCB, rectangular molded plastic body, 16A–630A. "
-        "Wider than MCBs, solid rectangular shape. Label as 'Compact NSX' or 'Compact NS'.\n"
-        "- Acti9, iC60, or Multi9: Small and slim MCB, modular, up to 125A. "
-        "Usually arranged in a row of identical thin units. Label as 'Acti9', 'iC60', or 'Multi9'.\n"
-        "If you cannot distinguish between MTZ and NT, use 'MasterPact'. "
-        "If you cannot distinguish between NSX and NS, use 'Compact NSX'. "
-        "If you cannot distinguish between Acti9/iC60/Multi9, use 'Acti9'.\n"
+        "BREAKER CLASSIFICATION RULES — use the SPECIFIC PRODUCT NAME as the label:\n\n"
+        "SCHNEIDER ELECTRIC breakers:\n"
+        "- MasterPact MTZ or MasterPact NT: Very large ACB (630A+), draw-out, big front face with arc chambers. "
+        "Label as 'MasterPact MTZ' or 'MasterPact NT'.\n"
+        "- Compact NSX or Compact NS: Medium MCCB, rectangular molded plastic body, 16A–630A, fixed-mount. "
+        "Label as 'Compact NSX' or 'Compact NS'.\n"
+        "- Acti9, iC60, or Multi9: Small slim modular MCB, up to 125A, thin identical units in a row. "
+        "Label as 'Acti9', 'iC60', or 'Multi9'.\n"
+        "If unsure MTZ vs NT → 'MasterPact'. If unsure NSX vs NS → 'Compact NSX'. If unsure MCB type → 'Acti9'.\n\n"
+        "ABB breakers:\n"
+        "- Emax 2 or SACE Emax: Very large ABB ACB (630A+), draw-out, large front face. "
+        "Label as 'ABB Emax 2' or 'ABB Emax'.\n"
+        "- Tmax XT or Tmax T: Medium ABB MCCB, compact molded body, 16A–630A. "
+        "Label as 'ABB Tmax XT' or 'ABB Tmax T'.\n"
+        "- System pro M / S200 / S280: Small slim ABB MCB, modular, up to 125A. "
+        "Label as 'ABB S200' or 'ABB System pro M'.\n"
+        "If unsure Emax model → 'ABB Emax'. If unsure Tmax model → 'ABB Tmax XT'. If unsure MCB → 'ABB S200'.\n\n"
+        "USE the brand's product names matching the panel brand you identified.\n"
         "IMPORTANT: Do NOT label cable ducts, busbars, terminals, contactors, meters, or enclosure parts as breakers. "
         "Only label actual circuit breakers.\n"
     )
@@ -577,7 +659,7 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
             else f"5. In notes, write one sentence summarising the breakers found in the work zone.\n"
         )
         return (
-            f"You are an electrical panel safety inspector analyzing a Schneider Electric panel.\n\n"
+            f"You are an electrical panel safety inspector analyzing an LV switchboard (Schneider Electric or ABB).\n\n"
             f"{breaker_rules}\n"
             f"The user has drawn a WORK ZONE on this image. Coordinates are normalized to 0-1000:\n"
             f"  Work Zone     (green box): ymin={work_zone.ymin}, xmin={work_zone.xmin}, ymax={work_zone.ymax}, xmax={work_zone.xmax}\n"
@@ -595,7 +677,7 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
             else "In notes, write one sentence summarising what you found."
         )
         return (
-            f"You are an electrical panel safety inspector analyzing a Schneider Electric panel.\n\n"
+            f"You are an electrical panel safety inspector analyzing an LV switchboard (Schneider Electric or ABB).\n\n"
             f"{breaker_rules}\n"
             f"1. Identify the panel type and set panel_type.\n"
             f"2. Write a one-sentence panel_summary.\n"
@@ -1094,6 +1176,35 @@ def generate_safety_assessment(panel_type: str, work_zone: Optional[Zone], break
             w.append("🔧 ERMS: MTZ detected as incomer — activate ERMS before any live work to reduce arc flash energy.")
         return w
 
+    # ── ABB ArTu / ABB MNS ───────────────────────────────────────────────────
+    elif "abb" in pt:
+        is_mns = "mns" in pt
+        panel_label = "ABB MNS" if is_mns else "ABB ArTu"
+        if position == "TOP":
+            w = [
+                "Arc flash risk is Significant",
+                f"🔒 LOTO on upstream incomer supply. VAT check on all three phases + neutral ({panel_label}).",
+                f"⚡ Horizontal busbars at TOP of {panel_label} remain LIVE even with outgoing breakers open — do NOT touch.",
+                "🦺 PPE: Arc flash Cat 1 minimum — select higher category if busbar proximity confirmed.",
+            ]
+        elif position == "MIDDLE":
+            w = [
+                "Arc flash risk is Significant",
+                f"🔒 LOTO on upstream supply. VAT check — verify dead on both supply AND load sides ({panel_label}).",
+                f"⚡ Electric shock risk throughout. Busbar compartment live. Arc flash risk near any ABB Emax / Tmax device.",
+                "🦺 PPE: Arc flash Cat 1–2 minimum depending on proximity to busbars.",
+            ]
+        else:  # BOTTOM
+            w = [
+                "Arc flash risk is Significant",
+                f"🔒 LOTO on upstream supply from BOTTOM incomer. VAT check ({panel_label}).",
+                "⚠️ Risk of dropping tools/parts — secure all equipment before starting work.",
+                "🦺 PPE: Arc flash Cat 1 minimum.",
+            ]
+        if is_mns:
+            w.append("🔧 ABB MNS draw-out: move functional unit to DISCONNECTED position and lock before withdrawing — incoming terminals remain live.")
+        return w
+
     return []
 
 
@@ -1151,42 +1262,61 @@ def health():
 
 
 def identify_panel_only(image_b64: str, mime_type: str) -> dict:
-    """Just identify the panel type — no bounding boxes."""
+    """Identify panel brand (Schneider / ABB) and sub-type — no bounding boxes."""
     prompt = (
-        "You are a Schneider Electric panel expert. Study this panel image carefully before classifying.\n\n"
+        "You are an LV switchboard expert for Schneider Electric AND ABB panels. "
+        "Study this panel image carefully and classify it step by step.\n\n"
 
-        "VISUAL CHECKLIST — answer each question mentally before deciding:\n\n"
+        "━━━ STEP 1 — IDENTIFY THE BRAND ━━━\n\n"
 
-        "Q1. Is this panel very large, dark grey/charcoal, with DOUBLE hinged doors per section?\n"
-        "    Each section has TWO doors side by side that open outward. Floor-standing industrial cabinet.\n"
+        "CHECK FOR ABB FIRST:\n"
+        "  Look for ANY of these ABB identifiers:\n"
+        "  • 'ABB' logo (red letters or red square logo anywhere on the panel)\n"
+        "  • A distinctive RED horizontal strip/rail running across the very TOP of the enclosure\n"
+        "  • Red coloured top frame or header bar (not just a warning sticker)\n"
+        "  • ABB product labels: 'Emax', 'Tmax', 'System pro M', 'SACE', 'MNS', 'ArTu'\n"
+        "  If ANY of the above → this is an ABB panel. Go to STEP 2-ABB.\n\n"
+
+        "If NO ABB identifiers found → this is a Schneider Electric panel. Go to STEP 2-SE.\n\n"
+
+        "━━━ STEP 2-ABB — IDENTIFY ABB SUB-TYPE ━━━\n\n"
+
+        "Q-ABB-1. Do you see HORIZONTAL DRAW-OUT units (modules that slide out sideways like drawers)?\n"
+        "    MNS has standardised horizontal draw-out functional units, often multiple rows of identical\n"
+        "    drawer-style modules. Heavy industrial floor-standing cabinet, typically used as MCC.\n"
+        "    → YES = ABB MNS. STOP.\n\n"
+
+        "Q-ABB-2. Do you see a MODULAR panel with TRANSPARENT or glass doors showing DIN-rail mounted\n"
+        "    breakers (MCBs/MCCBs) on visible trunking rails? Red top bar, grey body, modular sections\n"
+        "    side by side. The red top rail is the most distinctive ArTu feature.\n"
+        "    → YES = ABB ArTu. STOP.\n\n"
+
+        "If ABB but sub-type unclear → set panel_type to 'ABB ArTu' as default.\n\n"
+
+        "━━━ STEP 2-SE — IDENTIFY SCHNEIDER SUB-TYPE ━━━\n\n"
+
+        "Q-SE-1. Is this panel very large, dark grey/charcoal, with DOUBLE hinged doors per section?\n"
+        "    Each section has TWO doors side by side opening outward. Floor-standing heavy industrial.\n"
         "    → YES = Okken. STOP.\n\n"
 
-        "Q2. Do you see a MasterPact ACB (Air Circuit Breaker) as the main incomer?\n"
-        "    MasterPact looks like: a large DRAW-OUT unit (it slides out on a cradle/chassis),\n"
-        "    front face has a big operating handle or rotary knob, trip/reset button, current rating label\n"
-        "    (e.g. 800A, 1250A, 1600A, 2500A). It occupies a FULL cubicle height and is much wider/taller\n"
-        "    than any MCCB. You may also see 'MasterPact' or 'MTZ' or 'NT' printed on it.\n"
+        "Q-SE-2. Do you see a MasterPact ACB as the main incomer (very large draw-out unit on a cradle,\n"
+        "    big operating handle, 'MasterPact'/'MTZ'/'NT' label, 800A–2500A rating)?\n"
         "    → YES = PrismaSeT P. STOP.\n\n"
 
-        "Q3. Do you see a NARROW blank door on the LEFT or RIGHT side of the panel?\n"
-        "    This VBB door is completely plain grey metal — no handles, no breakers, no labels, no cutouts.\n"
-        "    It is visibly NARROWER (roughly half the width) compared to the breaker cubicle doors next to it.\n"
+        "Q-SE-3. Do you see a NARROW completely blank door on the LEFT or RIGHT side (the VBB)?\n"
+        "    Plain grey metal, no handles, no breakers, visibly narrower than adjacent doors.\n"
         "    → YES = PrismaSeT P. STOP.\n\n"
 
-        "Q4. Are ALL breakers compact MCCBs / MCBs (Compact NS, NSX, INS) with NO large draw-out unit?\n"
-        "    MCCBs are fixed-mount, smaller (typically 100-630A), bolted directly to busbar.\n"
-        "    All cubicle doors are similar width. No blank side compartment.\n"
+        "Q-SE-4. All breakers are fixed-mount MCCBs/MCBs, similar-width doors, no blank side compartment?\n"
         "    → YES = PrismaSeT G.\n\n"
 
-        "IMPORTANT: If you see a large main breaker that could be an ACB, classify as PrismaSeT P — "
-        "do NOT call it PrismaSeT G unless you are certain there is absolutely no ACB and no VBB.\n\n"
+        "IMPORTANT: If the image does NOT show an electrical panel (person, animal, food, vehicle,\n"
+        "landscape, etc.) → set panel_type to 'Not a Panel' and describe what it shows in panel_summary.\n\n"
 
-        "IMPORTANT: If the image does NOT show an electrical panel at all (e.g. it is a person, animal, "
-        "food, vehicle, landscape, or any non-electrical object), set panel_type to 'Not a Panel' and "
-        "in panel_summary describe what the image actually shows (e.g. 'This is a cat').\n\n"
+        "Valid panel_type values: PrismaSeT G, PrismaSeT P, Okken, ABB MNS, ABB ArTu, Not a Panel\n\n"
 
         "Return ONLY valid JSON:\n"
-        '{"panel_type": "PrismaSeT P", "panel_summary": "describe the key feature you used to identify it"}'
+        '{"panel_type": "ABB ArTu", "panel_summary": "describe the key visual feature used to identify it"}'
     )
     return _call_llm(prompt, [(image_b64, mime_type)])
 
@@ -1458,11 +1588,13 @@ def analyze(body: AnalyzeRequest):
 
     from concurrent.futures import ThreadPoolExecutor
 
-    # ONE call — inject all 3 catalogues, Gemini picks the right one after identifying panel
+    # ONE call — inject all catalogues, Gemini picks the right one after identifying panel
     all_catalogue = (
         catalogue_knowledge("PrismaSeT P", body.task)
         + catalogue_knowledge("PrismaSeT G", body.task)
         + catalogue_knowledge("Okken", body.task)
+        + catalogue_knowledge("ABB ArTu", body.task)
+        + catalogue_knowledge("ABB MNS", body.task)
     )
 
     # Build prompt with task + full catalogue + location safety — single Gemini call does everything

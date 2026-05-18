@@ -703,7 +703,7 @@ def build_prompt(work_zone: Optional[Zone], safety_buffer: Optional[Zone], task:
         "  All breakers are compact fixed-mount MCCBs (Compact NS/NSX) and small MCBs. No large draw-out unit.\n"
         "  → YES = PrismaSeT G.\n\n"
         "CRITICAL: Only classify as PrismaSeT G if you are certain there is NO ACB and NO VBB.\n"
-        "Set panel_type to exactly one of: PrismaSeT G, PrismaSeT P, Okken.\n\n"
+        "Set panel_type to exactly one of: PrismaSeT G, PrismaSeT P, Okken, ABB ArTu, ABB MNS.\n\n"
         "BUSBAR COMPARTMENT DETECTION (PrismaSeT P only):\n"
         "PrismaSeT P has a dedicated 150mm busbar compartment on one side (left or right).\n"
         "This compartment has a NARROW BLANK SOLID DOOR with NO visible breakers, switches, or devices.\n"
@@ -1743,7 +1743,8 @@ def analyze(body: AnalyzeRequest):
         class _DetectionResult(_BM):
             breakers: list[_Breaker] = _F(description="One entry per individual component. For 'standard'/'expert' mode include all visible components. For 'fast' mode include only major breakers.")
             panel_type: str = _F(description=(
-                "Exactly one of: PrismaSeT G, PrismaSeT P, Okken, Not a Panel. "
+                "Exactly one of: PrismaSeT G, PrismaSeT P, Okken, ABB ArTu, ABB MNS, Not a Panel. "
+                "Use ABB ArTu or ABB MNS if the panel has ABB branding (red top bar, ABB logo, ABB breakers). "
                 "Use 'Not a Panel' if the image does not show an electrical switchboard, distribution board, "
                 "or LV panel (e.g. it shows a person, animal, food, vehicle, landscape, etc.)."
             ))
@@ -1869,7 +1870,7 @@ def analyze(body: AnalyzeRequest):
     panel_type    = data.get("panel_type", "Unknown")
     panel_summary = data.get("panel_summary", "")
     data["panel_type"]    = panel_type
-    data["panel_summary"] = _official_panel_summary(panel_type) or panel_summary or f"Schneider Electric {panel_type} panel"
+    data["panel_summary"] = _official_panel_summary(panel_type) or panel_summary or f"{panel_type} panel"
     print(f"[PANEL] {panel_type}")
     print(f"[BUSBAR] side={data.get('busbar_side', 'unknown')}")
 
@@ -2050,6 +2051,30 @@ def analyze(body: AnalyzeRequest):
                     "  C1 [LEFT]: cable compartment (closed section) — terminal connections and incoming cables.\n"
                     "  C2 [RIGHT]: breaker section (open section) — contains MCBs, ACBs, Acti9/iC60 feeder breakers."
                 )
+                sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
+                erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
+                data["task_recommendations"] = erms_recs
+                data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
+                _executor.shutdown(wait=False)
+                return JSONResponse(content=data)
+
+            # ABB ArTu / ABB MNS — use column detection same as PrismaSeT G
+            if "abb" in detected_panel.lower():
+                cubicle_result        = _cubicle_future.result(timeout=120) if _cubicle_future else {"cubicles": [], "cubicle_count": 0}
+                raw_cubicles          = cubicle_result.get("cubicles", [])
+                cubicles_px           = _build_cubicles_px(raw_cubicles)
+                base_line             = _build_cubicle_line(raw_cubicles, include_vbb=False)
+                is_mns                = "mns" in detected_panel.lower()
+                busbar_note = (
+                    "⚠ ABB MNS — busbar compartment runs behind all draw-out units. "
+                    "Move unit to DISCONNECTED + lock before withdrawing."
+                    if is_mns else
+                    "⚠ ABB ArTu — horizontal busbars at TOP remain LIVE even with all outgoing breakers OPEN. "
+                    "LOTO on upstream supply before opening any door."
+                )
+                data["cubicle_count"] = cubicle_result.get("cubicle_count", len(raw_cubicles))
+                data["cubicles"]      = cubicles_px
+                data["cubicle_line"]  = (f"{base_line}\n{busbar_note}").strip()
                 sw = generate_safety_assessment(panel_type, body.workZone, data.get("breakers", []), panel_ymin_raw, panel_ymax_raw)
                 erms_ws, erms_recs = _task_recommendations(body.task, bool(body.workZone))
                 data["task_recommendations"] = erms_recs

@@ -74,6 +74,7 @@ button,input,select{font-family:inherit}
 .badge-pg{color:#3DCD58;border-color:rgba(61,205,88,.25);background:rgba(61,205,88,.07)}
 .badge-pp{color:#4A9EFF;border-color:rgba(74,158,255,.25);background:rgba(74,158,255,.07)}
 .badge-ok{color:#A855F7;border-color:rgba(168,85,247,.25);background:rgba(168,85,247,.07)}
+.badge-ab{color:#FF4757;border-color:rgba(255,71,87,.25);background:rgba(255,71,87,.07)}
 .badge-un{color:#4A6A8A;border-color:rgba(74,106,138,.2);background:rgba(74,106,138,.06)}
 .badge-live{color:#FF4757;border-color:rgba(255,71,87,.25);background:rgba(255,71,87,.07)}
 .badge-dead{color:#3DCD58;border-color:rgba(61,205,88,.2);background:rgba(61,205,88,.05)}
@@ -222,6 +223,7 @@ function panelBadgeClass(pt) {
   if (p.includes('prismaset g') || p.includes('prisma g')) return 'badge-pg';
   if (p.includes('prismaset p') || p.includes('prisma p')) return 'badge-pp';
   if (p.includes('okken'))                                  return 'badge-ok';
+  if (p.includes('abb'))                                    return 'badge-ab';
   return 'badge-un';
 }
 

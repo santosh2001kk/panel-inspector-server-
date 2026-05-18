@@ -14,12 +14,13 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+import sqlite3
+
 try:
     import psycopg2
     import psycopg2.extras
     _PSYCOPG2_OK = True
 except ImportError:
-    import sqlite3
     _PSYCOPG2_OK = False
 
 try:
@@ -83,6 +84,7 @@ app = FastAPI(title="Breaker Detection API", version="1.0.0")
 
 # --- SQLite Database Setup ---
 _DB_PATH     = os.path.join(os.path.dirname(__file__), "breaker_data.db")
+_DB_PATH     = os.path.join(os.path.dirname(__file__), "scans.db")
 _IMAGES_DIR  = os.path.join(os.path.dirname(__file__), "scans_images")
 os.makedirs(_IMAGES_DIR, exist_ok=True)
 

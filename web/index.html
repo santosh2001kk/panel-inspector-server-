@@ -1101,13 +1101,20 @@ function renderAgingResults(d) {
     h += `<div class="fu fu2"><div class="sec-ttl"><i class="fas fa-microchip" style="color:var(--blue)"></i> Detected Products</div>
     <div style="display:flex;flex-direction:column;gap:6px">`;
     products.forEach(p => {
-      const sc = statusColour[p.status] || 'var(--dim)';
-      h += `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:rgba(7,20,34,.8);border:1px solid rgba(255,255,255,.07);border-radius:10px">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text)">${esc(p.product)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">Introduced ${esc(p.introduced)} · ${esc(p.generation)}</div>
+      const sc  = statusColour[p.status] || 'var(--dim)';
+      const pd  = getSeDoc(p.product);
+      h += `<div style="padding:9px 13px;background:rgba(7,20,34,.8);border:1px solid rgba(255,255,255,.07);border-radius:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${esc(p.product)}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Introduced ${esc(p.introduced)} · ${esc(p.generation)}</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:${sc};padding:3px 9px;border-radius:8px;border:1px solid ${sc}22;background:${sc}11;flex-shrink:0">${esc(p.status)}</div>
         </div>
-        <div style="font-size:10px;font-weight:700;color:${sc};padding:3px 9px;border-radius:8px;border:1px solid ${sc}22;background:${sc}11">${esc(p.status)}</div>
+        ${pd ? `<div style="display:flex;gap:6px;margin-top:8px">
+          <a href="${pd.page}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:7px;background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.25);color:#3DCD58;font-size:10px;font-weight:700;text-decoration:none"><i class="fas fa-arrow-up-right-from-square"></i> Product Page</a>
+          ${pd.catalogue ? `<a href="${pd.catalogue}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:7px;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.25);color:#4A9EFF;font-size:10px;font-weight:700;text-decoration:none"><i class="fas fa-file-pdf"></i> Catalogue</a>` : ''}
+        </div>` : ''}
       </div>`;
     });
     h += `</div></div>`;
@@ -1247,6 +1254,7 @@ function renderResults(data) {
       ${data.busbar_side&&data.busbar_side!=='unknown'?`<span class="bb-note"><i class="fas fa-arrows-left-right"></i> Busbar: <b style="color:var(--text)">${data.busbar_side}</b></span>`:''}
     </div>
     ${data.summary?`<p class="p-sum">${esc(data.summary)}</p>`:''}
+    ${docLinks(ptLbl)}
   </div>`;
 
   h += `<div class="stats-row fu fu2">
@@ -1285,11 +1293,16 @@ function renderResults(data) {
     h += `<div class="fu"><div class="sec-ttl"><i class="fas fa-list" style="color:var(--dim)"></i> Detected Components</div><div class="cards-row">`;
     comps.forEach((d,i) => {
       const c=lCol(d);
+      const _doc = getSeDoc(d.label||d.type||'');
       h+=`<div class="d-card" data-idx="${i}" style="border-top:2px solid ${c}22">
         <div class="d-lbl" title="${esc(d.type||'')}">${esc(d.label||d.type||'Component')}</div>
         <div class="d-meta">${esc(d.brand||'')}${d.type_detail?' · '+esc(d.type_detail):''}</div>
         ${d.circuit_label?`<div class="d-meta" style="color:var(--dim)">${esc(d.circuit_label)}</div>`:''}
         ${d.rating?`<span class="d-rat">${esc(d.rating)}</span>`:''}
+        ${_doc?`<div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
+          <a href="${_doc.page}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.2);color:#3DCD58;font-size:9px;font-weight:700;text-decoration:none"><i class="fas fa-arrow-up-right-from-square"></i> Docs</a>
+          ${_doc.catalogue?`<a href="${_doc.catalogue}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.2);color:#4A9EFF;font-size:9px;font-weight:700;text-decoration:none"><i class="fas fa-file-pdf"></i> PDF</a>`:''}
+        </div>`:''}
       </div>`;
     });
     h += `</div></div>`;
@@ -1333,6 +1346,39 @@ async function runSldCompare() {
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function cap(s){ return s?s[0].toUpperCase()+s.slice(1):''; }
+
+/* ═══════════════ SCHNEIDER DOCUMENTATION LINKS (verified on se.com) ═══════════════ */
+const SE_DOCS = {
+  'prismaset p':   { name:'PrismaSeT P',    page:'https://www.se.com/uk/en/product-range/22928838-prismaset-p/',              catalogue:'https://www.se.com/us/en/download/document/DESW024EN/' },
+  'prismaset g':   { name:'PrismaSeT G',    page:'https://www.se.com/uk/en/product-range/22926020-prismaset-g/',              catalogue:'https://www.se.com/us/en/download/document/DESW025EN/' },
+  'okken':         { name:'Okken',           page:'https://www.se.com/uk/en/product-range/1478-okken/',                        catalogue:'https://www.se.com/uk/en/download/document/998-1211343_GMA-GB/' },
+  'masterpact mtz':{ name:'MasterPact MTZ', page:'https://www.se.com/uk/en/product-range/63545-masterpact-mtz/',              catalogue:'https://www.se.com/us/en/download/document/LVPED216026EN_WEB/' },
+  'masterpact nw': { name:'MasterPact NW',  page:'https://www.se.com/uk/en/product-range/1007-masterpact-nw/',                catalogue:'https://www.se.com/us/en/download/document/0613CT0001/' },
+  'masterpact nt': { name:'MasterPact NT',  page:'https://www.se.com/uk/en/product-range/1006-masterpact-nt/',                catalogue:'https://www.se.com/us/en/download/document/0613CT0001/' },
+  'masterpact':    { name:'MasterPact',     page:'https://www.se.com/uk/en/product-range/63545-masterpact-mtz/',              catalogue:'https://www.se.com/us/en/download/document/LVPED216026EN_WEB/' },
+  'compact nsxm':  { name:'Compact NSXm',   page:'https://www.se.com/uk/en/product-range/39910433-compact-nsxm-new-generation/', catalogue:'https://www.se.com/us/en/download/document/LVPED221001EN/' },
+  'compact nsx':   { name:'Compact NSX',    page:'https://www.se.com/uk/en/product-range/39910531-compact-nsx-new-generation/', catalogue:'https://www.se.com/us/en/download/document/LVPED221001EN/' },
+  'compact ns':    { name:'Compact NS',     page:'https://www.se.com/uk/en/product-range/1002-compact-ns/',                   catalogue:'https://www.se.com/uk/en/download/document/LVPED211021EN/' },
+  'acti9':         { name:'Acti9',          page:'https://www.se.com/uk/en/product-range/7556-miniature-circuit-breaker-acti9-ic60/', catalogue:'https://www.se.com/in/en/download/document/Acti9_Product_Catalouge/' },
+  'ic60':          { name:'Acti9 iC60',     page:'https://www.se.com/uk/en/product-range/7556-miniature-circuit-breaker-acti9-ic60/', catalogue:'https://www.se.com/in/en/download/document/Acti9_Product_Catalouge/' },
+  'multi9':        { name:'Multi9',         page:'https://www.se.com/uk/en/product-range/1104-multi9/',                       catalogue:null },
+  'c60':           { name:'Multi9 C60',     page:'https://www.se.com/uk/en/product-range/1104-multi9/',                       catalogue:null },
+};
+// Match product name to doc entry (most specific first)
+const _SE_KEYS = Object.keys(SE_DOCS);
+function getSeDoc(name) {
+  const lower = (name || '').toLowerCase();
+  for (const k of _SE_KEYS) { if (lower.includes(k)) return SE_DOCS[k]; }
+  return null;
+}
+function docLinks(name) {
+  const d = getSeDoc(name);
+  if (!d) return '';
+  return `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+    <a href="${d.page}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.25);color:#3DCD58;font-size:10px;font-weight:700;text-decoration:none" onmouseover="this.style.background='rgba(61,205,88,.16)'" onmouseout="this.style.background='rgba(61,205,88,.08)'"><i class="fas fa-arrow-up-right-from-square"></i> Product Page</a>
+    ${d.catalogue ? `<a href="${d.catalogue}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.25);color:#4A9EFF;font-size:10px;font-weight:700;text-decoration:none" onmouseover="this.style.background='rgba(74,158,255,.16)'" onmouseout="this.style.background='rgba(74,158,255,.08)'"><i class="fas fa-file-pdf"></i> Catalogue</a>` : ''}
+  </div>`;
+}
 
 /* ═══════════════ CHECKLIST ═══════════════ */
 async function loadChecklist() {

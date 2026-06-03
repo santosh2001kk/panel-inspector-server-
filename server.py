@@ -2083,8 +2083,37 @@ def analyze(body: AnalyzeRequest):
                 return JSONResponse(content=data)
 
             # PrismaSeT P — build cubicles deterministically from busbar_side + zone positions
-            # No second LLM call — avoids unreliable secondary Gemini request
-            bs = data.get("busbar_side", "right")
+            # Cross-check busbar_side with the parallel cubicle detection call
+            bs = (data.get("busbar_side") or "unknown").strip().lower()
+
+            # Use the parallel identify_cubicles_generic result to validate/correct busbar_side.
+            # This catches cases where Gemini returns "unknown" or picks the wrong side.
+            if _cubicle_future:
+                try:
+                    _cub_result = _cubicle_future.result(timeout=30)
+                    _raw_cub    = _cub_result.get("cubicles", [])
+                    _vbb_cub    = next((c for c in _raw_cub if c.get("label") == "vbb"), None)
+                    if _vbb_cub and len(_vbb_cub.get("box", [])) >= 4:
+                        _vbb_xmin = _vbb_cub["box"][1]
+                        _vbb_xmax = _vbb_cub["box"][3]
+                        _vbb_cx   = (_vbb_xmin + _vbb_xmax) / 2
+                        _detected_side = "left" if _vbb_cx < 400 else "right"
+                        if bs == "unknown" or bs != _detected_side:
+                            print(f"[BUSBAR] Override: main={bs}, cubicle_future={_detected_side} (VBB cx={_vbb_cx:.0f})")
+                            bs = _detected_side
+                        else:
+                            print(f"[BUSBAR] Confirmed: side={bs} (VBB cx={_vbb_cx:.0f})")
+                    elif bs == "unknown":
+                        bs = "right"
+                        print(f"[BUSBAR] No VBB from cubicle_future, defaulting to right")
+                except Exception as _fe:
+                    print(f"[BUSBAR] Cubicle future failed: {_fe}")
+                    if bs == "unknown":
+                        bs = "right"
+
+            if not bs or bs == "unknown":
+                bs = "right"
+            data["busbar_side"] = bs
 
             # Panel top/bottom from detected breaker Y range (or full extent as fallback)
             p_top    = max((panel_ymin_raw or 50) - 30, 0)

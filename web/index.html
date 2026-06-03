@@ -1368,7 +1368,19 @@ const SE_DOCS = {
 const _SE_KEYS = Object.keys(SE_DOCS);
 function getSeDoc(name) {
   const lower = (name || '').toLowerCase();
-  for (const k of _SE_KEYS) { if (lower.includes(k)) return SE_DOCS[k]; }
+  const noSpace = lower.replace(/\s+/g, '');
+  for (const k of _SE_KEYS) {
+    if (lower.includes(k) || noSpace.includes(k.replace(/\s+/g, ''))) return SE_DOCS[k];
+  }
+  // Fallback: keyword matching for shortened names returned by Gemini
+  if (/nsxm/.test(noSpace))                              return SE_DOCS['compact nsxm'];
+  if (/nsx/.test(noSpace))                               return SE_DOCS['compact nsx'];
+  if (/\bns\b/.test(lower) && !/nsx/.test(noSpace))     return SE_DOCS['compact ns'];
+  if (/mtz/.test(noSpace))                               return SE_DOCS['masterpact mtz'];
+  if (/\bnw\b/.test(lower))                              return SE_DOCS['masterpact nw'];
+  if (/\bnt\b/.test(lower) && !/nsx/.test(noSpace))     return SE_DOCS['masterpact nt'];
+  if (/ic60|acti/.test(noSpace))                         return SE_DOCS['acti9'];
+  if (/multi9|c60/.test(noSpace))                        return SE_DOCS['multi9'];
   return null;
 }
 function docLinks(name) {

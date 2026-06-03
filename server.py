@@ -1866,6 +1866,16 @@ def analyze(body: AnalyzeRequest):
                     })
                 data["breakers"] = filtered_breakers
 
+    # ── Clip structure (column) Y boxes to actual panel extent so lines don't bleed
+    #    to the top/bottom of the photo when there is background above/below the panel.
+    if panel_ymin_raw is not None and panel_ymax_raw is not None:
+        p_clip_top = max(panel_ymin_raw - 20, 0)
+        p_clip_bot = min(panel_ymax_raw + 20, 1000)
+        for b in data["breakers"]:
+            if b.get("category") == "structure" and len(b.get("box", [])) >= 4:
+                b["box"][0] = max(b["box"][0], p_clip_top)
+                b["box"][2] = min(b["box"][2], p_clip_bot)
+
     # Use panel type returned by the single Gemini call
     panel_type    = data.get("panel_type", "Unknown")
     panel_summary = data.get("panel_summary", "")

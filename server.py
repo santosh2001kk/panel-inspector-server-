@@ -2708,6 +2708,110 @@ def compare_sld(body: SldCompareRequest):
 
 # ----------------------------------------
 
+# ── Aging Assessment ──────────────────────────────────────────────────────────
+
+class AgingRequest(BaseModel):
+    imageBase64: str
+    mimeType: str = "image/jpeg"
+
+def _build_aging_prompt() -> str:
+    return (
+        "You are a Schneider Electric certified electrical engineer performing an equipment aging assessment.\n"
+        "Analyse this LV switchboard photo carefully and follow all 4 steps below.\n\n"
+
+        "STEP 1 — IDENTIFY ALL SCHNEIDER ELECTRIC PRODUCTS VISIBLE:\n\n"
+
+        "MCBs (Miniature Circuit Breakers):\n"
+        "- Multi9 (C60N, C60H, C60L): Introduced 1990s. "
+        "Visual: white/grey slim body, blue trip flag, 'Multi9' text on label, older typography, Merlin Gerin or early Schneider logo. Legacy product.\n"
+        "- Acti9 (iC60N, iC60H, iC60L, A9): Introduced 2010. "
+        "Visual: green Schneider Electric branding, 'Acti 9' text on face, modern slim design, modern typography. Current product.\n\n"
+
+        "MCCBs (Moulded Case Circuit Breakers):\n"
+        "- Compact C series (C100, C160, C250): Pre-1994. "
+        "Visual: Merlin Gerin logo, thick beige/grey moulded body, old large handle. Obsolete.\n"
+        "- Compact NS (NS100, NS160, NS250, NS400, NS630): Introduced 1994. "
+        "Visual: thick moulded grey body, 'NS' + rating on faceplate, older Merlin Gerin or early Schneider logo. Legacy.\n"
+        "- Compact NSX (NSX100, NSX160, NSX250, NSX400, NSX630): Introduced 2008. "
+        "Visual: modern Schneider logo, slimmer body than NS, 'NSX' prominently on face, blue/grey colour. Current.\n"
+        "- Compact NSXm: Introduced 2016. "
+        "Visual: ultra-slim design, 'NSXm' on faceplate, most compact MCCB in range. Current.\n\n"
+
+        "ACBs (Air Circuit Breakers):\n"
+        "- MasterPact NT (NT06–NT16): Introduced 1999. "
+        "Visual: large draw-out ACB, 'NT' on nameplate, older MicroLogic trip unit (2.0/5.0/6.0), older chassis. Legacy.\n"
+        "- MasterPact NW (NW08–NW40): Introduced 1999. "
+        "Visual: very large draw-out ACB, 'NW' on nameplate, older MicroLogic trip unit, older racking mechanism. Legacy.\n"
+        "- MasterPact MTZ (MTZ1, MTZ2, MTZ3): Introduced 2018. "
+        "Visual: 'MTZ' on nameplate, MicroLogic X digital touchscreen display, modern chassis design. Current.\n\n"
+
+        "PANEL SYSTEMS:\n"
+        "- Prisma Plus: Pre-2010. Visual: 'Prisma Plus' text on enclosure, older modular design. Legacy.\n"
+        "- PrismaSeT G / PrismaSeT P: 2010–present. Visual: modern enclosure, 'PrismaSeT' branding, green Schneider logo. Current.\n"
+        "- Okken: Current flagship. Modern large cubicle design. Current.\n\n"
+
+        "LOGO IDENTIFICATION (helps when product label is faded):\n"
+        "- Merlin Gerin logo visible → product is pre-2004\n"
+        "- Square SE logo (old style) → 2004–2012 era\n"
+        "- Modern green Schneider Electric logo → 2012–present\n\n"
+
+        "STEP 2 — ASSESS VISUAL AGING SIGNS (report ONLY what you can actually see in the photo):\n"
+        "Look carefully for:\n"
+        "- Yellowing or discolouration of plastic casings\n"
+        "- Faded, unreadable or missing labels\n"
+        "- Burn marks or scorch marks around terminals or casings\n"
+        "- Rust or corrosion on metal parts\n"
+        "- Cracked or broken covers or handles\n"
+        "- Heavy dust or dirt accumulation on surfaces\n"
+        "- Cable insulation damage — cracking, hardening, discolouration\n"
+        "- Any visible heat damage or melted components\n\n"
+
+        "STEP 3 — ESTIMATE AGE AND CONDITION using these official Schneider Electric lifecycle facts:\n"
+        "- Panel structural design life: 25–30 years (source: se.com)\n"
+        "- Recommended maintenance interval: every 3 years (IEC standard)\n"
+        "- After 25 years: full condition assessment is mandatory\n"
+        "- After 30 years: replacement planning is required\n"
+        "- Maximum fault trip operations before replacement: 50\n\n"
+        "Condition definitions:\n"
+        "- Excellent: <10 years old, no visible aging signs, all labels readable\n"
+        "- Good: 10–15 years, minor aging, labels still readable\n"
+        "- Fair: 15–20 years, some aging signs visible\n"
+        "- Poor: 20–25 years, significant aging, multiple signs visible\n"
+        "- Critical: >25 years or severe burn marks / broken parts visible\n\n"
+
+        "STEP 4 — RESPOND WITH ONLY VALID JSON, no markdown, no explanation:\n"
+        '{"panel_type":"detected panel or Unknown",'
+        '"detected_products":[{"product":"exact name","generation":"generation name","introduced":"year","status":"Current/Legacy/Obsolete"}],'
+        '"oldest_product":"name of oldest product detected",'
+        '"estimated_installation_decade":"e.g. 2000s",'
+        '"estimated_age_years":"e.g. 15-20",'
+        '"visual_aging_signs":["list only what you actually see — empty list if none"],'
+        '"no_aging_signs":["positive findings — things that look good"],'
+        '"condition":"Excellent/Good/Fair/Poor/Critical",'
+        '"condition_score":1,'
+        '"eol_status":"Current/Legacy/End of Life/Obsolete",'
+        '"eol_note":"brief note on spare parts availability",'
+        '"maintenance_recommendation":"specific action",'
+        '"replacement_urgency":"None/Plan within 5-8 years/Priority within 2-3 years/Immediate",'
+        '"notes":"one sentence overall assessment"}\n\n'
+        "IMPORTANT: visual_aging_signs must only contain things you can actually see in the photo. Do not assume or guess."
+    )
+
+
+@app.post("/api/aging")
+def aging_assessment(body: AgingRequest):
+    try:
+        prompt = _build_aging_prompt()
+        result = _call_llm(prompt, [(body.imageBase64, body.mimeType)])
+        print(f"[AGING] condition={result.get('condition')} age={result.get('estimated_age_years')} eol={result.get('eol_status')}")
+        return JSONResponse(content=result)
+    except Exception as e:
+        print(f"[AGING] error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ----------------------------------------
+
 
 # Serve the web UI — must be last so API routes take priority
 import os as _os

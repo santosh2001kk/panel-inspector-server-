@@ -1017,8 +1017,50 @@ function renderAgingResults(d) {
   const agingSigns = (d.visual_aging_signs || []);
   const goodSigns  = (d.no_aging_signs || []);
   const products   = (d.detected_products || []);
+  const signs      = agingSigns.map(s => s.toLowerCase()).join(' ');
 
   const statusColour = { Current:'#3DCD58', Legacy:'#FFA502', 'End of Life':'#FF4757', Obsolete:'#FF0000' };
+
+  // ── Generate age-specific safety warnings ──────────────────────────────────
+  const safetyWarns = [];
+  const condL = cond.toLowerCase();
+  const ageNum = parseInt((d.estimated_age_years || '0').split('-')[0]) || 0;
+
+  if (condL === 'critical') {
+    safetyWarns.push({ text: 'Panel exceeds 25-year design life — Schneider Electric mandatory full condition assessment required before any intervention.', crit: true });
+    safetyWarns.push({ text: 'Aged breakers may have degraded interrupting capacity — do not rely on fault protection without professional testing.', crit: true });
+    safetyWarns.push({ text: 'Insulation degradation likely at this age — elevated arc flash and electric shock risk. Treat as higher hazard than rated.', crit: true });
+  } else if (condL === 'poor') {
+    safetyWarns.push({ text: 'Equipment approaching critical age — breaker contact erosion may reduce interrupting capacity below rated value.', crit: true });
+    safetyWarns.push({ text: 'Annual thermographic inspection is mandatory at this age to detect hot spots before failure occurs.', crit: false });
+  } else if (condL === 'fair') {
+    safetyWarns.push({ text: 'Equipment is mid-life — increase inspection frequency from 3-year to annual schedule per Schneider Electric recommendation.', crit: false });
+  }
+
+  if ((d.eol_status || '') === 'Obsolete') {
+    safetyWarns.push({ text: 'Product is OBSOLETE — no spare parts available from Schneider Electric. Any component failure requires full replacement of the panel section.', crit: true });
+  } else if ((d.eol_status || '') === 'End of Life') {
+    safetyWarns.push({ text: 'Product is End of Life — spare part availability is reducing. Order critical spares (trip units, contacts) now before stock runs out.', crit: true });
+  } else if ((d.eol_status || '') === 'Legacy') {
+    safetyWarns.push({ text: 'Legacy product — spare parts still available but reducing. Plan replacement in next maintenance cycle.', crit: false });
+  }
+
+  if (signs.includes('burn') || signs.includes('scorch') || signs.includes('char')) {
+    safetyWarns.push({ text: 'Burn marks detected — breaker may have exceeded maximum 50 fault trip operations (Schneider limit). Do not re-energise without full inspection and replacement.', crit: true });
+  }
+  if (signs.includes('rust') || signs.includes('corrosion')) {
+    safetyWarns.push({ text: 'Corrosion detected — busbar or terminal connections may have increased resistance causing overheating. Inspect all connections immediately, arc flash risk elevated.', crit: true });
+  }
+  if (signs.includes('crack') || signs.includes('broken')) {
+    safetyWarns.push({ text: 'Physical damage detected — damaged covers compromise IP rating and expose live parts. Replace before re-energising.', crit: true });
+  }
+  if (signs.includes('insulation') || signs.includes('cable')) {
+    safetyWarns.push({ text: 'Cable insulation degradation visible — risk of insulation failure and short circuit. Full cable inspection required before next energisation.', crit: true });
+  }
+  if (ageNum >= 25 || condL === 'critical') {
+    safetyWarns.push({ text: 'Equipment over 25 years old — Schneider Electric official policy: mandatory condition assessment and active replacement planning required.', crit: true });
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   let h = '';
 
@@ -1043,6 +1085,16 @@ function renderAgingResults(d) {
     <div class="st-chip"><i class="fas fa-solar-panel" style="color:var(--green)"></i>${esc(d.panel_type || 'Unknown')}</div>
     <div class="st-chip" style="color:${statusColour[d.eol_status]||'var(--dim)'}"><i class="fas fa-circle-info"></i><b>${esc(d.eol_status || '—')}</b></div>
   </div>`;
+
+  // Age-specific safety warnings
+  if (safetyWarns.length) {
+    h += `<div class="fu fu2"><div class="sec-ttl"><i class="fas fa-triangle-exclamation" style="color:var(--amber)"></i> Age-Related Safety Warnings</div>
+    <div class="warn-list">`;
+    safetyWarns.forEach(w => {
+      h += `<div class="w-item ${w.crit ? 'crit' : 'warn'}"><i class="fas ${w.crit ? 'fa-circle-radiation' : 'fa-triangle-exclamation'}"></i><span>${esc(w.text)}</span></div>`;
+    });
+    h += `</div></div>`;
+  }
 
   // Detected products table
   if (products.length) {

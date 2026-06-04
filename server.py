@@ -166,9 +166,15 @@ def _init_db():
                 safety_warnings TEXT,
                 task            TEXT,
                 image_path      TEXT,
+                result_json     TEXT,
                 FOREIGN KEY (project_id) REFERENCES projects(id)
             )
         """)
+        # Add result_json to existing tables that were created before this column
+        try:
+            cur.execute("ALTER TABLE scans ADD COLUMN IF NOT EXISTS result_json TEXT")
+        except Exception:
+            pass
         conn.commit()
         cur.close()
     else:
@@ -181,9 +187,16 @@ def _init_db():
                 id TEXT PRIMARY KEY, project_id TEXT, timestamp TEXT NOT NULL,
                 username TEXT, panel_type TEXT, notes TEXT,
                 safety_warnings TEXT, task TEXT, image_path TEXT,
+                result_json TEXT,
                 FOREIGN KEY (project_id) REFERENCES projects(id)
             );
         """)
+        # Add result_json to existing SQLite tables
+        try:
+            conn.execute("ALTER TABLE scans ADD COLUMN result_json TEXT")
+            conn.commit()
+        except Exception:
+            pass
         conn.commit()
     conn.close()
     print(f"[DB] Backend: {'PostgreSQL (Supabase)' if _USE_POSTGRES else 'SQLite (local)'}")
@@ -2211,27 +2224,42 @@ def analyze(body: AnalyzeRequest):
 
     # --- Persist scan ---
     try:
+        import threading as _threading
         scan_id   = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
 
-        # Save image — Supabase Storage if available, else local disk
         img_filename = f"{scan_id}.jpg"
         img_bytes    = base64.b64decode(body.imageBase64)
+
         if _sb_client:
-            try:
-                _sb_client.storage.from_(_STORAGE_BUCKET).upload(
-                    img_filename, img_bytes, {"content-type": "image/jpeg"}
-                )
-                image_ref = f"{SUPABASE_URL}/storage/v1/object/public/{_STORAGE_BUCKET}/{img_filename}"
-                print(f"[STORAGE] Uploaded to Supabase: {img_filename}")
-            except Exception as _se:
-                print(f"[STORAGE] Upload error: {_se}")
-                image_ref = img_filename
+            # Supabase URL is deterministic — set it immediately, upload in background
+            image_ref = f"{SUPABASE_URL}/storage/v1/object/public/{_STORAGE_BUCKET}/{img_filename}"
+            def _bg_upload(fn, bts):
+                try:
+                    _sb_client.storage.from_(_STORAGE_BUCKET).upload(fn, bts, {"content-type": "image/jpeg"})
+                    print(f"[STORAGE] Background upload complete: {fn}")
+                except Exception as _ue:
+                    print(f"[STORAGE] Background upload error: {_ue}")
+            _threading.Thread(target=_bg_upload, args=(img_filename, img_bytes), daemon=True).start()
         else:
             img_path = os.path.join(_IMAGES_DIR, img_filename)
             with open(img_path, "wb") as _imgf:
                 _imgf.write(img_bytes)
             image_ref = img_filename
+
+        # Build compact result summary for history display
+        all_comps = [b for b in data.get("breakers", []) if b.get("category") != "structure"]
+        def _cnt(keywords): return sum(1 for b in all_comps if any(k in (b.get("type","")).lower() for k in keywords))
+        result_summary = {
+            "breaker_count": len(all_comps),
+            "acb_count":     _cnt(["acb", "masterpact"]),
+            "mccb_count":    _cnt(["mccb", "nsx", "compact ns"]),
+            "mcb_count":     _cnt(["mcb", "acti", "ic60"]),
+            "busbar_side":   data.get("busbar_side", ""),
+            "cubicle_count": data.get("cubicle_count", 0),
+            "summary":       data.get("summary", ""),
+            "warn_count":    len(data.get("safety_warnings", [])),
+        }
 
         ph = "%s" if _USE_POSTGRES else "?"
 
@@ -2257,18 +2285,19 @@ def analyze(body: AnalyzeRequest):
 
         conn = _get_db()
         _execute(conn,
-            f"INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path) "
-            f"VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})",
+            f"INSERT INTO scans (id, project_id, timestamp, username, panel_type, notes, safety_warnings, task, image_path, result_json) "
+            f"VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})",
             (
                 scan_id, project_id, timestamp, body.username or "",
                 data.get("panel_type", ""), data.get("notes", ""),
                 json.dumps(data.get("safety_warnings", [])),
                 body.task, image_ref,
+                json.dumps(result_summary),
             )
         )
         conn.commit()
         conn.close()
-        print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | project={project_id}")
+        print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | {result_summary['breaker_count']} components | project={project_id}")
         data["scan_id"] = scan_id
     except Exception as _db_err:
         import traceback
@@ -2435,6 +2464,14 @@ def list_scans(project_id: Optional[str] = None, username: Optional[str] = None)
     conn.close()
     for row in rows:
         row["safety_warnings"] = json.loads(row["safety_warnings"] or "[]")
+        rj = json.loads(row.pop("result_json", None) or "{}")
+        row["breaker_count"] = rj.get("breaker_count", 0)
+        row["acb_count"]     = rj.get("acb_count", 0)
+        row["mccb_count"]    = rj.get("mccb_count", 0)
+        row["mcb_count"]     = rj.get("mcb_count", 0)
+        row["busbar_side"]   = rj.get("busbar_side", "")
+        row["cubicle_count"] = rj.get("cubicle_count", 0)
+        row["result_summary"] = rj.get("summary", "")
     return JSONResponse(content=rows)
 
 

@@ -201,7 +201,12 @@ def _init_db():
     conn.close()
     print(f"[DB] Backend: {'PostgreSQL (Supabase)' if _USE_POSTGRES else 'SQLite (local)'}")
 
-_init_db()
+try:
+    _init_db()
+except Exception as _db_err:
+    print(f"[DB] PostgreSQL unavailable ({_db_err}), falling back to SQLite")
+    _USE_POSTGRES = False
+    _init_db()
 # ------------------------------------
 
 # --- User credentials store ---

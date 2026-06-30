@@ -615,11 +615,26 @@ button,input,textarea{font-family:inherit}
       <div class="sld-name" id="sldName">Click or drag SLD here</div>
       <div class="sld-hint">PNG · JPG · WEBP</div>
     </div>
+    <button class="btn-cmp" id="btnReadSld" style="display:none" onclick="runSldRead()">
+      <div class="spin" id="spinReadSld"></div>
+      <i class="fas fa-file-magnifying-glass" id="iconReadSld"></i>
+      <span id="txtReadSld">Read SLD</span>
+    </button>
     <button class="btn-cmp" id="btnCmp" style="display:none" onclick="runSldCompare()">
       <div class="spin" id="spinCmp"></div>
       <i class="fas fa-code-compare" id="iconCmp"></i>
       <span id="txtCmp">Compare with Photo</span>
     </button>
+
+    <!-- SLD Read Results -->
+    <div class="sld-cmp" id="sldReadResult" style="display:none">
+      <div class="sld-cmp-head">
+        <i class="fas fa-file-magnifying-glass"></i> SLD Reading
+        <span class="sld-cmp-summary" id="sldReadSummary"></span>
+        <button class="sld-cmp-close" onclick="document.getElementById('sldReadResult').style.display='none'"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="sld-cmp-body" id="sldReadBody"></div>
+    </div>
 
     <div class="zone-section">
       <div class="zone-sect-lbl"><i class="fas fa-vector-square"></i> Work Zone</div>
@@ -940,6 +955,7 @@ sldInput.addEventListener('change', e => {
   const r = new FileReader();
   r.onload = ev => {
     S.sld64 = ev.target.result.split(',')[1];
+    g('btnReadSld').style.display = 'flex';
     g('btnCmp').style.display = S.img64 ? 'flex' : 'none';
     completeStep(3);
   };
@@ -1319,6 +1335,43 @@ function renderError(msg) {
   resultsEl.classList.add('vis');
   requestAnimationFrame(() => renderImg());
   rInner.innerHTML = `<div class="w-item crit fu"><i class="fas fa-circle-xmark"></i><span><b>Detection failed:</b> ${esc(msg)}</span></div>`;
+}
+
+async function runSldRead() {
+  if (!S.sld64) return;
+  const btn=g('btnReadSld'),spin=g('spinReadSld'),icon=g('iconReadSld'),txt=g('txtReadSld');
+  btn.disabled=true; spin.style.display='block'; icon.style.display='none'; txt.textContent='Reading…';
+  try {
+    const res = await fetch('/api/read-sld', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ sldBase64:S.sld64, sldMime:S.sldMime||'image/png' })
+    });
+    const d = await res.json();
+    g('sldReadSummary').textContent = d.summary || '';
+    let html = '';
+    if (d.incoming_supply) {
+      html += `<div class="sld-cmp-section"><div class="sld-cmp-ttl">Incoming Supply</div>
+        <div class="sld-cmp-item sld-match">Voltage: ${d.incoming_supply.voltage||'—'} · Phases: ${d.incoming_supply.phases||'—'} · Main: ${d.incoming_supply.main_rating||'—'}</div></div>`;
+    }
+    if (d.circuits && d.circuits.length) {
+      html += `<div class="sld-cmp-section"><div class="sld-cmp-ttl">Circuits (${d.circuits.length})</div>`;
+      d.circuits.forEach(c => {
+        html += `<div class="sld-cmp-item sld-match"><b>${c.id||''} ${c.name||'—'}</b> — ${c.rating||'—'} ${c.breaker_type||''} ${c.load?'· '+c.load:''}</div>`;
+      });
+      html += '</div>';
+    }
+    if (d.notes && d.notes.length) {
+      html += `<div class="sld-cmp-section"><div class="sld-cmp-ttl">Notes</div>`;
+      d.notes.forEach(n => { html += `<div class="sld-cmp-item sld-disc">${n}</div>`; });
+      html += '</div>';
+    }
+    g('sldReadBody').innerHTML = html;
+    g('sldReadResult').style.display = 'block';
+  } catch(e) {
+    alert('SLD read failed: ' + e.message);
+  } finally {
+    btn.disabled=false; spin.style.display='none'; icon.style.display=''; txt.textContent='Read SLD';
+  }
 }
 
 async function runSldCompare() {

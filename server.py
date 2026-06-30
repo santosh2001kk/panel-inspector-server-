@@ -2735,6 +2735,50 @@ def get_checklist(body: ChecklistRequest):
     })
 
 
+# ── SLD Reader ───────────────────────────────────────────────────────────────
+
+class SldReadRequest(BaseModel):
+    sldBase64: str
+    sldMime:   str = "image/png"
+
+@app.post("/api/read-sld")
+def read_sld(body: SldReadRequest):
+    prompt = (
+        "You are an expert electrical engineer. Analyse this Single Line Diagram (SLD) image carefully.\n\n"
+        "Extract and return ONLY valid JSON in this exact format:\n"
+        "{\n"
+        '  "summary": "Brief description of what this SLD shows",\n'
+        '  "incoming_supply": {"voltage": "...", "phases": "...", "main_rating": "..."},\n'
+        '  "circuits": [\n'
+        '    {"id": "C1", "name": "...", "rating": "...", "breaker_type": "...", "load": "..."}\n'
+        '  ],\n'
+        '  "panel_info": {"brand": "...", "type": "...", "total_circuits": 0},\n'
+        '  "notes": ["any observations, warnings, or unclear elements"]\n'
+        "}\n\n"
+        "Rules:\n"
+        "- Extract every circuit visible in the SLD with its rating and breaker type\n"
+        "- If a field is not visible or unclear, use null\n"
+        "- Be specific — include actual values like 63A, MCB, RCCB, ACB where visible\n"
+        "- Return ONLY the JSON object, no extra text"
+    )
+    try:
+        response = _gemini_with_retry(lambda: client.models.generate_content(
+            model=MODEL,
+            contents=[{
+                "parts": [
+                    {"inline_data": {"mime_type": body.sldMime, "data": body.sldBase64}},
+                    {"text": prompt},
+                ]
+            }]
+        ))
+        raw = response.text.strip().replace("```json","").replace("```","").strip()
+        result = json.loads(raw)
+        print(f"[SLD-READ] circuits={len(result.get('circuits', []))}")
+        return JSONResponse(content=result)
+    except Exception as e:
+        print(f"[SLD-READ] error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ── SLD Comparison ───────────────────────────────────────────────────────────
 
 class SldCompareRequest(BaseModel):

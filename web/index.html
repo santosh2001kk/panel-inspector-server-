@@ -938,6 +938,19 @@ function lockCard(n) {
 function completeStep(n) { setStepState(n, 'done'); }
 
 /* ═══════════════ UPLOAD ═══════════════ */
+let _pendingAction = null; // 'file' or 'cam' — stored while tips are shown
+
+uploadZone.addEventListener('click', e => {
+  if (e.target === fileInput) return; // let input handle itself
+  if (!_tipsShownOnce) { _pendingAction = 'file'; showTips(); }
+  else fileInput.click();
+});
+g('camBtn').addEventListener('click', e => {
+  e.preventDefault();
+  if (!_tipsShownOnce) { _pendingAction = 'cam'; showTips(); }
+  else g('camInput').click();
+});
+
 uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
 uploadZone.addEventListener('drop', e => {
@@ -1607,7 +1620,7 @@ function fwGo(step,answer){
     }
   } else if(step===2){
     fwLockStep('fwS2yes','fwS2no',answer);
-    unlockCard(3); unlockCard(4); showTips();
+    unlockCard(3); unlockCard(4);
     if(answer==='no'){
       document.querySelectorAll('.t-btn').forEach(b=>{ b.classList.toggle('on',b.dataset.task==='operation'); b.disabled=true; });
       S.task='operation';
@@ -1831,6 +1844,7 @@ function fwReset(){
 const TIPS_COUNT = 7;
 let _tipCurrent = 0;
 let _tipTimer = null;
+let _tipsShownOnce = false;
 
 function showTips() {
   _tipCurrent = 0;
@@ -1842,8 +1856,12 @@ function showTips() {
 function closeTips() {
   g('tipsOverlay').classList.remove('open');
   clearInterval(_tipTimer);
-  // scroll to card4
-  setTimeout(() => g('card4').scrollIntoView({behavior:'smooth', block:'start'}), 200);
+  _tipsShownOnce = true;
+  // trigger the pending action after modal closes
+  setTimeout(() => {
+    if (_pendingAction === 'file') { _pendingAction = null; fileInput.click(); }
+    else if (_pendingAction === 'cam') { _pendingAction = null; g('camInput').click(); }
+  }, 300);
 }
 
 function renderTips() {

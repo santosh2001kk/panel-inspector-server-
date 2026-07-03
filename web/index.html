@@ -2114,13 +2114,15 @@ function renderTips() {
     if (el) el.classList.toggle('active', i === _tipCurrent);
     const an = g('anim' + i);
     if (an) {
-      // force animation restart by re-cloning children when becoming active
-      const wasActive = an.classList.contains('active');
-      an.classList.toggle('active', i === _tipCurrent);
-      if (!wasActive && i === _tipCurrent) {
-        an.querySelectorAll('[style*="animation"],[class*="anim-"]').forEach(ch => {
-          const cl = ch.cloneNode(true); ch.parentNode.replaceChild(cl, ch);
-        });
+      if (i === _tipCurrent) {
+        // Save original HTML once, then reset it each time to restart CSS animations
+        if (!an.dataset.origHtml) an.dataset.origHtml = an.innerHTML;
+        an.classList.remove('active');
+        an.innerHTML = an.dataset.origHtml;
+        void an.offsetWidth; // force reflow so browser registers the reset
+        an.classList.add('active');
+      } else {
+        an.classList.remove('active');
       }
     }
   }

@@ -291,7 +291,7 @@ input::placeholder{color:rgba(106,158,192,.4)}
 
 <script>
 const API = window.location.origin;
-if (localStorage.getItem('pi_auth') === '1') { window.location.href = 'index.html'; }
+if (localStorage.getItem('pi_auth') === '1') { window.location.href = 'home.html'; }
 
 function togglePw() {
   const inp = document.getElementById('password');
@@ -325,7 +325,7 @@ async function doLogin(e) {
     if (res.ok) {
       localStorage.setItem('pi_user', username);
       localStorage.setItem('pi_auth', '1');
-      window.location.href = 'index.html';
+      window.location.href = 'home.html';
     } else if (res.status === 401) {
       showErr('Invalid username or password. Please try again.');
     } else {

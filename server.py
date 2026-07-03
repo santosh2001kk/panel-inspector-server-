@@ -1355,7 +1355,7 @@ def read_label(body: LabelRequest):
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/index.html")
+    return RedirectResponse(url="/home.html")
 
 
 @app.get("/health")

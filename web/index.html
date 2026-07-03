@@ -417,6 +417,36 @@ button,input,textarea{font-family:inherit}
   .wiz-wrap{padding:22px 24px 120px}
   .canvas-wrap{min-height:340px}
 }
+
+/* ═══ PHOTO TIPS MODAL ═══ */
+.tips-overlay{position:fixed;inset:0;background:rgba(0,5,15,.85);backdrop-filter:blur(12px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s ease}
+.tips-overlay.open{opacity:1;pointer-events:all}
+.tips-modal{background:linear-gradient(145deg,rgba(10,20,40,.98),rgba(5,12,28,.98));border:1px solid rgba(61,205,88,.2);border-radius:28px;padding:36px 28px 28px;width:min(420px,92vw);position:relative;overflow:hidden}
+.tips-modal::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(61,205,88,.12),transparent 70%);pointer-events:none}
+.tips-header{text-align:center;margin-bottom:28px}
+.tips-header-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2);border-radius:20px;padding:4px 14px;display:inline-block;margin-bottom:10px}
+.tips-header h2{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.tips-header p{font-size:12px;color:var(--muted)}
+.tips-slide{display:none;animation:tipSlideIn .5s cubic-bezier(.34,1.56,.64,1)}
+.tips-slide.active{display:block}
+@keyframes tipSlideIn{from{opacity:0;transform:translateX(40px) scale(.95)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes tipSlideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-40px)}}
+.tip-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:28px 24px;text-align:center;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.tip-icon-wrap{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:28px;animation:tipIconPop .6s cubic-bezier(.34,1.56,.64,1) .1s both}
+@keyframes tipIconPop{from{opacity:0;transform:scale(.4) rotate(-20deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+.tip-title{font-size:16px;font-weight:700;color:#fff}
+.tip-desc{font-size:12px;color:var(--muted);line-height:1.6;max-width:280px}
+.tips-dots{display:flex;justify-content:center;gap:7px;margin:20px 0 22px}
+.tip-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .3s ease;cursor:pointer}
+.tip-dot.active{background:var(--green);width:22px;border-radius:4px}
+.tips-progress{height:2px;background:rgba(255,255,255,.07);border-radius:2px;margin-bottom:22px;overflow:hidden}
+.tips-progress-bar{height:100%;background:linear-gradient(90deg,var(--green),#00d4ff);border-radius:2px;transition:width .3s ease;width:0%}
+.tips-actions{display:flex;gap:10px}
+.tips-skip{flex:1;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.tips-skip:hover{background:rgba(255,255,255,.09);color:#fff}
+.tips-next{flex:2;padding:12px;background:linear-gradient(135deg,#3DCD58,#00b341);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;box-shadow:0 4px 20px rgba(61,205,88,.3)}
+.tips-next:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(61,205,88,.45)}
+.tips-last-btn{background:linear-gradient(135deg,#3DCD58,#00b341)}
 </style>
 </head>
 <body>
@@ -447,6 +477,77 @@ button,input,textarea{font-family:inherit}
     </button>
   </div>
 </nav>
+
+<!-- PHOTO TIPS MODAL -->
+<div class="tips-overlay" id="tipsOverlay">
+  <div class="tips-modal">
+    <div class="tips-header">
+      <div class="tips-header-tag"><i class="fas fa-camera"></i> Before You Shoot</div>
+      <h2>Get the Perfect Shot</h2>
+      <p>Follow these tips for the best AI detection results</p>
+    </div>
+    <div class="tips-progress"><div class="tips-progress-bar" id="tipsProgressBar"></div></div>
+
+    <div class="tips-slide active" id="tip0">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(61,205,88,.15);border:1.5px solid rgba(61,205,88,.3)">🚪</div>
+        <div class="tip-title">Open Panel Door Fully</div>
+        <div class="tip-desc">Make sure the panel door is completely open with nothing blocking the view of the breakers</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip1">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(74,158,255,.15);border:1.5px solid rgba(74,158,255,.3)">📐</div>
+        <div class="tip-title">Shoot Straight On</div>
+        <div class="tip-desc">Stand directly in front of the panel — no angle or tilt. A straight-on shot gives the best detection accuracy</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip2">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(255,200,0,.15);border:1.5px solid rgba(255,200,0,.3)">💡</div>
+        <div class="tip-title">Good Lighting</div>
+        <div class="tip-desc">Avoid strong shadows and flash glare. Use ambient light or torch light pointed away from the panel surface</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip3">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(255,100,100,.15);border:1.5px solid rgba(255,100,100,.3)">🔲</div>
+        <div class="tip-title">Full Panel in Frame</div>
+        <div class="tip-desc">Capture the entire panel from top to bottom — don't crop out any rows of breakers or busbars</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip4">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(180,100,255,.15);border:1.5px solid rgba(180,100,255,.3)">🔍</div>
+        <div class="tip-title">Labels Must Be Readable</div>
+        <div class="tip-desc">Get close enough that breaker ratings and labels are clearly visible — the AI reads them to identify components</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip5">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(0,200,200,.15);border:1.5px solid rgba(0,200,200,.3)">🤚</div>
+        <div class="tip-title">Hold Steady — No Blur</div>
+        <div class="tip-desc">Use both hands or brace against a wall. Motion blur is the most common cause of poor detection results</div>
+      </div>
+    </div>
+    <div class="tips-slide" id="tip6">
+      <div class="tip-card">
+        <div class="tip-icon-wrap" style="background:rgba(61,205,88,.2);border:1.5px solid rgba(61,205,88,.4)">✅</div>
+        <div class="tip-title">You're Ready!</div>
+        <div class="tip-desc">Great — follow these tips and the AI will detect your panel accurately. Let's take the photo!</div>
+      </div>
+    </div>
+
+    <div class="tips-dots" id="tipsDots"></div>
+    <div class="tips-actions">
+      <button class="tips-skip" onclick="closeTips()">Skip</button>
+      <button class="tips-next" id="tipsNextBtn" onclick="tipsNext()">
+        <span id="tipsNextTxt">Next</span>
+        <i class="fas fa-arrow-right" id="tipsNextIcon"></i>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- STEPPER -->
 <div class="stepper-bar">
@@ -1506,7 +1607,7 @@ function fwGo(step,answer){
     }
   } else if(step===2){
     fwLockStep('fwS2yes','fwS2no',answer);
-    unlockCard(3); unlockCard(4);
+    unlockCard(3); unlockCard(4); showTips();
     if(answer==='no'){
       document.querySelectorAll('.t-btn').forEach(b=>{ b.classList.toggle('on',b.dataset.task==='operation'); b.disabled=true; });
       S.task='operation';
@@ -1724,6 +1825,75 @@ function fwReset(){
   setStepState(1,'active');
   S.task='commissioning'; S.isLive=false;
   document.querySelector('.t-btn[data-task="commissioning"]').classList.add('on');
+}
+
+/* ═══════════════ PHOTO TIPS ═══════════════ */
+const TIPS_COUNT = 7;
+let _tipCurrent = 0;
+let _tipTimer = null;
+
+function showTips() {
+  _tipCurrent = 0;
+  renderTips();
+  g('tipsOverlay').classList.add('open');
+  startTipTimer();
+}
+
+function closeTips() {
+  g('tipsOverlay').classList.remove('open');
+  clearInterval(_tipTimer);
+  // scroll to card4
+  setTimeout(() => g('card4').scrollIntoView({behavior:'smooth', block:'start'}), 200);
+}
+
+function renderTips() {
+  // slides
+  for (let i = 0; i < TIPS_COUNT; i++) {
+    const el = g('tip' + i);
+    if (el) el.classList.toggle('active', i === _tipCurrent);
+  }
+  // progress bar
+  g('tipsProgressBar').style.width = ((_tipCurrent + 1) / TIPS_COUNT * 100) + '%';
+  // dots
+  const dotsEl = g('tipsDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < TIPS_COUNT; i++) {
+    const d = document.createElement('div');
+    d.className = 'tip-dot' + (i === _tipCurrent ? ' active' : '');
+    d.onclick = () => { _tipCurrent = i; renderTips(); resetTipTimer(); };
+    dotsEl.appendChild(d);
+  }
+  // button
+  const isLast = _tipCurrent === TIPS_COUNT - 1;
+  g('tipsNextTxt').textContent = isLast ? "Let's Go!" : 'Next';
+  g('tipsNextIcon').className = isLast ? 'fas fa-camera' : 'fas fa-arrow-right';
+}
+
+function tipsNext() {
+  if (_tipCurrent < TIPS_COUNT - 1) {
+    _tipCurrent++;
+    renderTips();
+    resetTipTimer();
+  } else {
+    closeTips();
+  }
+}
+
+function startTipTimer() {
+  clearInterval(_tipTimer);
+  _tipTimer = setInterval(() => {
+    if (_tipCurrent < TIPS_COUNT - 1) {
+      _tipCurrent++;
+      renderTips();
+    } else {
+      clearInterval(_tipTimer);
+    }
+  }, 3000);
+}
+
+function resetTipTimer() {
+  clearInterval(_tipTimer);
+  startTipTimer();
 }
 </script>
 </body>

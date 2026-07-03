@@ -1005,6 +1005,10 @@ button,input,textarea{font-family:inherit}
     <div class="card-title">Capture &amp; Analyse</div>
     <div class="card-sub">Upload a photo of the switchboard or take a live shot with your device camera</div>
 
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px">PANEL PHOTO</span>
+      <button onclick="event.stopPropagation();showTips()" style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:rgba(61,205,88,.08);border:1px solid rgba(61,205,88,.25);color:#3DCD58;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.3px"><i class="fas fa-camera"></i> Photo Guide</button>
+    </div>
     <div class="up-zone" id="uploadZone">
       <input type="file" id="fileInput" accept="image/*">
       <div class="up-icon"><i class="fas fa-cloud-arrow-up"></i></div>
@@ -1185,13 +1189,11 @@ let _pendingAction = null; // 'file' or 'cam' — stored while tips are shown
 
 uploadZone.addEventListener('click', e => {
   if (e.target === fileInput) return; // let input handle itself
-  if (!_tipsShownOnce) { _pendingAction = 'file'; showTips(); }
-  else fileInput.click();
+  _pendingAction = 'file'; showTips();
 });
 g('camBtn').addEventListener('click', e => {
   e.preventDefault();
-  if (!_tipsShownOnce) { _pendingAction = 'cam'; showTips(); }
-  else g('camInput').click();
+  _pendingAction = 'cam'; showTips();
 });
 
 uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag'); });
@@ -2087,7 +2089,6 @@ function fwReset(){
 const TIPS_COUNT = 7;
 let _tipCurrent = 0;
 let _tipTimer = null;
-let _tipsShownOnce = false;
 
 function showTips() {
   _tipCurrent = 0;
@@ -2099,8 +2100,6 @@ function showTips() {
 function closeTips() {
   g('tipsOverlay').classList.remove('open');
   clearInterval(_tipTimer);
-  _tipsShownOnce = true;
-  // trigger the pending action after modal closes
   setTimeout(() => {
     if (_pendingAction === 'file') { _pendingAction = null; fileInput.click(); }
     else if (_pendingAction === 'cam') { _pendingAction = null; g('camInput').click(); }

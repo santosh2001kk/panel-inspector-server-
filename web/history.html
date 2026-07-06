@@ -283,6 +283,8 @@ function fmtDate(ts) {
 
 function cap(s){ return s ? s[0].toUpperCase() + s.slice(1) : '—'; }
 
+let _renderedScans = [];
+
 function renderGrid(scans) {
   if (!scans.length) {
     document.getElementById('mainContent').innerHTML = `
@@ -292,7 +294,8 @@ function renderGrid(scans) {
       </div>`;
     return;
   }
-  const html = scans.map(s => {
+  _renderedScans = scans;
+  const html = scans.map((s, idx) => {
     const imgSrc   = s.image_path
       ? (s.image_path.startsWith('http') ? s.image_path : `${API}/api/scan-image/${s.image_path}`)
       : null;
@@ -304,7 +307,7 @@ function renderGrid(scans) {
     const date     = fmtDate(s.timestamp);
     const tech     = s.inspector || s.username || '—';
 
-    return `<div class="scan-card" onclick="openDetail(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+    return `<div class="scan-card" onclick="openDetail(${idx})">
       ${imgSrc
         ? `<img class="scan-thumb" src="${imgSrc}" alt="Panel" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : ''}
@@ -333,7 +336,9 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 let _currentScan = null;
 
-function openDetail(scan) {
+function openDetail(idx) {
+  const scan = _renderedScans[idx];
+  if (!scan) return;
   _currentScan = scan;
   const imgSrc = scan.image_path
     ? (scan.image_path.startsWith('http') ? scan.image_path : `${API}/api/scan-image/${scan.image_path}`)

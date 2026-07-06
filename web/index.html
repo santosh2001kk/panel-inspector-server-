@@ -335,6 +335,13 @@ button,input,textarea{font-family:inherit}
 .proj-banner i{color:var(--green);font-size:14px;flex-shrink:0}
 .proj-banner-name{font-size:13px;font-weight:700;color:var(--text)}
 .proj-banner-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.rv-banner{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(61,205,88,.07);border:1px solid rgba(61,205,88,.3);border-radius:14px;margin-bottom:14px}
+.rv-banner-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid rgba(61,205,88,.2)}
+.rv-banner-thumb-ph{width:52px;height:52px;border-radius:8px;background:rgba(61,205,88,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(61,205,88,.15)}
+.rv-banner-info{flex:1;min-width:0}
+.rv-banner-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#3DCD58;margin-bottom:3px}
+.rv-banner-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-banner-sub{font-size:11px;color:var(--muted);margin-top:2px}
 
 /* SLD compare */
 .sld-cmp{background:rgba(3,10,22,.95);border:1px solid rgba(74,158,255,.12);border-radius:16px;margin-top:14px;padding:20px 24px}
@@ -846,6 +853,8 @@ button,input,textarea{font-family:inherit}
 <div class="wiz-wrap">
 
   <!-- PROJECT INFO -->
+  <div id="rvBanner" style="display:none"></div>
+
   <div class="wiz-card" id="projCard">
     <div class="card-eyebrow">
       <div class="card-icon" style="background:rgba(61,205,88,.1);border:1px solid rgba(61,205,88,.2)">
@@ -1113,7 +1122,69 @@ if (localStorage.getItem('pi_auth') !== '1') {
     if (uEl) uEl.textContent = username;
     if (aEl) aEl.textContent = username ? username[0].toUpperCase() : 'T';
     if (tEl && username) tEl.value = username;
+
+    const returnId = new URLSearchParams(window.location.search).get('return');
+    if (returnId) applyReturnVisit(returnId);
   });
+
+  async function applyReturnVisit(scanId) {
+    try {
+      const res = await fetch(`${window.location.origin}/api/scans/${encodeURIComponent(scanId)}`);
+      if (!res.ok) return;
+      const scan = await res.json();
+
+      // Pre-fill project fields
+      const pn = document.getElementById('projName');
+      const ps = document.getElementById('projSite');
+      const pt = document.getElementById('projTech');
+      if (pn && scan.project_name) pn.value = scan.project_name;
+      if (ps && scan.site)         ps.value = scan.site;
+      if (pt && scan.inspector)    pt.value = scan.inspector;
+
+      // Show reference banner
+      const API = window.location.origin;
+      const imgSrc = scan.image_path
+        ? (scan.image_path.startsWith('http') ? scan.image_path : `${API}/api/scan-image/${scan.image_path}`)
+        : null;
+      const dateStr = scan.timestamp
+        ? new Date(scan.timestamp + (scan.timestamp.endsWith('Z') ? '' : 'Z'))
+            .toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+        : '—';
+      const rvBanner = document.getElementById('rvBanner');
+      if (rvBanner) {
+        rvBanner.style.display = 'block';
+        rvBanner.innerHTML = `<div class="rv-banner">
+          ${imgSrc
+            ? `<img class="rv-banner-thumb" src="${imgSrc}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="rv-banner-thumb-ph" ${imgSrc ? 'style="display:none"' : ''}>
+            <i class="fas fa-solar-panel" style="color:#3DCD58;font-size:18px"></i>
+          </div>
+          <div class="rv-banner-info">
+            <div class="rv-banner-label"><i class="fas fa-rotate-right"></i> Return Visit — Based on Previous Inspection</div>
+            <div class="rv-banner-title">${(scan.project_name || 'Unnamed Project').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+            <div class="rv-banner-sub">${dateStr} · ${(scan.panel_type || 'Unknown panel').replace(/&/g,'&amp;').replace(/</g,'&lt;')} · ${(scan.task || 'inspection').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+          </div>
+        </div>`;
+      }
+
+      // Auto-progress wizard: DEAD → Doors Open
+      fwGo(1, 'no');
+      setTimeout(() => {
+        fwGo(2, 'yes');
+        // Select previous task
+        if (scan.task) {
+          const taskBtn = document.querySelector(`.t-btn[data-task="${scan.task}"]`);
+          if (taskBtn) taskBtn.click();
+        }
+        // Scroll to capture card
+        const card4 = document.getElementById('card4');
+        if (card4) setTimeout(() => card4.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+      }, 120);
+    } catch(e) {
+      console.warn('Return visit pre-fill failed:', e);
+    }
+  }
 }
 function doLogout(){
   localStorage.removeItem('pi_auth');

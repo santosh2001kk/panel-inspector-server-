@@ -2498,7 +2498,12 @@ def get_scan_image(filename: str):
 def get_scan(scan_id: str):
     conn = _get_db()
     ph   = "%s" if _USE_POSTGRES else "?"
-    cur  = _execute(conn, f"SELECT * FROM scans WHERE id = {ph}", (scan_id,))
+    cur  = _execute(conn, f"""
+        SELECT s.*, p.project_name, p.site, p.inspector
+        FROM scans s
+        LEFT JOIN projects p ON s.project_id = p.id
+        WHERE s.id = {ph}
+    """, (scan_id,))
     row  = _fetchone(cur)
     conn.close()
     if not row:

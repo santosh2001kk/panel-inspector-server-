@@ -87,6 +87,8 @@ button,input,select{font-family:inherit}
 .btn-sm{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s;border:1px solid;display:flex;align-items:center;gap:5px}
 .btn-print-sm{border-color:rgba(74,158,255,.25);background:rgba(74,158,255,.06);color:var(--blue)}
 .btn-print-sm:hover{border-color:rgba(74,158,255,.5);background:rgba(74,158,255,.12)}
+.btn-return-sm{border-color:rgba(61,205,88,.25);background:rgba(61,205,88,.06);color:#3DCD58;text-decoration:none}
+.btn-return-sm:hover{border-color:rgba(61,205,88,.5);background:rgba(61,205,88,.12)}
 
 /* EMPTY / LOADING */
 .state-box{text-align:center;padding:80px 20px;color:var(--muted)}
@@ -279,6 +281,9 @@ function renderGrid(scans) {
           <button class="btn-sm btn-print-sm" onclick="event.stopPropagation();openPrint(${JSON.stringify(s).replace(/"/g,'&quot;')})">
             <i class="fas fa-print"></i> Print Report
           </button>
+          <a class="btn-sm btn-return-sm" href="index.html?return=${encodeURIComponent(s.id)}" onclick="event.stopPropagation()">
+            <i class="fas fa-rotate-right"></i> Return Visit
+          </a>
         </div>
       </div>
     </div>`;

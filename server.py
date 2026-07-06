@@ -39,7 +39,7 @@ if _env_path.exists():
 import numpy as np
 import cv2
 # pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
@@ -2492,6 +2492,32 @@ def get_scan_image(filename: str):
     if not os.path.isfile(path):
         return JSONResponse(status_code=404, content={"error": "Image not found"})
     return FileResponse(path, media_type="image/jpeg")
+
+
+@app.get("/api/pwa-icon")
+def pwa_icon(size: int = 192):
+    size = max(64, min(size, 512))
+    img = Image.new("RGBA", (size, size), (1, 9, 18, 255))
+    draw = ImageDraw.Draw(img)
+    # Rounded background square (SE green gradient approximated as solid)
+    pad = size // 8
+    r = size // 5
+    draw.rounded_rectangle([pad, pad, size - pad, size - pad], radius=r, fill=(61, 205, 88, 255))
+    # "SE" text centred
+    font_size = size // 3
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+    except Exception:
+        font = ImageFont.load_default()
+    text = "SE"
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text(((size - tw) / 2 - bbox[0], (size - th) / 2 - bbox[1]), text, font=font, fill=(1, 9, 18, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(buf, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/scans/{scan_id}")

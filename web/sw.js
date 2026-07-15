@@ -1,10 +1,18 @@
-const CACHE = 'panel-inspector-v2';
+const CACHE = 'panel-inspector-v3';
 const SHELL = [
   '/home.html',
   '/index.html',
   '/history.html',
   '/login.html',
   '/manifest.json',
+  '/css/index.css',
+  '/css/history.css',
+  '/css/home.css',
+  '/css/login.css',
+  '/js/index.js',
+  '/js/history.js',
+  '/js/home.js',
+  '/js/login.js',
 ];
 
 self.addEventListener('install', e => {

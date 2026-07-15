@@ -10,6 +10,8 @@ import json
 import os
 import re
 import socket
+import threading
+import traceback
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -36,16 +38,18 @@ if _env_path.exists():
         if _line and not _line.startswith("#") and "=" in _line:
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip())
+
 import numpy as np
 import cv2
-# pyzbar removed — using OpenCV's built-in QR detector (no system library needed)
 from PIL import Image, ImageDraw, ImageFont
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as _F
 from typing import Optional
+
+
 def classify_panel(acb: int, mccb: int, mcb: int, drawers: int = 0) -> str:
     if acb >= 1 and drawers > 4:
         return "Okken"
@@ -82,8 +86,7 @@ else:
 
 app = FastAPI(title="Breaker Detection API", version="1.0.0")
 
-# --- SQLite Database Setup ---
-_DB_PATH     = os.path.join(os.path.dirname(__file__), "breaker_data.db")
+# --- Database Setup ---
 _DB_PATH     = os.path.join(os.path.dirname(__file__), "scans.db")
 _IMAGES_DIR  = os.path.join(os.path.dirname(__file__), "scans_images")
 os.makedirs(_IMAGES_DIR, exist_ok=True)
@@ -124,8 +127,6 @@ def _get_db():
     return conn
 
 def _fetchall(cur):
-    if _USE_POSTGRES:
-        return [dict(r) for r in cur.fetchall()]
     return [dict(r) for r in cur.fetchall()]
 
 def _fetchone(cur):
@@ -1748,8 +1749,7 @@ def analyze(body: AnalyzeRequest):
         raw = re.sub(r"\s*```$", "", raw)
         data = json.loads(raw)
     else:
-        from pydantic import BaseModel as _BM, Field as _F
-        class _Breaker(_BM):
+        class _Breaker(BaseModel):
             type: str = _F(description="Component name. For breakers use Schneider product name (MasterPact MTZ, MasterPact NT, Compact NSX, Compact NS, Acti9, iC60, Multi9). For other components use: Contactor, Relay, PLC, Meter, Terminal Block, Cable Duct, or Column.")
             box: list[int] = _F(description="[ymin, xmin, ymax, xmax] normalized 0-1000.")
             category: str = _F(default="component", description="'component' for breakers, contactors, PLCs, meters, relays. 'structure' for panel columns, drawers, and cubicle sections.")
@@ -1758,7 +1758,7 @@ def analyze(body: AnalyzeRequest):
             circuit_label: str = _F(default="", description="Circuit name/description on label strip — e.g. 'LV MAIN', 'LIGHTING DB'. Empty if not visible.")
             rating: str = _F(default="", description="Current rating on breaker face — e.g. '400A', '63A'. Empty if not visible.")
             estimated_dimensions: str = _F(default="", description="Estimated physical size if determinable — e.g. '250x150mm'. Empty if not estimable.")
-        class _DetectionResult(_BM):
+        class _DetectionResult(BaseModel):
             breakers: list[_Breaker] = _F(description="One entry per individual component. For 'standard'/'expert' mode include all visible components. For 'fast' mode include only major breakers.")
             panel_type: str = _F(description=(
                 "Exactly one of: PrismaSeT G, PrismaSeT P, Okken, ABB ArTu, ABB MNS, Not a Panel. "
@@ -2211,7 +2211,6 @@ def analyze(body: AnalyzeRequest):
             data["safety_warnings"] = erms_ws + (sw if sw else data.get("safety_warnings", []))
 
         except Exception as _e:
-            import traceback
             print(f"[CUBICLE] Auto-detect failed: {_e}\n{traceback.format_exc()}")
             data["cubicle_count"] = 0
             data["cubicles"]      = []
@@ -2229,7 +2228,6 @@ def analyze(body: AnalyzeRequest):
 
     # --- Persist scan ---
     try:
-        import threading as _threading
         scan_id   = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
 
@@ -2245,7 +2243,7 @@ def analyze(body: AnalyzeRequest):
                     print(f"[STORAGE] Background upload complete: {fn}")
                 except Exception as _ue:
                     print(f"[STORAGE] Background upload error: {_ue}")
-            _threading.Thread(target=_bg_upload, args=(img_filename, img_bytes), daemon=True).start()
+            threading.Thread(target=_bg_upload, args=(img_filename, img_bytes), daemon=True).start()
         else:
             img_path = os.path.join(_IMAGES_DIR, img_filename)
             with open(img_path, "wb") as _imgf:
@@ -2305,16 +2303,13 @@ def analyze(body: AnalyzeRequest):
         print(f"[DB] Scan saved: {scan_id} | {data.get('panel_type')} | {result_summary['breaker_count']} components | project={project_id}")
         data["scan_id"] = scan_id
     except Exception as _db_err:
-        import traceback
         print(f"[DB] Save failed: {_db_err}")
         traceback.print_exc()
-    # --------------------------------
 
     return JSONResponse(content=data)
 
   except Exception as _e:
-    import traceback as _tb
-    _trace = _tb.format_exc()
+    _trace = traceback.format_exc()
     print(f"[ERROR] /api/analyze: {_e}\n{_trace}")
     return JSONResponse(
         status_code=500,
@@ -2323,8 +2318,7 @@ def analyze(body: AnalyzeRequest):
 
 
 # ── Panel Library ─────────────────────────────────────────────────────────────
-import os as _os
-_LIBRARY_PATH = _os.path.join(_os.path.dirname(__file__), "panel_library.json")
+_LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "panel_library.json")
 with open(_LIBRARY_PATH, "r") as _f:
     PANEL_LIBRARY = json.load(_f)
 
@@ -2516,7 +2510,6 @@ def pwa_icon(size: int = 192):
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
-    from fastapi.responses import StreamingResponse
     return StreamingResponse(buf, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
@@ -2554,9 +2547,7 @@ def verify_panel(body: VerifyPanelRequest):
     'Are these photos showing the exact same electrical panel?'
     Returns match=True/False + reason + confidence.
     """
-    from pydantic import BaseModel as _BM
-
-    class _VerifyResult(_BM):
+    class _VerifyResult(BaseModel):
         match:      bool
         confidence: str   # "high", "medium", "low"
         reason:     str   # one sentence explanation
@@ -2637,7 +2628,7 @@ _CHECKLIST_COMMON_DEAD = [
     {"id": "dead_2", "text": "LOTO completed — personal lock and tag physically on the isolator (consignation/padlocking done).", "critical": True},
     {"id": "dead_3", "text": "Absence of voltage confirmed using an approved tester — panel is DEAD.", "critical": True},
     {"id": "dead_4", "text": "PPE appropriate for the residual arc flash risk is worn (minimum PPE1 even when de-energized).", "critical": True},
-    {"id": "dead_5", "text": "Arc fl]]l-,[0mp9biy76vt5r3ash boundary marked and all nearby personnel informed.", "critical": False},
+    {"id": "dead_5", "text": "Arc flash boundary marked and all nearby personnel informed.", "critical": False},
 ]
 
 _CHECKLIST_COMMON_LIVE = [
@@ -2970,9 +2961,8 @@ def aging_assessment(body: AgingRequest):
 
 
 # Serve the web UI — must be last so API routes take priority
-import os as _os
-_web_dir = _os.path.join(_os.path.dirname(__file__), "web")
-if _os.path.isdir(_web_dir):
+_web_dir = os.path.join(os.path.dirname(__file__), "web")
+if os.path.isdir(_web_dir):
     app.mount("/", StaticFiles(directory=_web_dir, html=True), name="web")
 
 if __name__ == "__main__":

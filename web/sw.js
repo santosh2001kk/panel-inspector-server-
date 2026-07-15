@@ -1,4 +1,4 @@
-const CACHE = 'panel-inspector-v1';
+const CACHE = 'panel-inspector-v2';
 const SHELL = [
   '/home.html',
   '/index.html',

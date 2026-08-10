@@ -1,13 +1,14 @@
 # Panel Inspector — Complete Project Documentation
 
 A professional electrical panel inspection tool for Schneider Electric field engineers.
-Built with an Android app and a Python AI server.
+Built as a **web-based Progressive Web App (PWA)** — installable on Android, iOS, and
+desktop straight from the browser — backed by a Python AI server.
 
-The engineer takes a photo of an electrical panel on their phone.
+The engineer takes a photo of an electrical panel on their phone (or uploads one).
 Within seconds the AI identifies every breaker, warns about live busbars,
-generates safety steps, and produces a PDF inspection report.
+generates safety steps, and produces an inspection checklist and report.
 
-**AI Used: Google Gemini only (gemini-2.5-pro-preview)**
+**AI Used: Google Gemini (`gemini-3.1-pro-preview` for analysis, `gemini-2.0-flash` for fast OCR)**
 
 ---
 
@@ -30,349 +31,156 @@ or call a specialist. This app automates all of that in seconds from a phone pho
 ## System Overview
 
 ```
-Engineer's Phone (Android App)
+Engineer's Browser (installed as a PWA — Android / iOS / desktop)
         │
-        │  Same WiFi network
-        │  HTTP POST to port 8000
+        │  HTTPS POST (same origin as the app itself)
         │  Sends: photo + work zone + task + SLD image (if uploaded)
         ▼
-Laptop running Python Server (server.py)
+FastAPI Server (server.py) — cloud-hosted, one container
+        │  Serves the web/ folder (the app itself) AND the /api/* routes
         │
         │  HTTPS to Google API
         │  Sends: photo + SLD + layout + instructions
         ▼
-Google Gemini AI (gemini-2.5-pro-preview)
+Google Gemini AI (gemini-3.1-pro-preview / gemini-2.0-flash)
         │
         │  Returns: panel type, breaker boxes, circuit labels, ratings, warnings
         ▼
-Python Server
+FastAPI Server
         │  Safety engine adds LOTO/PPE/arc flash warnings
         │  Catalogue engine adds Schneider maintenance checklist
-        │  Saves scan to SQLite database on laptop
+        │  Saves scan to PostgreSQL (Supabase) / SQLite
         │
-        │  HTTP JSON response
+        │  HTTPS JSON response
         ▼
-Android App
+Browser (PWA)
         Draws bounding boxes on photo
-        Shows safety warnings
-        Engineer saves/shares PDF report
+        Shows safety warnings and checklist
+        Engineer saves the scan to History
 ```
+
+The app is not a native mobile app — it's a set of static pages (`web/*.html`, `web/js/*.js`)
+served by the same FastAPI process that serves the API. A `manifest.json` and a service
+worker (`sw.js`) make it installable and give it an app icon and offline shell caching,
+which is what makes it feel like a native Android app without needing Kotlin, an APK,
+or the Play Store.
 
 ---
 
-## Part 1 — Android App (Screen by Screen)
+## Part 1 — Web App (Page by Page)
 
 ### How the App is Built
-- Language: Kotlin
-- Camera: CameraX library
-- HTTP requests: OkHttp
-- JSON parsing: Gson + org.json
-- Images: Glide
-- Storage: SharedPreferences (settings) + JSON file (scan history)
-- PDF: Custom ReportGenerator
+- Language: Vanilla JavaScript (no framework — no React/Angular/Vue)
+- Markup/styling: Plain HTML + CSS (`web/css/*.css`)
+- HTTP requests: native `fetch()` API
+- Camera/upload: native `<input type="file" accept="image/*" capture="environment">`
+- Session/local state: `localStorage` (login state, cached preferences)
+- Installability: `manifest.json` + `sw.js` (service worker) — makes it a PWA
+- Icons: generated server-side by `GET /api/pwa-icon`
 
 ---
 
-### Screen 1 — LoginActivity
+### Page 1 — `login.html` / `login.js`
 
 What it does:
-- First screen when the app opens
-- Shows a username and password input
-- Sends login request to the server: `POST /api/login`
-- Server checks credentials against a hardcoded user list
-- On success: saves `is_logged_in = true` to SharedPreferences and goes to MainActivity
-- On failure: shows error message
+- First page when the app opens
+- Username and password fields
+- Sends `POST /api/login` with `{ username, password }`
+- On success (`200`): stores `pi_auth = '1'` and `pi_user = <username>` in `localStorage`, redirects to `home.html`
+- On failure (`401`): shows "Invalid username or password"
+- On network failure: shows "Cannot reach server. Check your connection."
+- If already logged in (`pi_auth` already set) → skips straight to `home.html`
 
 Where credentials are stored:
-- Server side in `USERS` dictionary in server.py
-- Current users: santosh / admin / techuser
+- Server side, checked against a `USERS` dictionary in `server.py`
 
 ---
 
-### Screen 2 — MainActivity (Home Dashboard)
+### Page 2 — `home.html` / `home.js` (Dashboard)
 
-What it shows:
-- **Scan count tile** — total number of scans done (tappable, goes to Reports)
-- **Warnings tile** — total safety warnings encountered across all scans (tappable, shows summary dialog)
-- **Last panel scanned** — product type and how long ago
-- **Project subtitle** — active project name in green if set, grey prompt if not
-- **Documents subtitle** — shows "SLD uploaded", "Layout uploaded", "SLD + Layout uploaded", or prompt
-- **Pulsing dot** — green if server is reachable, orange if offline (checked every 10 seconds)
-- **Sign Out button** — shows confirmation dialog, clears login state
+What it does on load:
+- Redirects back to `login.html` if `pi_auth` isn't set in `localStorage`
+- Fetches `GET /api/scans` and renders:
+  - Recent scan activity
+  - Animated stat counters (via `animateNum`)
+- Greets the logged-in user by the `pi_user` value from `localStorage`
 
-Navigation cards:
-- **Scan** — starts the guided flow: Documents → Task Selection → Camera
-- **Reports** — opens scan history
-- **Project Details** — fill in project name, site, inspector
-- **Documents** — upload SLD and mechanical layout
-
-How the pulse check works:
-- Every 10 seconds, tries to open a TCP socket to the server IP on port 8000
-- If it connects within 2 seconds → "Model ready" (green)
-- If it fails → "Server offline" (orange)
+Navigation:
+- Links out to the inspection wizard (`index.html`), scan history (`history.html`), and the SLD compare tool
+- **Sign Out** clears `pi_auth` / `pi_user` from `localStorage` and redirects to `login.html`
 
 ---
 
-### Screen 3 — ProjectDetailsActivity
+### Page 3 — `index.html` / `index.js` (Inspection Wizard)
 
-What it does:
-- Three text fields: Project Name, Site Location, Inspector Name
-- Saved to SharedPreferences under key `"google_api_prefs"`
-- These values are:
-  - Shown in the home screen subtitle
-  - Sent to the server with every scan request
-  - Printed on every PDF report
+The main workflow — a 4-step guided flow shown as a stepper bar at the top:
 
----
+1. **Intervention Type** — Live or Dead work
+2. **Work Access & Task** — which doors are being opened, and the task type:
+   Commissioning · Maintenance · Modification · Replacement · Others
+3. **Documents** — optional SLD (Single Line Diagram) and mechanical layout upload
+4. **Capture & Analyse** — take/upload the panel photo, draw a work zone, run the AI
 
-### Screen 4 — DocumentsActivity
+**Photo capture:**
+- Native file input with `capture="environment"` opens the phone's rear camera directly, or falls back to gallery picker
+- Image is read as a base64 string client-side, no native camera library needed
 
-What it does:
-- Upload two reference images from the phone gallery:
+**Work zone drawing:**
+- Canvas-based rectangle drawing directly on the loaded photo (`startDraw`/mouse & touch handlers)
+- A safety buffer is computed as a slightly expanded version of the drawn rectangle
+- Both sent to the server as normalised 0–1000 coordinates, same as the coordinate system in Part 4
 
-**SLD (Single Line Diagram)**
-- The electrical diagram of the panel showing all circuits, ratings, and connections
-- Saved as `sld_image_path.jpg` in the app's internal files directory
-- Path stored in SharedPreferences as `"sld_image_path"`
-
-**Mechanical Layout**
-- Physical diagram showing cubicle positions and dimensions
-- Saved as `layout_image_path.jpg`
-- Path stored in SharedPreferences as `"layout_image_path"`
-
-How they are used:
-- When WorkZoneActivity sends a scan request, it reads both file paths from SharedPreferences
-- Loads both as Bitmaps, converts them to Base64 JPEG strings
-- Sends them as `sldBase64` and `layoutBase64` in the JSON payload
-- Server passes them to Gemini as additional context images before the panel photo
-- Gemini reads them and uses them to cross-reference what it sees in the panel photo
-
-Important note:
-- Both are OPTIONAL. Most panels in the field do not have a mechanical layout.
-- If neither is uploaded → app still works normally
-- If only SLD uploaded → Gemini uses it for circuit cross-reference
-- If both uploaded → best accuracy
-
----
-
-### Screen 5 — TaskSelectionActivity
-
-What it does:
-- Engineer selects what type of work they are doing:
-  - Commissioning (new installation check)
-  - Maintenance (routine or periodic)
-  - Modification (adding or changing components)
-  - Replacement (replacing a broken breaker)
-  - Others (general inspection)
-
-Why it matters:
-- This value is sent to the server as `task`
-- The catalogue engine on the server uses it to pick the right checklist
-- For example: Maintenance on MasterPact MTZ → returns NII_Z_1 / NIII_Z_1 procedure codes
-- The task type is also saved in the scan record and printed on the PDF
-
----
-
-### Screen 6 — ScanActivity (Camera)
-
-What it does:
-- Shows a live camera preview using CameraX
-- Engineer frames the panel in the viewfinder
-- Taps the green FAB button to capture the photo
-
-**Pinch-to-zoom:**
-- Engineer can use two fingers to zoom in before taking the photo
-- Implemented using `ScaleGestureDetector`
-- On pinch: reads current `zoomRatio` from `camera.cameraInfo.zoomState`
-- Multiplies by `detector.scaleFactor` (>1 = zoom in, <1 = zoom out)
-- Sets new zoom via `camera.cameraControl.setZoomRatio()`
-- CameraX automatically clamps to the device's supported zoom range
-- Why this matters: zooming in makes label text bigger in the photo so Gemini can read it
-
-**Photo quality check (runs after capture):**
-
-1. Brightness check:
-   - Samples every 10th pixel of the image
-   - Converts each pixel to greyscale: `R*0.299 + G*0.587 + B*0.114`
-   - Averages all samples
-   - Average < 50 → "too dark" warning
-   - Average > 220 → "too bright" warning
-
-2. Blur check (Laplacian variance):
-   - Runs on the centre 50% of the image
-   - Applies a Laplacian filter: `4*centre - top - bottom - left - right` per pixel
-   - Calculates variance of all Laplacian values
-   - Variance < 80.0 → "blurry" warning
-   - Low variance means there are no sharp edges in the image = blurry
-
-If quality check fails:
-- Dialog appears: "Image Too Dark / Too Bright / Blurry"
-- Options: "Retake" (dismiss) or "Continue Anyway"
-
-If quality check passes:
-- Goes directly to WorkZoneActivity
-
-Alternative:
-- Gallery FAB button lets engineer pick an existing photo from the phone gallery
-
----
-
-### Screen 7 — WorkZoneActivity
-
-What it does:
-- Shows the captured photo full screen
-- Engineer draws a rectangle on the area they want to work in
-- This is called the **Work Zone**
-
-How the drawing works:
-- Touch down → start corner of rectangle
-- Drag → live preview of rectangle
-- Touch up → rectangle confirmed
-- Uses `WorkZoneOverlay` custom view for the drawing interaction
-
-Safety Buffer:
-- After the work zone is confirmed, the app automatically creates a slightly bigger rectangle
-- This is the **Safety Buffer** — expands the work zone by ~10% on each side
-- The safety buffer is the actual boundary used for breaker detection on the server
-- Both are sent to the server in normalised 0-1000 coordinates
-
-Buttons:
-- **Analyze Zone** — sends photo + work zone + safety buffer to server for full analysis
-- **Identify Panel** — sends photo without work zone, just identifies panel type and all breakers
-
-What gets sent to the server:
-```
-- imageBase64       (the panel photo compressed to max 1536px, JPEG quality 90)
-- workZone          (ymin, xmin, ymax, xmax — normalised 0-1000)
-- safetyBuffer      (slightly expanded work zone)
-- sldBase64         (SLD image if uploaded — from SharedPreferences)
-- layoutBase64      (layout image if uploaded — from SharedPreferences)
-- task              (from TaskSelectionActivity — "maintenance" etc.)
-- username          (from login_prefs SharedPreferences)
-- projectName       (from google_api_prefs SharedPreferences)
-- site              (from google_api_prefs SharedPreferences)
-- inspector         (from google_api_prefs SharedPreferences)
+**What gets sent to the server** (`POST /api/analyze`):
+```text
+imageBase64    — the panel photo, base64 JPEG
+workZone       — {ymin, xmin, ymax, xmax}, normalised 0-1000
+safetyBuffer   — slightly expanded work zone
+sldBase64      — SLD image, if uploaded in step 3
+layoutBase64   — mechanical layout image, if uploaded in step 3
+task           — "maintenance" etc., from step 2
+username       — from localStorage (pi_user)
+projectName / site / inspector — project metadata
 ```
 
----
+**Other actions available from this page**, each hitting its own endpoint:
+- `POST /api/aging` — aging/condition assessment of the equipment
+- `POST /api/read-sld` — read and interpret an uploaded single-line diagram
+- `POST /api/compare-sld` — compare the SLD against what the photo shows
+- `POST /api/checklist` — fetch the Schneider maintenance checklist for the panel/task
 
-### Screen 8 — ResultActivity (Result Screen)
-
-This is the main output screen. It shows the annotated photo and all AI findings.
-
-**Photo display:**
-- Full screen ImageView with `scaleType="fitCenter"`
-- Transparent `BoundingBoxOverlay` view sits exactly on top
-- All boxes and zones are drawn on the overlay, not on the image itself
-
-**What BoundingBoxOverlay draws (in order, back to front):**
-
-1. Safety Buffer — red dashed rectangle
-   - Shows the boundary that was used for breaker detection
-
-2. Work Zone — green semi-transparent filled rectangle with solid border
-   - Shows exactly where the engineer said they want to work
-
-3. Cubicle segments (if returned by server) — coloured boxes labelled C1, C2, C3...
-   - Each cubicle gets a different colour (red, blue, green, orange, purple, cyan)
-   - Label centred inside the box
-   - Used in PrismaSeT P to show the VBB cubicle position
-
-4. Busbar strip (fallback if no cubicle boxes) — orange shaded area
-   - 18% of panel width on left or right side
-   - Only shown when server returns `busbar_side` = "left" or "right"
-   - Represents the VBB (Vertical Busbar Box) — always live, never open
-
-5. Breaker bounding boxes — one per detected breaker
-   - Colour by breaker family:
-     - Red (#F44336) = ACB: MasterPact MTZ, MasterPact NT
-     - Orange (#FF9800) = MCCB: Compact NSX, Compact NS
-     - Blue (#2196F3) = MCB: Acti9, iC60, Multi9
-     - Green (#4CAF50) = unknown
-   - Above the box: product name label (e.g. "COMPACT NSX")
-   - Below the box: circuit label and rating (e.g. "LV MAIN | 400A") — only if Gemini could read it
-
-**How overlay coordinates work:**
-- The image is displayed with `fitCenter` — it may have black bars (letterboxing) on sides or top/bottom
-- The overlay must match the image position exactly
-- Scale factor: `sc = min(viewWidth / imageWidth, viewHeight / imageHeight)`
-- Horizontal offset: `offX = (viewWidth - imageWidth * sc) / 2`
-- Vertical offset: `offY = (viewHeight - imageHeight * sc) / 2`
-- Any pixel coord from server: `screenX = pixelX * sc + offX`
-
-**Bottom sheet:**
-- Slides up from the bottom (uses BottomSheetBehavior)
-- Peek height: 80dp (buttons always visible)
-- Pull up to see full content
-
-Contents of the bottom sheet:
-- **Buttons row**: QR (if QR codes found), Retake, Save, Share
-- **Inspection Notes card** (blue) — what Gemini observed in one or two sentences
-- **Safety Warnings card** (red) — LOTO steps, PPE, arc flash level
-- If both catalogue guidance and work zone present → safety warnings shown, not checklist
-
-**VBB overlap check:**
-- After overlay is drawn, app checks if the work zone rectangle overlaps with the VBB box
-- If overlap: immediate AlertDialog: "Your work zone overlaps with the VBB cubicle — live busbars present"
-- Forces engineer to acknowledge before proceeding
-
-**Save button:**
-- Calls `ReportGenerator.generate()` which creates a PDF with:
-  - Project name, site, inspector, date
-  - Annotated photo (photo + overlay drawn onto a Bitmap using Canvas)
-  - Panel type and summary
-  - Notes
-  - Safety warnings
-  - Checklist
-- PDF saved to device
-- Scan record saved to `ScanHistoryStore` (JSON file on device)
-- Scan stats updated in SharedPreferences (scan count, warning count, last panel type)
-- Opens PDF viewer automatically
+**Rendering the result** (`renderResults`):
+- Draws colour-coded bounding boxes over the photo on a `<canvas>` (same colour-by-family scheme as before: red = ACB, orange = MCCB, blue = MCB)
+- Shows panel type, notes, safety warnings, and checklist inline on the page
+- `renderError` shows a clear error state if the AI call fails
 
 ---
 
-### Screen 9 — ReportsActivity
+### Page 4 — `history.html` / `history.js`
 
 What it does:
-- Reads all records from `ScanHistoryStore`
-- Shows a scrollable list: date, project name, panel type, task
-- Tap any record → opens its saved PDF file
-- Delete button to remove a record
+- Fetches `GET /api/scans` and renders every past scan as a card grid
+- Stat tiles at the top (total scans, total warnings, etc.) via `renderStats`
+- Filters via `applyFilters` (by panel type, task, date)
+- Tapping a card (`openDetail`) opens a slide-in drawer with the full scan detail — this replaced an earlier click-to-print interaction
+- `openPrint` lets the engineer print/export the scan record from the browser's native print dialog
+- **Sign Out** available here too, same `localStorage` clear as the dashboard
 
 ---
 
-### Screen 10 — LocateVbbActivity / VbbResultActivity
+### Page 5 — `results.html`
 
-Purpose:
-- Dedicated flow specifically for locating the VBB (Vertical Busbar Box) in a PrismaSeT P panel
-- The VBB is always live even when the main breaker is OFF — touching it can be fatal
-- Engineer photos the closed panel → AI draws a box around the VBB door and marks which side it's on
-
-What the server does in this mode:
-- `busbarOnly = true` is sent in the request
-- Server runs a separate cubicle segmentation call
-- Returns cubicle boxes with one labelled as "vbb"
-- Also returns the exact VBB bounding box in pixel coords
-
-VbbResultActivity:
-- Shows the photo with the VBB highlighted in orange
-- Shows a safety warning: "VBB contains live busbars — never open this cubicle without upstream isolation"
+- Dedicated full-page view for a single scan's results (bounding boxes, warnings, checklist), reused by both the wizard's inline result view and links from history
 
 ---
 
-### Screen 11 — VerifyPanelActivity
+### Other Server-Rendered / Utility Endpoints Used by the Web App
 
-Purpose:
-- Before starting work, engineer takes a fresh photo of the panel they are standing in front of
-- AI compares it to the reference photo taken during the original risk assessment
-- Confirms it is the same panel — prevents working on the wrong switchboard
-
-How it works:
-- Shows two photos side by side: "Risk Analysis Photo" and "Your Current Photo"
-- Sends both to server: `POST /api/verify_panel`
-- Server sends both images to Gemini with instructions to compare them
-- Returns: `match: true/false`, `confidence: high/medium/low`, `reason: one sentence`
-- App shows result in green (match) or red (mismatch) with the reason
+- `GET /api/scan-image/{filename}` — serves the saved photo for a given scan
+- `GET /api/scans/{scan_id}` — fetch one scan's full record
+- `GET /api/projects` — list saved project names for autocomplete
+- `POST /api/verify_panel` — compares a fresh photo against a reference photo to confirm it's the same panel before starting work (same purpose as before — prevents working on the wrong switchboard — just invoked from the web wizard instead of a dedicated Android screen)
+- `POST /api/locate_vbb` — dedicated VBB (Vertical Busbar Box) location flow for PrismaSeT P panels; the VBB is always live even with the main breaker off, so this returns a highlighted box and a hazard warning
+- `GET /api/pwa-icon?size=192|512` — generates the app icon referenced by `manifest.json`, so the installed PWA has a real icon on the home screen
 
 ---
 
@@ -697,15 +505,18 @@ Response: { "match": true, "confidence": "high", "reason": "Same panel confirmed
 
 ## Part 3 — Data Storage (Two Places)
 
-### On the Laptop (Server Side)
+### Server Side — PostgreSQL (Supabase), SQLite fallback
 
-**SQLite database** — `breaker_data.db`
-- Every scan permanently recorded
+**Database** — one abstraction (`_get_db()` in `server.py`) picks the driver at start-up:
+- If `DATABASE_URL` is set → connects to PostgreSQL (hosted on Supabase in production)
+- If not set → falls back to a local SQLite file (`breaker_data.db`) for zero-setup local dev
+- Same SQL and the same code path either way — only the connection differs
 - Two tables: `projects` and `scans`
-- `scans_images/` folder stores the actual JPEG of every scanned panel
-- Persists even when server is restarted
+- `scans_images/` folder (or equivalent cloud storage) holds the actual JPEG of every scanned panel
+- Persists across deploys/restarts since it's a managed database, not a file on a laptop
 
-**To view the database manually:**
+**To inspect the local SQLite fallback manually:**
+
 ```bash
 sqlite3 breaker_data.db
 .tables               # shows: projects  scans
@@ -714,45 +525,16 @@ SELECT * FROM projects;
 .quit
 ```
 
-### On the Phone (Android Side)
+### Browser Side — `localStorage`
 
-**SharedPreferences** (`google_api_prefs`) — app settings and stats:
+The web app keeps almost no state client-side — the database is the source of truth, and pages just re-fetch from `GET /api/scans` whenever they need data. `localStorage` only holds the lightweight session flags:
+
 | Key | What it stores |
 |-----|----------------|
-| `scan_count` | Total scans done |
-| `warning_count` | Total safety warnings |
-| `last_scan_time_ms` | Timestamp of last scan |
-| `last_panel_type` | e.g. "PrismaSeT P" |
-| `project_name` | Active project name |
-| `site_location` | Site name |
-| `inspector_name` | Inspector name |
-| `sld_image_path` | File path to uploaded SLD |
-| `layout_image_path` | File path to uploaded layout |
-| `photo_guide_seen` | Whether onboarding guide was shown |
+| `pi_auth` | `'1'` if logged in, otherwise absent — checked by every page on load |
+| `pi_user` | logged-in username — shown in greetings, sent with scan requests |
 
-**SharedPreferences** (`login_prefs`) — session:
-| Key | What it stores |
-|-----|----------------|
-| `is_logged_in` | true/false |
-| `username` | logged-in username |
-
-**JSON file** (`scan_history.json` in app's filesDir):
-- All scan records saved locally on the phone
-- Each record is a `ScanRecord` object:
-  - id, dateMs, projectName, siteLocation, inspectorName
-  - panelType, panelSummary, notes
-  - warnings (list of strings)
-  - imagePath (path to the saved JPEG on phone)
-  - reportFilePath (path to the saved PDF on phone)
-  - busbarOnly, cubicleCount, task
-
-**Image files** (in app's external files directory):
-- Every captured photo saved as `yyyyMMdd_HHmmss.jpg`
-- Referenced by path in ScanRecord
-
-**PDF files** (in app's external files directory):
-- Generated by ReportGenerator for each saved scan
-- Referenced by path in ScanRecord
+There is no separate on-device scan history file, PDF store, or SharedPreferences equivalent — history, images, and reports are all fetched live from the server (`GET /api/scans`, `GET /api/scan-image/{filename}`), which is what makes the same account usable from any device without syncing.
 
 ---
 
@@ -791,112 +573,106 @@ The conversion formula is: `pixel = normalised / 1000 * image_dimension`
 ## Part 5 — All Files Explained
 
 ### Server Side
+
 | File | What it does |
 |------|-------------|
-| `server.py` | The entire server — FastAPI routes, Gemini integration, safety engine, catalogue engine, database logic |
-| `.env` | Contains `GEMINI_KEY=...` — never share or commit this file |
-| `breaker_data.db` | SQLite database — auto-created on first run |
-| `scans_images/` | Folder where every scanned panel photo is saved |
+| `server.py` | The entire backend — FastAPI routes, Gemini integration, safety engine, catalogue engine, database logic — also mounts and serves `web/` |
+| `.env` | Contains `GEMINI_KEY=...`, `DATABASE_URL=...`, Supabase keys — never share or commit this file |
+| `requirements.txt` | Python dependencies (FastAPI, Gemini SDK, OpenCV, psycopg2, supabase, etc.) |
+| `Dockerfile` | Multi-stage build — packages the server + `web/` into one deployable container |
+| `render.yaml` | Infra-as-code deployment config (env vars, start command) for Render |
+| `breaker_data.db` | Local SQLite fallback database — auto-created on first run when `DATABASE_URL` isn't set |
+| `scans_images/` | Folder where every scanned panel photo is saved (local dev) |
 | `panel_library.json` | Reference data for panel specifications |
 
-### Android App Side
+### Web App Side (`web/`)
+
 | File | What it does |
 |------|-------------|
-| `MainActivity.kt` | Home dashboard, server ping, navigation |
-| `LoginActivity.kt` | Login screen |
-| `ProjectDetailsActivity.kt` | Project/site/inspector form |
-| `DocumentsActivity.kt` | SLD and layout upload |
-| `TaskSelectionActivity.kt` | Pick commissioning/maintenance/etc. |
-| `ScanActivity.kt` | Camera with pinch-to-zoom, quality check |
-| `WorkZoneActivity.kt` | Draw work zone, send to server |
-| `ResultActivity.kt` | Show annotated photo + warnings + checklist |
-| `BoundingBoxOverlay.kt` | Custom view drawing boxes/zones over photo |
-| `GoogleStudioDetector.kt` | HTTP client — sends to server, parses JSON response |
-| `Detection.kt` | Data model for one breaker (type, box, circuit label, rating) |
-| `ScanRecord.kt` | Data model for one saved scan |
-| `ScanHistoryStore.kt` | Save/load scan records as JSON on phone |
-| `ReportGenerator.kt` | Generates PDF from scan data |
-| `ReportsActivity.kt` | Scan history list screen |
-| `LocateVbbActivity.kt` | Dedicated VBB hunting flow |
-| `VbbResultActivity.kt` | VBB result with highlighted box |
-| `VerifyPanelActivity.kt` | AI panel identity verification |
-| `PhotoGuideActivity.kt` | First-time onboarding photo guide |
-| `ZoneCoords.kt` | Simple data class for zone rectangle |
-| `WorkZoneOverlay.kt` | Touch drawing overlay for work zone screen |
+| `login.html` / `js/login.js` | Login page and its logic |
+| `home.html` / `js/home.js` | Dashboard — recent scans, stats, navigation |
+| `index.html` / `js/index.js` | The inspection wizard — capture, work zone, analyze, aging, SLD read/compare, checklist |
+| `history.html` / `js/history.js` | Scan history grid, filters, slide-in detail drawer |
+| `results.html` | Full-page single-scan result view |
+| `dashboard.html` | Extended dashboard/reporting view |
+| `portfolio.html` | Project/portfolio overview page |
+| `manifest.json` | PWA manifest — app name, icons, start URL, theme color — makes the app installable |
+| `sw.js` | Service worker — caches the app shell for offline loading and fast repeat visits |
+| `css/*.css` | One stylesheet per page, split out from the HTML |
 
 ---
 
 ## Part 6 — Setup
 
 ### Requirements
-- Python 3.9+ on laptop
-- Android phone running Android 7.0+ (API 24)
-- Both on the same WiFi network
-- Gemini API key — free at ai.google.dev
+- Python 3.11+ (matches `runtime.txt` / the Docker base image)
+- A Gemini API key — free at ai.google.dev
+- Optional: a Supabase/PostgreSQL project if you want to use `DATABASE_URL` instead of the SQLite fallback
+- Any modern browser — no Android SDK, emulator, or native build tooling needed
 
-### Start the Server
+### Run Locally
+
 ```bash
 cd /path/to/project_API_google
-GEMINI_KEY=your_key_here python3 server.py
+pip install -r requirements.txt
+GEMINI_KEY=your_key_here uvicorn server:app --reload --port 8000
 ```
 
-Output:
-```
-INFO: Uvicorn running on http://0.0.0.0:8000
-Server running at:
-  http://localhost:8000
-  http://10.x.x.x:8000  ← use this in the Android app
-```
+Then open `http://localhost:8000/home.html` in a browser. Because the same FastAPI
+process serves both the API and the `web/` folder, there's no separate frontend
+server, no IP address to configure, and no CORS setup needed for local use.
 
-### Update IP in Android App
-Every time the laptop's WiFi IP changes, update two files then Clean + Rebuild:
+### Install as an App (PWA)
 
-`GoogleStudioDetector.kt`:
-```kotlin
-const val BASE_URL = "http://NEW_IP_HERE:8000/api/analyze"
-```
+On a phone or desktop, open the deployed URL (or `http://localhost:8000/home.html`
+locally) in the browser and use **"Add to Home Screen"** (Android/Chrome) or
+**"Install"** (desktop Chrome/Edge). The manifest and service worker handle the rest —
+no APK, no Play Store listing, no separate build per platform.
 
-`MainActivity.kt`:
-```kotlin
-val isOnline = isServerReachable("NEW_IP_HERE", 8000)
-```
+### Deploy to the Cloud
+
+The app ships as a single Docker container (`Dockerfile`) and can be deployed to
+Cloud Run, Render, or any container host. Required environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `GEMINI_KEY` | Google Gemini API key |
+| `DATABASE_URL` | PostgreSQL connection string (omit to fall back to SQLite) |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | If using Supabase for storage/auth |
+
+`render.yaml` already declares these as deploy-time secrets for a one-click Render setup.
 
 ---
 
 ## Part 7 — Features Implemented
 
 ### Done
-- Login screen with session
-- Home dashboard with live server status ping
-- Project/site/inspector details
-- SLD and mechanical layout upload
-- Camera with pinch-to-zoom
-- Photo quality check (brightness + blur)
-- Work zone drawing on photo
-- Safety buffer auto-expansion
+- Installable Progressive Web App (Android / iOS / desktop) — no APK, no app store
+- Login page with session held in `localStorage`
+- Home dashboard with recent scan activity and stats
+- Project/site/inspector details captured in the wizard
+- SLD and mechanical layout upload — accepts image or PDF directly (PDFs are read natively by Gemini; images convert to JPG client-side via pdf.js when needed for preview)
+- Photo capture via native `<input capture>` (opens rear camera) or gallery/file upload
+- Work zone drawing on the photo (canvas-based rectangle)
+- Safety buffer auto-expansion around the drawn work zone
 - Panel type identification (PrismaSeT G / P / Okken)
-- Breaker detection with colour-coded bounding boxes
+- Breaker detection with colour-coded bounding boxes, drawn on canvas
 - Circuit label reading per breaker (e.g. "LV MAIN")
 - Current rating reading per breaker (e.g. "400A")
-- Labels shown below bounding boxes on result screen
 - Busbar side detection (left/right VBB)
-- VBB overlap warning when work zone touches live busbar
-- Cubicle segmentation (C1, C2, C3 on screen)
 - Slide-accurate safety warnings (LOTO / PPE / arc flash)
 - ERMS recommendation when MasterPact MTZ detected
 - Schneider catalogue checklists (PrismaSeT P/G, Okken, MTZ)
-- MasterPact MTZ maintenance checklist with NII/NIII procedure codes
-- PDF report generation and saving
-- Share PDF report
-- Scan history screen
+- Aging/condition assessment (`/api/aging`)
+- SLD reading and SLD-vs-photo comparison (`/api/read-sld`, `/api/compare-sld`)
+- Report export via the browser's native Print / Save-as-PDF dialog
+- Scan history page with filters and a slide-in detail drawer
 - AI panel identity verification (prevent working on wrong panel)
 - VBB locate mode
-- Photo onboarding guide
-- QR code reading from panel labels
-- SQLite database on server (records every scan permanently)
-- Scan images saved to `scans_images/` on server
+- PostgreSQL (Supabase) database with SQLite fallback — records every scan permanently
+- Scan images saved and served back via `/api/scan-image/{filename}`
 
 ### Planned / Not Yet Done
-- Tap a breaker box on result screen to zoom-crop and re-read its label
-- SLD cross-check warnings (highlight discrepancies between photo and SLD)
-- Pinch-to-zoom on the result screen after scanning
+- Tap a breaker box on the result view to zoom-crop and re-read its label
+- QR code reading from panel labels
+- Offline scan queueing (capture offline, sync when back online)

@@ -773,7 +773,7 @@ async function loadChecklist() {
       body:JSON.stringify({ task_type:S.task, is_live:S.isLive, panel_type:'', has_sld:hasSld, vbb_side:null, cubicle_count:0 })
     });
     const data = await res.json();
-    const src      = data.task_items&&data.task_items.length ? data.task_items : data.items;
+    const src      = data.items;
     const critical = src.filter(i=>i.critical);
     const rest     = src.filter(i=>!i.critical);
     const items    = [...critical,...rest].slice(0,6);

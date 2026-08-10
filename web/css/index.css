@@ -10,7 +10,7 @@
   --card-bg:rgba(8,22,42,.85);
   --nav-h:64px;--step-h:72px;
 }
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;background:var(--bg);color-scheme:dark}
 body{
   font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
   min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;

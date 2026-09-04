@@ -589,12 +589,12 @@ nav{
       <div class="section-icon orange"><i class="fas fa-door-open"></i></div>
       <div class="section-label-wrap">
         <div class="section-step">Step 2</div>
-        <div class="section-title">Work Access</div>
-        <div class="section-sub">Does this task require opening the panel doors or accessing the interior?</div>
+        <div class="section-title" id="sec2Title">Work Access</div>
+        <div class="section-sub" id="sec2Sub">Does this task require opening the panel doors or accessing the interior?</div>
       </div>
       <div class="step-check" id="check2"><i class="fas fa-check"></i></div>
     </div>
-    <div class="toggle-center">
+    <div class="toggle-center" id="doorToggleWrap">
       <div class="toggle-wrap">
         <button class="toggle-btn dead-inactive" id="btnNoDoor" onclick="setDoorAccess(false)">
           <i class="fas fa-xmark-circle"></i> NO — External Only
@@ -963,12 +963,17 @@ function setEnergy(state){
   isLive=(state==='live');
   const btnD=document.getElementById('btnDead'), btnL=document.getElementById('btnLive');
   const info=document.getElementById('energyInfo');
+  const doorWrap=document.getElementById('doorToggleWrap');
+  const sec2Title=document.getElementById('sec2Title'), sec2Sub=document.getElementById('sec2Sub');
   if(isLive){
     btnD.className='toggle-btn dead-inactive'; btnL.className='toggle-btn live-active';
     info.className='energy-info live'; info.style.display='';
     info.innerHTML='<i class="fas fa-triangle-exclamation"></i> Energised — Arc Flash AND Electric Shock hazards present. ERMS activation recommended before any intervention.';
     showCheck(1); unlockSection('sec2'); setStep(2);
     openDoors=null; selectedTask=null;
+    sec2Title.textContent='Work Access';
+    sec2Sub.textContent='Does this task require opening the panel doors or accessing the interior?';
+    doorWrap.style.display='';
     document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
     document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
     document.getElementById('doorInfo').style.display='none';
@@ -977,14 +982,15 @@ function setEnergy(state){
   } else {
     btnL.className='toggle-btn live-inactive'; btnD.className='toggle-btn dead-active';
     info.className='energy-info dead'; info.style.display='';
-    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — LOTO (Lock-Out / Tag-Out) applies. Select your task below.';
-    // Dead work: skip the Work Access question entirely, go straight to task
-    // selection with LOTO items automatically included in the checklist.
+    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — LOTO (Lock-Out / Tag-Out) applies before opening.';
+    // Dead work: skip the Work Access question entirely (it only matters for
+    // live work) — hide it, and go straight to task selection with LOTO
+    // items automatically included in the checklist.
     showCheck(1); unlockSection('sec2'); setStep(2);
     openDoors=true; selectedTask=null;
-    document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
-    document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
-    document.getElementById('doorInfo').style.display='none';
+    sec2Title.textContent='Task Type';
+    sec2Sub.textContent='LOTO applies to this de-energised intervention — select your task below.';
+    doorWrap.style.display='none';
     document.getElementById('taskGridArea').style.display='';
     document.getElementById('check2').classList.remove('show');
   }

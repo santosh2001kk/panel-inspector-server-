@@ -967,18 +967,27 @@ function setEnergy(state){
     btnD.className='toggle-btn dead-inactive'; btnL.className='toggle-btn live-active';
     info.className='energy-info live'; info.style.display='';
     info.innerHTML='<i class="fas fa-triangle-exclamation"></i> Energised — Arc Flash AND Electric Shock hazards present. ERMS activation recommended before any intervention.';
+    showCheck(1); unlockSection('sec2'); setStep(2);
+    openDoors=null; selectedTask=null;
+    document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
+    document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
+    document.getElementById('doorInfo').style.display='none';
+    document.getElementById('taskGridArea').style.display='none';
+    document.getElementById('check2').classList.remove('show');
   } else {
     btnL.className='toggle-btn live-inactive'; btnD.className='toggle-btn dead-active';
     info.className='energy-info dead'; info.style.display='';
-    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — Arc Flash hazard only near adjacent live sections. Ensure LOTO is applied before opening.';
+    info.innerHTML='<i class="fas fa-shield-check"></i> De-energised — LOTO (Lock-Out / Tag-Out) applies. Select your task below.';
+    // Dead work: skip the Work Access question entirely, go straight to task
+    // selection with LOTO items automatically included in the checklist.
+    showCheck(1); unlockSection('sec2'); setStep(2);
+    openDoors=true; selectedTask=null;
+    document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
+    document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
+    document.getElementById('doorInfo').style.display='none';
+    document.getElementById('taskGridArea').style.display='';
+    document.getElementById('check2').classList.remove('show');
   }
-  showCheck(1); unlockSection('sec2'); setStep(2);
-  openDoors=null; selectedTask=null;
-  document.getElementById('btnNoDoor').className='toggle-btn dead-inactive';
-  document.getElementById('btnYesDoor').className='toggle-btn live-inactive';
-  document.getElementById('doorInfo').style.display='none';
-  document.getElementById('taskGridArea').style.display='none';
-  document.getElementById('check2').classList.remove('show');
 }
 
 // ── Step 2: Work Access ──
@@ -989,9 +998,9 @@ function setDoorAccess(open){
   if(!open){
     btnNo.className='toggle-btn dead-active'; btnYes.className='toggle-btn live-inactive';
     info.className='energy-info dead'; info.style.display='';
-    info.innerHTML='<i class="fas fa-gears"></i> Switchboard Operation — external access only, no interior entry required.';
+    info.innerHTML='<i class="fas fa-gears"></i> Commissioning — external access only, no interior entry required.';
     taskArea.style.display='none';
-    selectedTask='operation';
+    selectedTask='commissioning';
     document.getElementById('check2').classList.remove('show');
     showCheck(2); unlockSection('sec3'); setStep(3);
   } else {
